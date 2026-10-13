@@ -1,0 +1,1752 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Anteraja Frozen Logistics API",
+    "description": "Dokumentasi OpenAPI / Swagger REST API untuk platform logistik cold chain Anteraja Frozen. Mencakup modul Admin, Kurir, dan Portal Pembeli / Client.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Anteraja Frozen Engineering Team",
+      "url": "https://anteraja.id"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://frozen.anteraja.id/api",
+      "description": "Production Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Autentikasi sesi staf internal (Admin & Kurir)"
+    },
+    {
+      "name": "Admin - Shipments",
+      "description": "Manajemen data pengiriman, alokasi armada, dan penjadwalan"
+    },
+    {
+      "name": "Admin - Exceptions",
+      "description": "Penanganan kendala kualitas cold chain dan penetapan putusan admin"
+    },
+    {
+      "name": "Admin - Reports",
+      "description": "Monitoring metrik performa & SLA cold chain harian"
+    },
+    {
+      "name": "Admin - History",
+      "description": "Audit & arsip riwayat paket terminal"
+    },
+    {
+      "name": "Courier - Tasks",
+      "description": "Pengelolaan antrean tugas kurir, estimasi jarak, dan konfirmasi penugasan"
+    },
+    {
+      "name": "Courier - Delivery",
+      "description": "Eksekusi perjalanan pengantaran dan pencatatan milestone"
+    },
+    {
+      "name": "Courier - Proof & Issues",
+      "description": "Pencatatan bukti serah terima (POD) dan pelaporan insiden lapangan"
+    },
+    {
+      "name": "Courier - Profile",
+      "description": "Statistik performa dan riwayat pengantaran kurir"
+    },
+    {
+      "name": "Client Portal",
+      "description": "Layanan pelacakan publik pembeli berbasis token, konfirmasi jadwal, & klaim penggantian"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "sessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "laravel_session",
+        "description": "Autentikasi sesi Laravel untuk staf internal (Admin & Kurir)"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Bearer token (Sanctum) untuk pengujian API & integrasi mobile"
+      }
+    },
+    "schemas": {
+      "ApiResponseSuccess": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Operasi berhasil."
+          }
+        }
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string",
+            "example": "Terjadi kesalahan pada permintaan."
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "dimas@anteraja.id"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "password"
+          }
+        }
+      },
+      "StaffUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Dimas Pratama"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "dimas@anteraja.id"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "COURIER"
+            ],
+            "example": "ADMIN"
+          },
+          "phone": {
+            "type": "string",
+            "example": "081299990001"
+          }
+        }
+      },
+      "CreateShipmentRequest": {
+        "type": "object",
+        "required": [
+          "buyer_name",
+          "buyer_phone",
+          "buyer_address",
+          "product_name",
+          "quantity",
+          "scheduled_at",
+          "scheduled_end_at"
+        ],
+        "properties": {
+          "buyer_name": {
+            "type": "string",
+            "example": "Dewi Lestari"
+          },
+          "buyer_phone": {
+            "type": "string",
+            "example": "081234567890"
+          },
+          "buyer_address": {
+            "type": "string",
+            "example": "Jl. Senopati No. 88, Kebayoran Baru, Jakarta Selatan"
+          },
+          "product_name": {
+            "type": "string",
+            "example": "Frozen Wagyu Slice 500g"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 2
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-15T08:00:00Z"
+          },
+          "scheduled_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-15T10:00:00Z"
+          },
+          "service_type": {
+            "type": "string",
+            "enum": [
+              "REGULER",
+              "INSTANT_FROZEN"
+            ],
+            "default": "REGULER"
+          },
+          "handling_notes": {
+            "type": "string",
+            "example": "Jaga di suhu -18°C"
+          }
+        }
+      },
+      "AssignCourierRequest": {
+        "type": "object",
+        "required": [
+          "courier_id"
+        ],
+        "properties": {
+          "courier_id": {
+            "type": "integer",
+            "example": 2
+          },
+          "cooler_box_code": {
+            "type": "string",
+            "example": "BOX-FROZEN-04"
+          }
+        }
+      },
+      "RescheduleShipmentRequest": {
+        "type": "object",
+        "required": [
+          "scheduled_at",
+          "scheduled_end_at"
+        ],
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-16T08:00:00Z"
+          },
+          "scheduled_end_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-16T10:00:00Z"
+          },
+          "admin_note": {
+            "type": "string",
+            "example": "Dijadwalkan ulang sesuai konfirmasi pembeli."
+          }
+        }
+      },
+      "ResolveDecisionRequest": {
+        "type": "object",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PROCEED",
+              "RECHECK",
+              "RETURN",
+              "RESEND",
+              "RESCHEDULE"
+            ],
+            "example": "RETURN"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Retur ke gudang karena kemasan luar rusak parah."
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Wajib jika decision=RESCHEDULE / RESEND"
+          },
+          "scheduled_end_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CourierDistanceRequest": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "float",
+            "example": -6.229746
+          },
+          "longitude": {
+            "type": "number",
+            "format": "float",
+            "example": 106.848529
+          }
+        }
+      },
+      "CourierRejectRequest": {
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Kapasitas cooler box motor sudah penuh."
+          }
+        }
+      },
+      "CourierDepartRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "example": "Berangkat dari Hub Tebet."
+          }
+        }
+      },
+      "CourierArriveRequest": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "float",
+            "example": -6.2301
+          },
+          "longitude": {
+            "type": "number",
+            "format": "float",
+            "example": 106.8492
+          }
+        }
+      },
+      "CourierStoreProofRequest": {
+        "type": "object",
+        "required": [
+          "photo",
+          "temperature_c",
+          "recipient_type"
+        ],
+        "properties": {
+          "photo": {
+            "type": "string",
+            "format": "binary",
+            "description": "File foto bukti serah terima (JPEG/PNG/WEBP, maks 5MB)"
+          },
+          "temperature_c": {
+            "type": "number",
+            "format": "float",
+            "example": -18.5
+          },
+          "recipient_type": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "REPRESENTATIVE"
+            ],
+            "example": "BUYER"
+          },
+          "recipient_name": {
+            "type": "string",
+            "example": "Rina Putri"
+          },
+          "recipient_relation": {
+            "type": "string",
+            "enum": [
+              "SELF",
+              "FAMILY",
+              "SECURITY",
+              "COLLEAGUE"
+            ],
+            "example": "SELF"
+          },
+          "notes": {
+            "type": "string",
+            "example": "Paket diterima langsung dalam kondisi beku sempurna."
+          }
+        }
+      },
+      "CourierStoreIssueRequest": {
+        "type": "object",
+        "required": [
+          "issue_category",
+          "description",
+          "temperature_c"
+        ],
+        "properties": {
+          "photo": {
+            "type": "string",
+            "format": "binary",
+            "description": "Foto kendala fisik / kemasan (Opsional, maks 5MB)"
+          },
+          "issue_category": {
+            "type": "string",
+            "enum": [
+              "KEMASAN_BOCOR",
+              "KEMASAN_BASAH",
+              "SUHU_NAIK",
+              "PEMBELI_TIDAK_ADA",
+              "ALAMAT_TIDAK_DITEMUKAN",
+              "COD_DITOLAK"
+            ],
+            "example": "SUHU_NAIK"
+          },
+          "description": {
+            "type": "string",
+            "example": "Suhu terukur -8°C karena kendala ice gel bocor."
+          },
+          "temperature_c": {
+            "type": "number",
+            "format": "float",
+            "example": -8.0
+          }
+        }
+      },
+      "ClientConfirmScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "example": "Saya siap menerima paket di jam tersebut."
+          }
+        }
+      },
+      "ClientRescheduleRequest": {
+        "type": "object",
+        "required": [
+          "date",
+          "slot"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-16"
+          },
+          "slot": {
+            "type": "string",
+            "enum": [
+              "08:00-10:00",
+              "10:00-12:00",
+              "13:00-15:00",
+              "15:00-17:00"
+            ],
+            "example": "13:00-15:00"
+          },
+          "reason": {
+            "type": "string",
+            "example": "Sedang di luar rumah pada pagi hari."
+          }
+        }
+      },
+      "ClientReplacementRequest": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "example": "Mohon pastikan tiba sebelum jam 12 siang."
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login Staf (Admin / Kurir)",
+        "description": "Mengautentikasi staf dan menghasilkan cookie sesi HTTP-only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Login berhasil."
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/StaffUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Kredensial tidak valid"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout Staf",
+        "description": "Menghapus sesi login staf yang sedang aktif.",
+        "responses": {
+          "200": {
+            "description": "Logout berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Cek Profil Sesi Staf",
+        "description": "Mengembalikan data staf yang saat ini sedang terautentikasi.",
+        "responses": {
+          "200": {
+            "description": "Data profil aktif",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/StaffUser"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Belum terautentikasi"
+          }
+        }
+      }
+    },
+    "/admin/shipments": {
+      "get": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Daftar Pengiriman (Shipments Index)",
+        "description": "Mengambil daftar pengiriman dengan opsi pencarian, filter status, filter kurir, dan pagination.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Pencarian resi / nama pembeli / kurir",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter status paket",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "issue",
+                "transit",
+                "waiting",
+                "delivered",
+                "scheduled"
+              ]
+            }
+          },
+          {
+            "name": "courier",
+            "in": "query",
+            "description": "Filter kurir (nama atau unassigned)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schedule",
+            "in": "query",
+            "description": "Filter rentang waktu jadwal",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "today",
+                "tomorrow",
+                "all"
+              ],
+              "default": "today"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar pengiriman",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "shipments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "meta": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Buat Pengiriman Baru",
+        "description": "Menambahkan paket cold chain baru dengan status awal AWAITING_CONFIRMATION.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShipmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Paket berhasil dibuat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Paket berhasil dibuat."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validasi gagal"
+          }
+        }
+      }
+    },
+    "/admin/shipments/create": {
+      "get": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Data Master Form Pembuatan Paket",
+        "description": "Mengambil master produk, pembeli, dan opsi jadwal untuk form admin.",
+        "responses": {
+          "200": {
+            "description": "Data master pembuatan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/shipments/export": {
+      "get": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Ekspor CSV Pengiriman",
+        "description": "Menghasilkan stream file CSV daftar pengiriman dengan proteksi CSV Formula Injection.",
+        "responses": {
+          "200": {
+            "description": "File stream CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/shipments/{tracking_number}": {
+      "get": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Detail Pengiriman",
+        "description": "Mengambil detail lengkap paket, riwayat cold chain, dan log status audit.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail paket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paket tidak ditemukan"
+          }
+        }
+      }
+    },
+    "/admin/shipments/{tracking_number}/assign": {
+      "post": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Tugaskan Kurir & Cooler Box",
+        "description": "Menugaskan kurir aktif dan mengalokasikan kode cooler box pendingin (FSM -> COURIER_ASSIGNED).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignCourierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Penugasan berhasil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Status paket tidak dapat ditugaskan"
+          }
+        }
+      }
+    },
+    "/admin/shipments/{tracking_number}/reschedule": {
+      "post": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Jadwalkan Ulang Pengiriman",
+        "description": "Memperbarui jadwal tanggal dan slot jam pengiriman oleh admin.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleShipmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Jadwal berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/exceptions": {
+      "get": {
+        "tags": [
+          "Admin - Exceptions"
+        ],
+        "summary": "Daftar Kendala Cold Chain Aktif",
+        "description": "Mengambil daftar paket yang dilaporkan mengalami insiden kualitas/suhu yang belum diputus.",
+        "responses": {
+          "200": {
+            "description": "Daftar kendala",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/exceptions/{tracking_number}": {
+      "get": {
+        "tags": [
+          "Admin - Exceptions"
+        ],
+        "summary": "Detail Kendala & Pemeriksaan Kualitas",
+        "description": "Mengambil detail laporan kendala lapangan, foto bukti insiden via signed URL, dan opsi putusan.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail kendala",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/exceptions/{tracking_number}/decision": {
+      "post": {
+        "tags": [
+          "Admin - Exceptions"
+        ],
+        "summary": "Tetapkan Putusan Admin atas Kendala",
+        "description": "Mengeksekusi keputusan admin (PROCEED, RECHECK, RETURN, RESEND, RESCHEDULE) dengan transisi FSM resmi.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Putusan berhasil dieksekusi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reports": {
+      "get": {
+        "tags": [
+          "Admin - Reports"
+        ],
+        "summary": "Laporan KPI Operasional & Kepatuhan Cold Chain",
+        "description": "Mengambil ringkasan metrik SLA harian, rasio on-time delivery, dan kepatuhan suhu dingin.",
+        "responses": {
+          "200": {
+            "description": "Ringkasan metrik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/reports/export": {
+      "get": {
+        "tags": [
+          "Admin - Reports"
+        ],
+        "summary": "Ekspor CSV Rekap Laporan",
+        "description": "Mengunduh berkas CSV rekap metrik kepatuhan operasional.",
+        "responses": {
+          "200": {
+            "description": "File stream CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/history": {
+      "get": {
+        "tags": [
+          "Admin - History"
+        ],
+        "summary": "Riwayat Paket Terminal",
+        "description": "Mengambil daftar paket yang telah selesai (DELIVERED, RETURNED, RESOLVED).",
+        "responses": {
+          "200": {
+            "description": "Riwayat paket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/history/export": {
+      "get": {
+        "tags": [
+          "Admin - History"
+        ],
+        "summary": "Ekspor CSV Riwayat",
+        "description": "Mengunduh berkas CSV riwayat paket selesai.",
+        "responses": {
+          "200": {
+            "description": "File stream CSV",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/tasks": {
+      "get": {
+        "tags": [
+          "Courier - Tasks"
+        ],
+        "summary": "Daftar Tugas Kurir",
+        "description": "Mengambil antrean tugas milik kurir terautentikasi (terbagi menjadi newTasks dan activeTasks).",
+        "responses": {
+          "200": {
+            "description": "Daftar tugas kurir",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/tasks/{tracking_number}/distance": {
+      "get": {
+        "tags": [
+          "Courier - Tasks"
+        ],
+        "summary": "Hitung Jarak & ETA Pengantaran",
+        "description": "Menghitung jarak Haversine (km) dan estimasi waktu tiba (menit) dari koordinat kurir ke alamat pembeli.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012351"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "example": -6.229746
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "example": 106.848529
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kalkulasi jarak",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/tasks/{tracking_number}/accept": {
+      "post": {
+        "tags": [
+          "Courier - Tasks"
+        ],
+        "summary": "Kurir Menerima Tugas",
+        "description": "Menandai konfirmasi penerimaan tugas oleh kurir (idempotent).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012351"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tugas diterima",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/tasks/{tracking_number}/reject": {
+      "post": {
+        "tags": [
+          "Courier - Tasks"
+        ],
+        "summary": "Kurir Menolak Tugas",
+        "description": "Menolak penugasan paket dengan alasan (FSM -> CONFIRMED, unassign kurir).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012351"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourierRejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tugas ditolak",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}": {
+      "get": {
+        "tags": [
+          "Courier - Delivery"
+        ],
+        "summary": "Detail Pengantaran Kurir",
+        "description": "Mengambil informasi rincian pengantaran, panduan suhu kargo, dan status tombol aksi.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012352"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail pengantaran",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}/depart": {
+      "post": {
+        "tags": [
+          "Courier - Delivery"
+        ],
+        "summary": "Mulai Pengantaran (Berangkat)",
+        "description": "Mencatat milestone DEPARTED dan mengubah status paket menjadi IN_DELIVERY.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012354"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourierDepartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pengantaran dimulai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}/arrive": {
+      "post": {
+        "tags": [
+          "Courier - Delivery"
+        ],
+        "summary": "Tiba di Lokasi Pembeli",
+        "description": "Mencatat milestone ARRIVED di lokasi tujuan pengantaran.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012352"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourierArriveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tiba di lokasi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}/proof": {
+      "get": {
+        "tags": [
+          "Courier - Proof & Issues"
+        ],
+        "summary": "Form Bukti Serah Terima (POD Schema)",
+        "description": "Mengambil skema checklist pemeriksaan suhu dan identitas penerima paket.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012353"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skema form bukti",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Courier - Proof & Issues"
+        ],
+        "summary": "Kirim Bukti Serah Terima (Selesaikan Paket)",
+        "description": "Mengunggah foto bukti privat, mencatat suhu akhir, dan menyelesaikan paket (FSM -> DELIVERED).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012353"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CourierStoreProofRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bukti berhasil disimpan dan paket selesai",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}/issue": {
+      "get": {
+        "tags": [
+          "Courier - Proof & Issues"
+        ],
+        "summary": "Form Lapor Kendala Lapangan",
+        "description": "Mengambil kategori kendala cold chain dan panduan darurat untuk kurir.",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012352"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data form lapor kendala",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Courier - Proof & Issues"
+        ],
+        "summary": "Kirim Laporan Kendala Lapangan",
+        "description": "Mencatat insiden suhu / kerusakan paket di perjalanan (FSM -> ISSUE_REPORTED).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012352"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CourierStoreIssueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Laporan kendala tersimpan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/history": {
+      "get": {
+        "tags": [
+          "Courier - Profile"
+        ],
+        "summary": "Riwayat Pengantaran Kurir",
+        "description": "Mengambil riwayat paket yang pernah diantar oleh kurir yang sedang login.",
+        "responses": {
+          "200": {
+            "description": "Riwayat pengantaran",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courier/profile": {
+      "get": {
+        "tags": [
+          "Courier - Profile"
+        ],
+        "summary": "Profil & Statistik Kurir",
+        "description": "Mengambil metrik performa kurir (total antar, tepat waktu, skor cold chain).",
+        "responses": {
+          "200": {
+            "description": "Profil dan metrik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}": {
+      "get": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Entry Point Resolver Layar Pembeli",
+        "description": "Menentukan layar target yang tepat (schedule / tracking / issue) berdasarkan status FSM paket.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "Token heksadesimal 64 karakter",
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rekomendasi layar dan URL redirect",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "screen": {
+                      "type": "string",
+                      "enum": [
+                        "schedule",
+                        "tracking",
+                        "issue"
+                      ],
+                      "example": "schedule"
+                    },
+                    "redirect_url": {
+                      "type": "string",
+                      "example": "http://localhost:8000/api/client/a1b2c3.../schedule"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Tautan tidak valid atau telah kedaluwarsa"
+          }
+        }
+      }
+    },
+    "/client/{token}/schedule": {
+      "get": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Detail Konfirmasi Jadwal",
+        "description": "Menampilkan rincian kargo, slot tanggal & jam yang diajukan, serta batas waktu konfirmasi.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail jadwal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}/schedule/confirm": {
+      "post": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Pembeli Menyetujui Jadwal",
+        "description": "Mengonfirmasi kesiapan penerimaan paket (FSM -> CONFIRMED dengan aktor null). Idempotent.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientConfirmScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Jadwal berhasil disetujui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}/schedule/reschedule": {
+      "post": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Pembeli Mengajukan Perubahan Jadwal",
+        "description": "Mengajukan tanggal baru dan slot jam pengiriman alternatif.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientRescheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pengajuan perubahan jadwal diterima",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}/tracking": {
+      "get": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Live Tracking Pengantaran",
+        "description": "Mengambil timeline pengantaran, metrik suhu cold chain real-time, status kotak pendingin, dan kontak kurir.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data pelacakan langsung",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}/issue": {
+      "get": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Detail Kendala & Status Klaim Penggantian",
+        "description": "Menampilkan penjelasan ramah konsumen atas insiden paket dan status kelayakan paket pengganti.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detail kendala pembeli",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/{token}/issue/resend": {
+      "post": {
+        "tags": [
+          "Client Portal"
+        ],
+        "summary": "Pembeli Klaim Paket Pengganti",
+        "description": "Mengajukan pembuatan paket pengganti baru atas paket rusak/retur (otomatis membuat child package).",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClientReplacementRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paket pengganti berhasil diproses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

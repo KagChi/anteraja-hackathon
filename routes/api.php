@@ -112,3 +112,10 @@ Route::prefix('client/{token}')->name('api.client.')
         Route::get('issue', [IssueController::class, 'show'])->name('issue.show');
         Route::post('issue/resend', ReplacementController::class)->name('issue.resend');
     });
+
+// OpenAPI / Swagger Documentation Spec
+Route::get('docs/openapi.json', function () {
+    return response()->file(base_path('docs/openapi.json'), [
+        'Content-Type' => 'application/json',
+    ]);
+})->name('api.docs.json');
