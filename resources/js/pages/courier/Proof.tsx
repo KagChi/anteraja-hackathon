@@ -1,8 +1,8 @@
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { PROOF_FORM } from "@/data/kurir";
-import { KurirLayout } from "@/layouts";
+import { PROOF_FORM } from "@/data/courier";
+import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 type SubmitState = "idle" | "saving" | "done";
@@ -22,7 +22,7 @@ export default function Proof() {
     }
 
     return (
-        <KurirLayout title="Konfirmasi Pengiriman" backTo="/kurir/delivery">
+        <CourierLayout title="Konfirmasi Pengiriman" backTo="/courier/delivery">
             <Head title="Bukti Pengiriman" />
 
             <div className="flex w-full flex-col gap-space-lg pb-6">
@@ -183,6 +183,6 @@ export default function Proof() {
                     </div>
                 </div>
             </div>
-        </KurirLayout>
+        </CourierLayout>
     );
 }

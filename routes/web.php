@@ -3,7 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::redirect("/", "/admin/shipment");
+Route::get("/", fn () => Inertia::render("Home"))->name("home");
+
+Route::redirect("/admin", "/admin/shipment");
+Route::redirect("/courier", "/courier/tasks");
+Route::redirect("/client", "/client/tracking");
 
 Route::prefix("admin")->name("admin.")->group(function () {
     Route::get("shipment", fn () => Inertia::render("admin/Shipment"))->name("shipment");
@@ -12,16 +16,16 @@ Route::prefix("admin")->name("admin.")->group(function () {
     Route::get("history", fn () => Inertia::render("admin/History"))->name("history");
 });
 
-Route::prefix("kurir")->name("kurir.")->group(function () {
-    Route::get("tasks", fn () => Inertia::render("kurir/Tasks"))->name("tasks");
-    Route::get("delivery", fn () => Inertia::render("kurir/Delivery"))->name("delivery");
-    Route::get("proof", fn () => Inertia::render("kurir/Proof"))->name("proof");
-    Route::get("issue", fn () => Inertia::render("kurir/Issue"))->name("issue");
+Route::prefix("courier")->name("courier.")->group(function () {
+    Route::get("tasks", fn () => Inertia::render("courier/Tasks"))->name("tasks");
+    Route::get("delivery", fn () => Inertia::render("courier/Delivery"))->name("delivery");
+    Route::get("proof", fn () => Inertia::render("courier/Proof"))->name("proof");
+    Route::get("issue", fn () => Inertia::render("courier/Issue"))->name("issue");
 });
 
-Route::prefix("frozen")->name("frozen.")->group(function () {
-    Route::get("tracking", fn () => Inertia::render("frozen/Tracking"))->name("tracking");
-    Route::get("schedule", fn () => Inertia::render("frozen/Schedule"))->name("schedule");
-    Route::get("issue", fn () => Inertia::render("frozen/Issue"))->name("issue");
+Route::prefix("client")->name("client.")->group(function () {
+    Route::get("tracking", fn () => Inertia::render("client/Tracking"))->name("tracking");
+    Route::get("schedule", fn () => Inertia::render("client/Schedule"))->name("schedule");
+    Route::get("issue", fn () => Inertia::render("client/Issue"))->name("issue");
 });
 

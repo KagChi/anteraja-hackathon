@@ -2,7 +2,7 @@ import { Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 
-interface FrozenLayoutProps {
+interface ClientLayoutProps {
     children: ReactNode;
     title: string;
     /**
@@ -17,12 +17,12 @@ interface FrozenLayoutProps {
  * "Crisp Coldstream" palette scope (white canvas, chilled-teal cold-chain
  * signals) and keeps the native 420px app frame centred on wider viewports.
  */
-export function FrozenLayout({ children, title, backTo }: FrozenLayoutProps) {
+export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
     const backClass =
         "flex min-h-[44px] min-w-[44px] items-center justify-center text-on-surface transition-colors hover:text-primary";
 
     return (
-        <div className="frozen-customer flex min-h-screen w-full justify-center bg-surface-dim font-sans text-on-surface antialiased">
+        <div className="client-app flex min-h-screen w-full justify-center bg-surface-dim font-sans text-on-surface antialiased">
             <div className="relative flex min-h-screen w-full max-w-[420px] flex-col bg-surface">
                 <header className="sticky top-0 z-50 bg-surface/90 pt-safe backdrop-blur-xl">
                     <div className="flex h-14 items-center justify-between px-margin">

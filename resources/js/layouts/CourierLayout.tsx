@@ -2,10 +2,10 @@ import { Link, usePage } from "@inertiajs/react";
 import type { ReactNode } from "react";
 import { AnterajaMark } from "@/components/AnterajaMark";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { COURIER } from "@/data/kurir";
+import { COURIER } from "@/data/courier";
 import { cx } from "@/lib/cx";
 
-interface KurirLayoutProps {
+interface CourierLayoutProps {
     children: ReactNode;
     /** Screen title shown alongside the brand lockup in the header. */
     title?: string;
@@ -16,9 +16,9 @@ interface KurirLayoutProps {
 }
 
 const NAV_ITEMS = [
-    { label: "Tugas", icon: "local_shipping", href: "/kurir/tasks", available: true },
-    { label: "Riwayat", icon: "receipt_long", href: "/kurir/tasks", available: false },
-    { label: "Profil", icon: "badge", href: "/kurir/tasks", available: false }
+    { label: "Tugas", icon: "local_shipping", href: "/courier/tasks", available: true },
+    { label: "Riwayat", icon: "receipt_long", href: "/courier/tasks", available: false },
+    { label: "Profil", icon: "badge", href: "/courier/tasks", available: false }
 ];
 
 /**
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
  * over a centred 390px column, with the fixed bottom tab bar from the source
  * design. The column keeps the phone proportions legible on desktop previews.
  */
-export function KurirLayout({ children, title, backTo, showCourier = false }: KurirLayoutProps) {
+export function CourierLayout({ children, title, backTo, showCourier = false }: CourierLayoutProps) {
     const { url } = usePage();
     const pathname = url.split("?")[0];
 

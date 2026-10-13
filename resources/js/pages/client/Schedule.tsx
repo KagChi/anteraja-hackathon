@@ -1,8 +1,8 @@
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { SCHEDULE } from "@/data/frozen";
-import { FrozenLayout } from "@/layouts";
+import { SCHEDULE } from "@/data/client";
+import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 type ConfirmState = "idle" | "saving" | "confirmed";
@@ -36,7 +36,7 @@ export default function Schedule() {
     }
 
     return (
-        <FrozenLayout title="Detail Produk" backTo="/frozen/tracking">
+        <ClientLayout title="Detail Produk" backTo="/client/tracking">
             <Head title="Konfirmasi Jadwal" />
 
             <div className="flex w-full flex-col pb-32">
@@ -197,6 +197,6 @@ export default function Schedule() {
                     </button>
                 </div>
             </div>
-        </FrozenLayout>
+        </ClientLayout>
     );
 }

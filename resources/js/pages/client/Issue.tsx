@@ -1,14 +1,14 @@
 import { Head } from "@inertiajs/react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { ISSUE } from "@/data/frozen";
-import { FrozenLayout } from "@/layouts";
+import { ISSUE } from "@/data/client";
+import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 export default function Issue() {
     const data = ISSUE;
 
     return (
-        <FrozenLayout title="Detail Produk" backTo="/frozen/tracking">
+        <ClientLayout title="Detail Produk" backTo="/client/tracking">
             <Head title="Kendala Pengiriman" />
 
             <div className="flex w-full flex-col gap-space-lg pb-space-xl pt-space-md">
@@ -116,6 +116,6 @@ export default function Issue() {
                     </p>
                 </div>
             </div>
-        </FrozenLayout>
+        </ClientLayout>
     );
 }

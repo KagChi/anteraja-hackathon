@@ -1,8 +1,8 @@
 import { Head, Link } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { ACTIVE_DELIVERY, ISSUE_SHEET_OPTIONS } from "@/data/kurir";
-import { KurirLayout } from "@/layouts";
+import { ACTIVE_DELIVERY, ISSUE_SHEET_OPTIONS } from "@/data/courier";
+import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 export default function Delivery() {
@@ -11,7 +11,7 @@ export default function Delivery() {
     const delivery = ACTIVE_DELIVERY;
 
     return (
-        <KurirLayout title="Detail Paket" backTo="/kurir/tasks">
+        <CourierLayout title="Detail Paket" backTo="/courier/tasks">
             <Head title="Pengiriman Berjalan" />
 
             <div className="flex w-full flex-col gap-space-md pb-6 pt-2">
@@ -134,7 +134,7 @@ export default function Delivery() {
 
                 <div className="flex w-full flex-col gap-space-md">
                     <Link
-                        href="/kurir/proof"
+                        href="/courier/proof"
                         className="flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-primary font-headline-sm text-headline-sm text-on-primary shadow-md transition-transform active:scale-[0.99] active:bg-primary-container"
                     >
                         <MaterialIcon name="inventory" className="text-[22px]" />
@@ -170,7 +170,7 @@ export default function Delivery() {
                             {ISSUE_SHEET_OPTIONS.map((option) => (
                                 <Link
                                     key={option}
-                                    href="/kurir/issue"
+                                    href="/courier/issue"
                                     className="w-full rounded-lg bg-surface-container-low p-3 text-left font-body-md text-body-md text-on-surface transition-colors hover:bg-surface-container active:bg-secondary-container"
                                 >
                                     {option}
@@ -187,6 +187,6 @@ export default function Delivery() {
                     </div>
                 </div>
             ) : null}
-        </KurirLayout>
+        </CourierLayout>
     );
 }

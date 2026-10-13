@@ -1,8 +1,8 @@
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { TASK_DETAIL } from "@/data/kurir";
-import { KurirLayout } from "@/layouts";
+import { TASK_DETAIL } from "@/data/courier";
+import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 type TaskState = "pending" | "processing" | "accepted" | "rejected";
@@ -33,7 +33,7 @@ export default function Tasks() {
               : null;
 
     return (
-        <KurirLayout showCourier>
+        <CourierLayout showCourier>
             <Head title="Tugas Pengiriman" />
 
             <div className="flex w-full flex-col gap-space-md">
@@ -176,6 +176,6 @@ export default function Tasks() {
                     </div>
                 ) : null}
             </div>
-        </KurirLayout>
+        </CourierLayout>
     );
 }

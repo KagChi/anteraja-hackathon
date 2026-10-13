@@ -1,4 +1,3 @@
 export * from "./AdminLayout";
-export * from "./Base";
-export * from "./FrozenLayout";
-export * from "./KurirLayout";
+export * from "./ClientLayout";
+export * from "./CourierLayout";

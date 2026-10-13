@@ -1,8 +1,8 @@
 import { Head } from "@inertiajs/react";
 import { type FormEvent, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { ISSUE_FORM } from "@/data/kurir";
-import { KurirLayout } from "@/layouts";
+import { ISSUE_FORM } from "@/data/courier";
+import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 type SubmitState = "idle" | "sending" | "done";
@@ -22,7 +22,7 @@ export default function Issue() {
     }
 
     return (
-        <KurirLayout title="Lapor Masalah" backTo="/kurir/delivery">
+        <CourierLayout title="Lapor Masalah" backTo="/courier/delivery">
             <Head title="Laporan Kendala" />
 
             <div className="flex w-full flex-col gap-space-lg pb-8">
@@ -198,6 +198,6 @@ export default function Issue() {
                     </div>
                 </form>
             </div>
-        </KurirLayout>
+        </CourierLayout>
     );
 }

@@ -1,8 +1,8 @@
 import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { TRACKING } from "@/data/frozen";
-import { FrozenLayout } from "@/layouts";
+import { TRACKING } from "@/data/client";
+import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 export default function Tracking() {
@@ -20,7 +20,7 @@ export default function Tracking() {
     }
 
     return (
-        <FrozenLayout title="Pelacakan Kurir Beku">
+        <ClientLayout title="Pelacakan Kurir Beku">
             <Head title="Pelacakan Kurir Beku" />
 
             <div className="flex w-full flex-col gap-space-lg pb-space-lg">
@@ -153,6 +153,6 @@ export default function Tracking() {
                     </button>
                 </div>
             </div>
-        </FrozenLayout>
+        </ClientLayout>
     );
 }
