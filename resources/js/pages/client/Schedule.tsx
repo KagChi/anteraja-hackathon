@@ -46,7 +46,7 @@ export default function Schedule({ resi }: ScheduleProps) {
     return (
         <ClientLayout title="Konfirmasi Jadwal" backTo={`/client/tracking/${order.resi}`}>
             <div className="flex w-full flex-col pb-52">
-                <div className="flex items-center justify-between pb-space-sm pt-space-md">
+                <div className="flex items-center justify-between pt-space-md pb-space-sm">
                     <div className="inline-flex items-center gap-space-xs rounded bg-secondary-container px-2.5 py-1 text-on-secondary-container">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                         <span className="font-label-sm text-label-sm uppercase tracking-wider">{schedule.status}</span>
@@ -57,7 +57,7 @@ export default function Schedule({ resi }: ScheduleProps) {
                 <div className="flex flex-col gap-space-md">
                     <section className="flex flex-col gap-space-sm rounded-lg bg-surface-container-lowest p-space-md">
                         <div className="flex items-center justify-between pb-space-xs">
-                            <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                                 Tujuan Pengiriman
                             </span>
                             <button
@@ -83,7 +83,7 @@ export default function Schedule({ resi }: ScheduleProps) {
 
                     <section className="flex flex-col gap-space-md rounded-lg bg-surface-container-lowest p-space-md">
                         <div className="flex items-center justify-between">
-                            <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                                 Detail Muatan Beku
                             </span>
                             <div className="inline-flex items-center gap-1 rounded bg-tertiary-fixed px-2 py-0.5 font-label-sm text-label-sm text-on-tertiary-fixed">
@@ -111,7 +111,7 @@ export default function Schedule({ resi }: ScheduleProps) {
                         </div>
                         <div className="flex items-start gap-2 rounded bg-surface-container-low p-2.5">
                             <MaterialIcon name="inventory_2" className="mt-0.5 shrink-0 text-[16px] text-tertiary" />
-                            <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
+                            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
                                 {schedule.productNote}
                             </p>
                         </div>
@@ -119,17 +119,17 @@ export default function Schedule({ resi }: ScheduleProps) {
 
                     <section className="flex flex-col gap-space-sm rounded-lg bg-surface-container-lowest p-space-md">
                         <div className="flex items-center justify-between">
-                            <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                            <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                                 Jadwal Pengantaran Terpilih
                             </span>
-                            <span className="font-label-sm text-label-sm font-semibold text-primary">
+                            <span className="font-label-sm font-semibold text-label-sm text-primary">
                                 {schedule.priority}
                             </span>
                         </div>
                         <div className="flex flex-col gap-space-xs rounded bg-surface-container p-space-md">
                             <div className="flex items-center gap-space-xs text-on-surface">
                                 <MaterialIcon name="schedule" className="text-[20px] text-primary" />
-                                <span className="font-headline-md text-headline-md font-bold text-on-surface">
+                                <span className="font-bold font-headline-md text-headline-md text-on-surface">
                                     {schedule.window}
                                 </span>
                             </div>
@@ -162,7 +162,7 @@ export default function Schedule({ resi }: ScheduleProps) {
                         <MaterialIcon name="info" className="mt-0.5 shrink-0 text-[20px] text-primary" />
                         <div className="flex flex-col gap-0.5">
                             <span className="font-label-md text-label-md text-on-surface">{schedule.noticeTitle}</span>
-                            <p className="font-body-sm text-body-sm leading-relaxed text-secondary">
+                            <p className="font-body-sm text-body-sm text-secondary leading-relaxed">
                                 {schedule.notice}
                             </p>
                         </div>

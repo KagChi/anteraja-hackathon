@@ -28,7 +28,7 @@ export default function Profile() {
                     {COURIER_PROFILE.stats.map((stat) => (
                         <div key={stat.label} className="rounded-xl bg-surface-container-lowest p-space-sm text-center">
                             <span className="block font-label-sm text-label-sm text-secondary">{stat.label}</span>
-                            <span className="font-headline-sm text-headline-sm font-semibold text-on-surface">
+                            <span className="font-headline-sm font-semibold text-headline-sm text-on-surface">
                                 {stat.value}
                             </span>
                         </div>

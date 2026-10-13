@@ -12,21 +12,21 @@ export default function Delivery() {
 
     return (
         <CourierLayout title="Detail Paket" backTo="/courier/tasks">
-            <div className="flex w-full flex-col gap-space-md pb-6 pt-2">
+            <div className="flex w-full flex-col gap-space-md pt-2 pb-6">
                 <section className="flex items-center justify-between rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
                     <div className="flex flex-col gap-0.5">
                         <span className="font-body-sm text-body-sm text-secondary">Nomor Resi</span>
-                        <span className="font-data-mono text-headline-sm font-semibold tracking-tight text-on-surface">
+                        <span className="font-data-mono font-semibold text-headline-sm text-on-surface tracking-tight">
                             {delivery.tracking}
                         </span>
                     </div>
-                    <span className="rounded-full bg-secondary-container px-2 py-0.5 font-label-sm text-label-sm uppercase tracking-wide text-on-secondary-container">
+                    <span className="rounded-full bg-secondary-container px-2 py-0.5 font-label-sm text-label-sm text-on-secondary-container uppercase tracking-wide">
                         {delivery.service}
                     </span>
                 </section>
 
                 <section className="flex flex-col rounded-xl bg-surface-container-lowest p-space-md shadow-sm">
-                    <span className="mb-space-sm font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                    <span className="mb-space-sm font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                         Progres Pengantaran
                     </span>
                     <div className="grid grid-cols-3 gap-space-xs">
@@ -40,7 +40,7 @@ export default function Delivery() {
                             <div className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-on-primary">
                                 <MaterialIcon name="local_shipping" className="text-[16px]" />
                             </div>
-                            <span className="text-center font-label-sm text-label-sm font-bold text-primary">
+                            <span className="text-center font-bold font-label-sm text-label-sm text-primary">
                                 Sedang Diantar
                             </span>
                         </div>
@@ -62,7 +62,7 @@ export default function Delivery() {
                             </div>
                             <span
                                 className={cx(
-                                    "text-center font-label-sm text-label-sm font-bold",
+                                    "text-center font-bold font-label-sm text-label-sm",
                                     arrived ? "text-primary" : "text-secondary"
                                 )}
                             >
@@ -97,7 +97,7 @@ export default function Delivery() {
                             <MaterialIcon name="pin_drop" className="text-[16px]" />
                             Alamat Tujuan
                         </div>
-                        <p className="font-body-md text-body-md leading-relaxed text-on-surface">{delivery.address}</p>
+                        <p className="font-body-md text-body-md text-on-surface leading-relaxed">{delivery.address}</p>
                     </div>
 
                     <div className="flex items-start gap-2 rounded-lg bg-error-container p-3 text-on-error-container">
@@ -135,7 +135,7 @@ export default function Delivery() {
                                 fill="#e6edf7"
                             />
                         </svg>
-                        <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-full">
+                        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-full">
                             <MaterialIcon name="location_on" filled className="text-[30px] text-primary drop-shadow" />
                         </div>
                         <a

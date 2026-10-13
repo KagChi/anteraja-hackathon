@@ -35,14 +35,14 @@ export default function Proof() {
             <div className="flex w-full flex-col gap-space-lg pb-6">
                 <section className="flex flex-col gap-space-xs rounded-xl bg-surface-container-lowest p-margin">
                     <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                        <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                             Nomor Resi
                         </span>
                         <span className="rounded-full bg-secondary-container px-2 py-0.5 font-label-sm text-label-sm text-on-secondary-fixed">
                             {form.service}
                         </span>
                     </div>
-                    <div className="select-all font-data-mono text-headline-sm font-semibold text-on-surface">
+                    <div className="select-all font-data-mono font-semibold text-headline-sm text-on-surface">
                         {form.tracking}
                     </div>
                     <div className="flex items-center gap-1.5 pt-1 font-body-md text-body-md text-on-surface-variant">
@@ -102,7 +102,7 @@ export default function Proof() {
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                             <span className="font-label-md text-label-md text-on-surface">Foto Bukti Penyerahan</span>
-                            <span className="flex items-center gap-1 font-label-sm text-label-sm font-medium text-tertiary">
+                            <span className="flex items-center gap-1 font-label-sm font-medium text-label-sm text-tertiary">
                                 <MaterialIcon name="check_circle" className="text-[16px]" />
                                 Terverifikasi
                             </span>

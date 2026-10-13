@@ -1,4 +1,4 @@
-export type StatusTone = "alert" | "transit" | "waiting" | "done" | "scheduled";
+export type StatusTone = "alert" | "transit" | "waiting" | "done" | "returned" | "scheduled";
 
 export interface ShipmentRow {
     tracking: string;
@@ -144,6 +144,63 @@ export const SHIPMENTS: ShipmentRow[] = [
         statusKey: "scheduled",
         tone: "scheduled",
         hasIssue: false
+    },
+    // Deliveries that already closed; they stay in the same list and are reachable
+    // through the status filter instead of a separate archive screen.
+    {
+        tracking: "AJ-FRZ-0012344",
+        buyer: "Andi Saputra",
+        location: "Tebet, Jaksel",
+        schedule: "Hari ini, 13:42 WIB",
+        courier: "Budi Santoso",
+        status: "Diterima",
+        statusKey: "delivered",
+        tone: "done",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012343",
+        buyer: "Nadia Suryani",
+        location: "Depok",
+        schedule: "Hari ini, 12:18 WIB",
+        courier: "Dani Kurniawan",
+        status: "Diterima",
+        statusKey: "delivered",
+        tone: "done",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012341",
+        buyer: "Bagus Prasetyo",
+        location: "Cempaka Putih",
+        schedule: "Hari ini, 11:05 WIB",
+        courier: "Ahmad Subagyo",
+        status: "Diterima",
+        statusKey: "delivered",
+        tone: "done",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012339",
+        buyer: "Tania Wijaya",
+        location: "Kelapa Gading",
+        schedule: "Hari ini, 10:47 WIB",
+        courier: "Dimas Pratama",
+        status: "Diterima",
+        statusKey: "delivered",
+        tone: "done",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012336",
+        buyer: "Rendra Kusuma",
+        location: "Bekasi Barat",
+        schedule: "Hari ini, 09:52 WIB",
+        courier: "Budi Santoso",
+        status: "Dikembalikan",
+        statusKey: "returned",
+        tone: "returned",
+        hasIssue: false
     }
 ];
 
@@ -152,15 +209,19 @@ export const STATUS_TONE: Record<StatusTone, { dot: string; text: string }> = {
     transit: { dot: "bg-secondary", text: "text-on-surface" },
     waiting: { dot: "bg-outline", text: "text-secondary" },
     done: { dot: "bg-tertiary-container", text: "text-tertiary" },
+    returned: { dot: "bg-outline", text: "text-secondary" },
     scheduled: { dot: "bg-secondary-fixed-dim", text: "text-secondary" }
 };
 
+/** `selesai` is an aggregate for the deliveries that already closed. */
 export const STATUS_OPTIONS = [
     { value: "issue", label: "Kendala" },
     { value: "transit", label: "Sedang Diantar" },
     { value: "waiting", label: "Menunggu Konfirmasi" },
+    { value: "scheduled", label: "Dijadwalkan" },
     { value: "delivered", label: "Diterima" },
-    { value: "scheduled", label: "Dijadwalkan" }
+    { value: "returned", label: "Dikembalikan" },
+    { value: "selesai", label: "Selesai (Arsip)" }
 ];
 
 export const COURIER_OPTIONS = [
@@ -172,14 +233,14 @@ export const COURIER_OPTIONS = [
 ];
 
 export const SCHEDULE_OPTIONS = [
-    { value: "today", label: "Jadwal: Hari Ini" },
-    { value: "tomorrow", label: "Jadwal: Besok" },
-    { value: "all", label: "Semua Jadwal" }
+    { value: "today", label: "Hari Ini" },
+    { value: "tomorrow", label: "Besok" }
 ];
 
 export interface ReportIssueRow {
     tracking: string;
     buyer: string;
+    address: string;
     courier: string;
     issue: string;
     issueAlert?: boolean;
@@ -192,6 +253,7 @@ export const REPORT_ISSUES: ReportIssueRow[] = [
     {
         tracking: "AJ-FRZ-0012345",
         buyer: "Rina Putri",
+        address: "Jl. Tebet Barat Dalam VII No. 14, Jakarta Selatan",
         courier: "Budi Santoso",
         issue: "Kemasan bocor",
         decision: "Kembalikan Paket",
@@ -200,6 +262,7 @@ export const REPORT_ISSUES: ReportIssueRow[] = [
     {
         tracking: "AJ-FRZ-0012320",
         buyer: "Hendro Hartono",
+        address: "Jl. Bekasi Barat Raya No. 8, Bekasi",
         courier: "Dani Kurniawan",
         issue: "Suhu naik (-8°C)",
         issueAlert: true,
@@ -210,14 +273,35 @@ export const REPORT_ISSUES: ReportIssueRow[] = [
     {
         tracking: "AJ-FRZ-0012288",
         buyer: "Cindy Claudia",
+        address: "Jl. Sunter Jaya No. 21, Jakarta Utara",
         courier: "Ahmad Subagyo",
         issue: "Kemasan basah luar",
         decision: "Lanjutkan (Kompensasi)",
         status: "Selesai"
     },
     {
+        tracking: "AJ-FRZ-0012280",
+        buyer: "Dimas Anggara",
+        address: "Jl. Kalimalang No. 45, Jakarta Timur",
+        courier: "Dani Kurniawan",
+        issue: "Suhu cooler box naik",
+        issueAlert: true,
+        decision: "Kirim Ulang",
+        status: "Selesai"
+    },
+    {
+        tracking: "AJ-FRZ-0012264",
+        buyer: "Sinta Maharani",
+        address: "Jl. Margonda Raya No. 12, Depok",
+        courier: "Budi Santoso",
+        issue: "Kemasan penyok",
+        decision: "Lanjutkan (Kompensasi)",
+        status: "Selesai"
+    },
+    {
         tracking: "AJ-FRZ-0012210",
         buyer: "Farhan Malik",
+        address: "Jl. Tebet Utara Dalam No. 3, Jakarta Selatan",
         courier: "Budi Santoso",
         issue: "Kemasan bocor",
         decision: "Kembalikan Paket",
@@ -226,6 +310,7 @@ export const REPORT_ISSUES: ReportIssueRow[] = [
     {
         tracking: "AJ-FRZ-0012195",
         buyer: "Maya Safitri",
+        address: "Jl. Bintaro Utama Sektor 3, Tangerang Selatan",
         courier: "Hendra Setiawan",
         issue: "Pembeli tidak di tempat",
         decision: "Jadwal Ulang",
@@ -257,51 +342,5 @@ export const AUDIT_TIMELINE: AuditEntry[] = [
         actor: "Dimas Pratama (Admin)",
         action: "Meninjau laporan, verifikasi kerusakan foto es krim cair, dan memproses tiket klaim.",
         highlight: true
-    }
-];
-
-export interface HistoryRow {
-    tracking: string;
-    buyer: string;
-    courier: string;
-    completedAt: string;
-    status: string;
-}
-
-export const DELIVERY_HISTORY: HistoryRow[] = [
-    {
-        tracking: "AJ-FRZ-0012344",
-        buyer: "Andi Saputra",
-        courier: "Budi Santoso",
-        completedAt: "Hari ini, 13:42 WIB",
-        status: "Diterima"
-    },
-    {
-        tracking: "AJ-FRZ-0012343",
-        buyer: "Nadia Suryani",
-        courier: "Dani Kurniawan",
-        completedAt: "Hari ini, 12:18 WIB",
-        status: "Diterima"
-    },
-    {
-        tracking: "AJ-FRZ-0012341",
-        buyer: "Bagus Prasetyo",
-        courier: "Ahmad Subagyo",
-        completedAt: "Hari ini, 11:05 WIB",
-        status: "Diterima"
-    },
-    {
-        tracking: "AJ-FRZ-0012339",
-        buyer: "Tania Wijaya",
-        courier: "Dimas Pratama",
-        completedAt: "Hari ini, 10:47 WIB",
-        status: "Diterima"
-    },
-    {
-        tracking: "AJ-FRZ-0012336",
-        buyer: "Rendra Kusuma",
-        courier: "Budi Santoso",
-        completedAt: "Hari ini, 09:52 WIB",
-        status: "Dikembalikan"
     }
 ];

@@ -39,20 +39,20 @@ export default function Issue() {
                     className="flex flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-margin shadow-sm"
                 >
                     <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                        <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                             Nomor Resi
                         </span>
                         <span className="rounded-full bg-error-container px-2 py-0.5 font-label-sm text-label-sm text-on-error-container">
                             Kendala Lapangan
                         </span>
                     </div>
-                    <div className="font-data-mono text-headline-sm font-semibold tracking-tight text-on-surface">
+                    <div className="font-data-mono font-semibold text-headline-sm text-on-surface tracking-tight">
                         {form.tracking}
                     </div>
-                    <div className="mt-space-xs grid grid-cols-2 gap-space-md border-t border-surface-container pt-space-xs">
+                    <div className="mt-space-xs grid grid-cols-2 gap-space-md border-surface-container border-t pt-space-xs">
                         <div className="flex min-w-0 flex-col">
                             <span className="font-label-sm text-label-sm text-secondary">Penerima</span>
-                            <span className="truncate font-body-md text-body-md font-semibold text-on-surface">
+                            <span className="truncate font-body-md font-semibold text-body-md text-on-surface">
                                 {form.recipient}
                             </span>
                         </div>
@@ -67,7 +67,7 @@ export default function Issue() {
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="jenis-kendala"
-                            className="font-label-md text-label-md font-semibold text-on-surface"
+                            className="font-label-md font-semibold text-label-md text-on-surface"
                         >
                             Jenis Kendala <span className="text-error">*</span>
                         </label>
@@ -94,7 +94,7 @@ export default function Issue() {
                     <div className="flex flex-col gap-1.5">
                         <label
                             htmlFor="catatan-kendala"
-                            className="font-label-md text-label-md font-semibold text-on-surface"
+                            className="font-label-md font-semibold text-label-md text-on-surface"
                         >
                             Catatan Kendala <span className="text-error">*</span>
                         </label>
@@ -119,11 +119,11 @@ export default function Issue() {
 
                     <div className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
-                            <span className="font-label-md text-label-md font-semibold text-on-surface">
+                            <span className="font-label-md font-semibold text-label-md text-on-surface">
                                 Bukti Foto Fisik <span className="text-error">*</span>
                             </span>
                             {photo ? (
-                                <span className="flex items-center gap-1 font-body-sm text-body-sm font-semibold text-tertiary">
+                                <span className="flex items-center gap-1 font-body-sm font-semibold text-body-sm text-tertiary">
                                     <MaterialIcon name="check_circle" className="text-[16px]" />1 Terlampir
                                 </span>
                             ) : null}
@@ -139,7 +139,7 @@ export default function Issue() {
                                         />
                                     </div>
                                     <div className="flex min-w-0 flex-col">
-                                        <span className="truncate font-label-md text-label-md font-semibold text-on-surface">
+                                        <span className="truncate font-label-md font-semibold text-label-md text-on-surface">
                                             {photo.name}
                                         </span>
                                         <span className="font-body-sm text-body-sm text-secondary">{photo.meta}</span>

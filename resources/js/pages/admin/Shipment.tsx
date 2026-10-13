@@ -1,5 +1,5 @@
 import { Head, Link } from "@inertiajs/react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import {
     COURIER_OPTIONS,
@@ -11,7 +11,6 @@ import {
 } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
-import { downloadCsv } from "@/lib/download";
 
 const PAGE_SIZE = 6;
 
@@ -24,6 +23,11 @@ const CREATE_SCHEDULES = [
 ];
 
 const COURIERS = COURIER_OPTIONS.filter((option) => option.value !== "unassigned");
+
+/** Deliveries that already closed; the `Selesai` status filter collects them. */
+const CLOSED_STATUSES = ["Diterima", "Dikembalikan"];
+
+const SCHEDULE_DAY: Record<string, string> = { today: "Hari ini", tomorrow: "Besok" };
 
 interface FilterSelectProps {
     value: string;
@@ -38,7 +42,7 @@ function FilterSelect({ value, onChange, placeholder, options }: FilterSelectPro
             <select
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
-                className="h-8 cursor-pointer appearance-none rounded-md bg-surface-container-lowest px-space-sm pr-7 font-body-sm text-body-sm text-on-surface focus:outline-none"
+                className="h-9 cursor-pointer appearance-none rounded-md border border-outline-variant bg-surface-container-low pr-8 pl-space-md font-body-sm text-body-sm text-on-surface transition-colors hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
             >
                 <option value="">{placeholder}</option>
                 {options.map((option) => (
@@ -49,34 +53,26 @@ function FilterSelect({ value, onChange, placeholder, options }: FilterSelectPro
             </select>
             <MaterialIcon
                 name="expand_more"
-                className="pointer-events-none absolute right-1.5 top-2 text-[16px] text-secondary"
+                className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[18px] text-secondary"
             />
         </div>
     );
 }
 
-interface ShipmentProps {
-    /** Search term handed over by the console header search. */
-    q?: string | null;
-}
-
-export default function Shipment({ q }: ShipmentProps) {
+export default function Shipment() {
     const [items, setItems] = useState<ShipmentRow[]>(SHIPMENTS);
-    const [query, setQuery] = useState(q ?? "");
+    const [query, setQuery] = useState("");
     const [status, setStatus] = useState("");
     const [courier, setCourier] = useState("");
-    const [schedule, setSchedule] = useState("today");
+    const [schedule, setSchedule] = useState("");
     const [page, setPage] = useState(1);
-    const [assigning, setAssigning] = useState<string | null>(null);
+    const [assignTarget, setAssignTarget] = useState<ShipmentRow | null>(null);
+    const [assignCourier, setAssignCourier] = useState("");
+    const [courierSearch, setCourierSearch] = useState("");
     const [createOpen, setCreateOpen] = useState(false);
     const [buyer, setBuyer] = useState("");
     const [location, setLocation] = useState("");
     const [window, setWindow] = useState(CREATE_SCHEDULES[0]);
-
-    useEffect(() => {
-        setQuery(q ?? "");
-        setPage(1);
-    }, [q]);
 
     const rows = useMemo(() => {
         const needle = query.trim().toLowerCase();
@@ -85,31 +81,37 @@ export default function Shipment({ q }: ShipmentProps) {
                 const haystack = [row.tracking, row.buyer, row.location, row.courier ?? ""].join(" ").toLowerCase();
                 if (!haystack.includes(needle)) return false;
             }
-            if (status && row.statusKey !== status) return false;
+            if (status === "selesai") {
+                if (!CLOSED_STATUSES.includes(row.status)) return false;
+            } else if (status && row.statusKey !== status) {
+                return false;
+            }
             if (courier === "unassigned" && row.courier !== null) return false;
             if (courier && courier !== "unassigned" && row.courier !== courier) return false;
+            if (schedule && !row.schedule.startsWith(SCHEDULE_DAY[schedule])) return false;
             return true;
         });
-    }, [items, query, status, courier]);
+    }, [items, query, status, courier, schedule]);
+
+    const courierMatches = useMemo(() => {
+        const needle = courierSearch.trim().toLowerCase();
+        if (!needle) return COURIERS;
+        return COURIERS.filter((option) => option.label.toLowerCase().includes(needle));
+    }, [courierSearch]);
 
     const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const currentPage = Math.min(page, pageCount);
     const first = (currentPage - 1) * PAGE_SIZE;
     const pageRows = rows.slice(first, first + PAGE_SIZE);
     const rangeLabel = rows.length === 0 ? "0" : `${first + 1}-${Math.min(first + PAGE_SIZE, rows.length)}`;
+    const filtersActive = query.trim() !== "" || status !== "" || courier !== "" || schedule !== "";
 
-    function exportCsv() {
-        downloadCsv("anteraja-frozen-shipment.csv", [
-            ["Resi", "Pembeli", "Lokasi", "Jadwal", "Kurir", "Status"],
-            ...rows.map((row) => [
-                row.tracking,
-                row.buyer,
-                row.location,
-                row.schedule,
-                row.courier ?? "Belum Ditugaskan",
-                row.status
-            ])
-        ]);
+    function clearFilters() {
+        setQuery("");
+        setStatus("");
+        setCourier("");
+        setSchedule("");
+        setPage(1);
     }
 
     function assign(tracking: string, name: string) {
@@ -126,7 +128,13 @@ export default function Shipment({ q }: ShipmentProps) {
                     : row
             )
         );
-        setAssigning(null);
+        setAssignTarget(null);
+    }
+
+    function openAssign(row: ShipmentRow) {
+        setAssignCourier("");
+        setCourierSearch("");
+        setAssignTarget(row);
     }
 
     function createShipment(event: FormEvent<HTMLFormElement>) {
@@ -162,44 +170,37 @@ export default function Shipment({ q }: ShipmentProps) {
                 <div>
                     <h1 className="font-headline-md text-headline-md text-on-surface">Shipment</h1>
                     <p className="mt-0.5 font-body-sm text-body-sm text-secondary">
-                        Daftar pengiriman aktif dan penugasan kurir makanan beku
+                        Daftar pengiriman dan penugasan kurir makanan beku
                     </p>
                 </div>
-                <div className="flex items-center gap-space-sm">
-                    <button
-                        type="button"
-                        onClick={exportCsv}
-                        className="flex h-9 items-center gap-space-xs rounded-md bg-surface-container-lowest px-space-md font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                    >
-                        <MaterialIcon name="file_download" className="text-[16px]" />
-                        <span>Ekspor</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setCreateOpen(true)}
-                        className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
-                    >
-                        <MaterialIcon name="add" className="text-[16px]" />
-                        <span>Buat Shipment</span>
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={() => setCreateOpen(true)}
+                    className="flex h-9 items-center gap-space-xs self-start rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                >
+                    <MaterialIcon name="add" className="text-[16px]" />
+                    <span>Buat Shipment</span>
+                </button>
             </div>
 
-            <div className="mb-space-lg flex w-full flex-col items-stretch justify-between gap-space-md rounded-lg bg-surface-container-lowest p-space-md md:flex-row md:items-center">
-                <div className="flex flex-1 flex-wrap items-center gap-space-sm">
-                    <div className="relative w-full md:w-72">
-                        <MaterialIcon name="search" className="absolute left-2.5 top-2 text-[16px] text-secondary" />
-                        <input
-                            type="text"
-                            value={query}
-                            onChange={(event) => {
-                                setQuery(event.target.value);
-                                setPage(1);
-                            }}
-                            placeholder="Cari resi, pembeli, lokasi..."
-                            className="h-8 w-full rounded-md bg-surface-container-lowest pl-8 pr-space-sm font-body-sm text-body-sm text-on-surface placeholder:text-secondary focus:bg-surface-container-low focus:outline-none"
-                        />
-                    </div>
+            <div className="mb-space-lg flex w-full flex-wrap items-center gap-space-sm rounded-lg border border-outline-variant bg-surface-container-lowest p-space-md">
+                <div className="relative w-full md:max-w-sm md:flex-1">
+                    <MaterialIcon
+                        name="search"
+                        className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-secondary"
+                    />
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            setPage(1);
+                        }}
+                        placeholder="Cari resi, pembeli, atau lokasi..."
+                        className="h-9 w-full rounded-md border border-outline-variant bg-surface-container-low pr-space-md pl-9 font-body-sm text-body-sm text-on-surface transition-colors placeholder:text-secondary hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-space-sm md:ml-auto">
                     <FilterSelect
                         value={status}
                         onChange={(value) => {
@@ -220,16 +221,23 @@ export default function Shipment({ q }: ShipmentProps) {
                     />
                     <FilterSelect
                         value={schedule}
-                        onChange={setSchedule}
-                        placeholder="Jadwal: Hari Ini"
+                        onChange={(value) => {
+                            setSchedule(value);
+                            setPage(1);
+                        }}
+                        placeholder="Semua Jadwal"
                         options={SCHEDULE_OPTIONS}
                     />
-                </div>
-                <div className="flex items-center gap-space-xs self-end md:self-center">
-                    <span className="font-label-sm text-label-sm text-secondary">Suhu Box Standar:</span>
-                    <span className="rounded-sm bg-surface-container px-space-xs py-0.5 font-data-mono text-label-sm text-on-surface">
-                        -18°C ~ -25°C
-                    </span>
+                    {filtersActive ? (
+                        <button
+                            type="button"
+                            onClick={clearFilters}
+                            className="flex h-9 items-center gap-1 rounded-md px-space-sm font-label-md text-label-md text-primary transition-colors hover:bg-surface-container"
+                        >
+                            <MaterialIcon name="close" className="text-[16px]" />
+                            <span>Bersihkan filter</span>
+                        </button>
+                    ) : null}
                 </div>
             </div>
 
@@ -241,12 +249,12 @@ export default function Shipment({ q }: ShipmentProps) {
                                 {["Resi", "Pembeli", "Jadwal", "Kurir", "Status"].map((heading) => (
                                     <th
                                         key={heading}
-                                        className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary"
+                                        className="px-space-lg font-label-sm font-semibold text-label-sm text-secondary uppercase tracking-wider"
                                     >
                                         {heading}
                                     </th>
                                 ))}
-                                <th className="px-space-lg text-right font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
+                                <th className="sticky right-0 z-10 border-black/5 border-l bg-surface-container-low px-space-lg text-right font-label-sm font-semibold text-label-sm text-secondary uppercase tracking-wider">
                                     Aksi
                                 </th>
                             </tr>
@@ -255,10 +263,10 @@ export default function Shipment({ q }: ShipmentProps) {
                             {pageRows.map((row) => (
                                 <tr
                                     key={row.tracking}
-                                    className="h-10 transition-colors hover:bg-surface-container-low"
+                                    className="group h-10 transition-colors hover:bg-surface-container-low"
                                 >
                                     <td className="whitespace-nowrap px-space-lg">
-                                        <span className="font-data-mono text-body-sm font-semibold text-on-surface">
+                                        <span className="font-data-mono font-semibold text-body-sm text-on-surface">
                                             {row.tracking}
                                         </span>
                                     </td>
@@ -277,7 +285,7 @@ export default function Shipment({ q }: ShipmentProps) {
                                                 {row.courier}
                                             </span>
                                         ) : (
-                                            <span className="font-body-sm text-body-sm italic text-outline">
+                                            <span className="font-body-sm text-body-sm text-outline italic">
                                                 Belum Ditugaskan
                                             </span>
                                         )}
@@ -286,7 +294,7 @@ export default function Shipment({ q }: ShipmentProps) {
                                         <div className="flex items-center gap-1.5">
                                             <span
                                                 className={cx(
-                                                    "h-2 w-2 flex-shrink-0 rounded-full",
+                                                    "h-2 w-2 shrink-0 rounded-full",
                                                     STATUS_TONE[row.tone].dot
                                                 )}
                                             />
@@ -297,45 +305,34 @@ export default function Shipment({ q }: ShipmentProps) {
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="whitespace-nowrap px-space-lg text-right">
+                                    <td className="sticky right-0 z-10 whitespace-nowrap border-black/5 border-l bg-surface-container-lowest px-space-md text-right transition-colors group-hover:bg-surface-container-low">
                                         {row.hasIssue ? (
                                             <Link
-                                                href="/admin/exception"
-                                                className="inline-flex items-center font-label-md text-label-md text-primary hover:underline"
+                                                href={`/admin/exception/${row.tracking}`}
+                                                aria-label={`Detail kendala ${row.tracking}`}
+                                                title="Detail kendala"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-surface-container"
                                             >
-                                                Detail Kendala
+                                                <MaterialIcon name="report_problem" className="text-[18px]" />
                                             </Link>
-                                        ) : assigning === row.tracking ? (
-                                            <select
-                                                aria-label="Pilih kurir"
-                                                defaultValue=""
-                                                onChange={(event) => {
-                                                    if (event.target.value) assign(row.tracking, event.target.value);
-                                                }}
-                                                onBlur={() => setAssigning(null)}
-                                                className="h-7 cursor-pointer rounded-sm border border-outline-variant bg-surface-container-lowest px-1 font-label-md text-label-md text-on-surface focus:outline-none"
-                                            >
-                                                <option value="">Pilih kurir...</option>
-                                                {COURIERS.map((option) => (
-                                                    <option key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </option>
-                                                ))}
-                                            </select>
                                         ) : row.courier === null ? (
                                             <button
                                                 type="button"
-                                                onClick={() => setAssigning(row.tracking)}
-                                                className="inline-flex h-7 items-center gap-1 rounded-sm bg-surface-container px-space-sm font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-high"
+                                                onClick={() => openAssign(row)}
+                                                aria-label={`Tugaskan kurir untuk ${row.tracking}`}
+                                                title="Tugaskan kurir"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
                                             >
-                                                Tugaskan
+                                                <MaterialIcon name="person_add" className="text-[18px]" />
                                             </button>
                                         ) : (
                                             <Link
-                                                href="/admin/exception"
-                                                className="inline-flex items-center font-label-md text-label-md text-on-surface transition-colors hover:text-primary"
+                                                href={`/admin/exception/${row.tracking}`}
+                                                aria-label={`Lihat detail ${row.tracking}`}
+                                                title="Lihat detail"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-secondary transition-colors hover:bg-surface-container hover:text-primary"
                                             >
-                                                Detail
+                                                <MaterialIcon name="visibility" className="text-[18px]" />
                                             </Link>
                                         )}
                                     </td>
@@ -396,6 +393,110 @@ export default function Shipment({ q }: ShipmentProps) {
                 </div>
             </div>
 
+            {assignTarget ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 p-margin">
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            if (!assignCourier) return;
+                            assign(assignTarget.tracking, assignCourier);
+                        }}
+                        className="flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
+                    >
+                        <div className="flex items-start justify-between gap-space-md">
+                            <div className="flex flex-col">
+                                <h2 className="font-headline-sm text-headline-sm text-on-surface">Tugaskan Kurir</h2>
+                                <p className="mt-0.5 font-body-sm text-body-sm text-secondary">
+                                    {assignTarget.tracking} • {assignTarget.buyer} ({assignTarget.location})
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                aria-label="Tutup"
+                                onClick={() => setAssignTarget(null)}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center text-secondary transition-colors hover:text-on-surface"
+                            >
+                                <MaterialIcon name="close" className="text-[20px]" />
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-space-sm">
+                            <label
+                                htmlFor="assign-courier-search"
+                                className="font-label-sm text-label-sm text-secondary uppercase"
+                            >
+                                Pilih kurir *
+                            </label>
+                            <div className="relative">
+                                <MaterialIcon
+                                    name="search"
+                                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-secondary"
+                                />
+                                <input
+                                    id="assign-courier-search"
+                                    type="text"
+                                    value={courierSearch}
+                                    onChange={(event) => setCourierSearch(event.target.value)}
+                                    placeholder="Cari nama kurir..."
+                                    autoComplete="off"
+                                    className="h-9 w-full rounded-md border border-outline-variant bg-surface-container-low pr-space-md pl-9 font-body-sm text-body-sm text-on-surface transition-colors placeholder:text-secondary hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
+                                />
+                            </div>
+                            <div className="flex max-h-56 flex-col overflow-y-auto rounded-lg border border-outline-variant">
+                                {courierMatches.map((option) => {
+                                    const active = assignCourier === option.value;
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            aria-pressed={active}
+                                            onClick={() => setAssignCourier(option.value)}
+                                            className={cx(
+                                                "flex h-10 shrink-0 items-center justify-between px-space-md text-left font-label-md text-label-md transition-colors",
+                                                active
+                                                    ? "bg-surface-container-low font-semibold text-primary"
+                                                    : "text-on-surface hover:bg-surface-container"
+                                            )}
+                                        >
+                                            <span>{option.label}</span>
+                                            {active ? (
+                                                <MaterialIcon name="check" className="text-[18px] text-primary" />
+                                            ) : null}
+                                        </button>
+                                    );
+                                })}
+                                {courierMatches.length === 0 ? (
+                                    <span className="px-space-md py-space-md font-body-sm text-body-sm text-secondary">
+                                        Kurir tidak ditemukan.
+                                    </span>
+                                ) : null}
+                            </div>
+                        </div>
+                        <p className="font-body-sm text-body-sm text-secondary">
+                            {assignCourier
+                                ? `Kurir terpilih: ${assignCourier}. Notifikasi tugas dikirim begitu shipment disimpan.`
+                                : "Pilih kurir dari daftar untuk melanjutkan."}
+                        </p>
+                        <div className="flex items-center justify-end gap-space-sm pt-space-xs">
+                            <button
+                                type="button"
+                                onClick={() => setAssignTarget(null)}
+                                className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:text-on-surface"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!assignCourier}
+                                className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-40"
+                            >
+                                <MaterialIcon name="check" className="text-[16px]" />
+                                <span>Tugaskan Kurir</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            ) : null}
+
             {createOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 p-margin">
                     <form
@@ -414,7 +515,7 @@ export default function Shipment({ q }: ShipmentProps) {
                             </button>
                         </div>
                         <label className="flex flex-col gap-1" htmlFor="new-buyer">
-                            <span className="font-label-sm text-label-sm uppercase text-secondary">Pembeli</span>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase">Pembeli</span>
                             <input
                                 id="new-buyer"
                                 value={buyer}
@@ -425,7 +526,7 @@ export default function Shipment({ q }: ShipmentProps) {
                             />
                         </label>
                         <label className="flex flex-col gap-1" htmlFor="new-location">
-                            <span className="font-label-sm text-label-sm uppercase text-secondary">Lokasi</span>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase">Lokasi</span>
                             <input
                                 id="new-location"
                                 value={location}
@@ -436,7 +537,7 @@ export default function Shipment({ q }: ShipmentProps) {
                             />
                         </label>
                         <label className="flex flex-col gap-1" htmlFor="new-window">
-                            <span className="font-label-sm text-label-sm uppercase text-secondary">Jadwal</span>
+                            <span className="font-label-sm text-label-sm text-secondary uppercase">Jadwal</span>
                             <select
                                 id="new-window"
                                 value={window}

@@ -1,4 +1,4 @@
-import { Link, router, usePage } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { MaterialIcon } from "@/components/MaterialIcon";
@@ -16,16 +16,13 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { label: "Shipment", icon: "local_shipping", href: "/admin/shipment" },
-    { label: "Kendala", icon: "warning", href: "/admin/exception" },
-    { label: "Laporan", icon: "bar_chart", href: "/admin/report" },
-    { label: "Riwayat", icon: "history", href: "/admin/history" }
+    { label: "Laporan", icon: "bar_chart", href: "/admin/report" }
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
     const { url } = usePage();
     const pathname = url.split("?")[0];
     const [open, setOpen] = useState(false);
-    const [search, setSearch] = useState("");
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: close the drawer whenever the route changes
     useEffect(() => {
@@ -46,18 +43,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <aside
                 aria-label="Navigasi utama"
                 className={cx(
-                    "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col justify-between border-r border-outline-variant bg-surface-container-lowest transition-transform duration-200 lg:translate-x-0",
+                    "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col justify-between border-outline-variant border-r bg-surface-container-lowest transition-transform duration-200 lg:translate-x-0",
                     open ? "translate-x-0" : "-translate-x-full"
                 )}
             >
                 <div className="flex flex-col">
-                    <div className="flex h-14 items-center justify-between border-b border-outline-variant px-margin">
+                    <div className="flex h-14 items-center justify-between border-outline-variant border-b px-margin">
                         <AnterajaLogo className="h-6" />
                         <MaterialIcon name="ac_unit" className="text-[18px] text-secondary" />
                     </div>
 
                     <div className="px-margin py-space-sm">
-                        <span className="font-label-sm text-label-sm uppercase text-secondary">Navigasi Utama</span>
+                        <span className="font-label-sm text-label-sm text-secondary uppercase">Navigasi Utama</span>
                     </div>
 
                     <nav className="flex flex-col gap-space-xs px-space-xs">
@@ -71,7 +68,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                                     className={cx(
                                         "flex items-center gap-space-md px-space-md py-space-sm font-label-md text-label-md transition-colors",
                                         active
-                                            ? "border-l-2 border-primary bg-surface-container-low text-primary"
+                                            ? "border-primary border-l-2 bg-surface-container-low text-primary"
                                             : "text-secondary hover:bg-surface-container hover:text-on-surface"
                                     )}
                                 >
@@ -83,7 +80,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     </nav>
                 </div>
 
-                <div className="border-t border-outline-variant bg-surface-container-lowest p-margin">
+                <div className="border-outline-variant border-t bg-surface-container-lowest p-margin">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-space-xs">
                             <span className="h-2 w-2 rounded-full bg-tertiary-container" />
@@ -95,7 +92,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </aside>
 
             <div className="lg:pl-[240px]">
-                <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-margin lg:left-[240px]">
+                <header className="fixed top-0 right-0 left-0 z-40 flex h-14 items-center justify-between border-outline-variant border-b bg-surface-container-lowest px-margin lg:left-[240px]">
                     <div className="flex items-center gap-space-sm">
                         <button
                             type="button"
@@ -105,34 +102,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         >
                             <MaterialIcon name="menu" className="text-[18px]" />
                         </button>
-                        <form
-                            onSubmit={(event) => {
-                                event.preventDefault();
-                                const term = search.trim();
-                                router.get("/admin/shipment", term ? { q: term } : {});
-                            }}
-                            className="relative flex w-56 items-center md:w-80"
-                        >
-                            <MaterialIcon
-                                name="search"
-                                className="pointer-events-none absolute left-space-sm text-[18px] text-secondary"
-                            />
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                aria-label="Cari pengiriman"
-                                placeholder="Cari nomor resi / AWB / driver..."
-                                className="h-9 w-full rounded-md border border-outline-variant bg-surface-container-lowest pl-8 pr-space-md font-body-sm text-body-sm text-on-surface placeholder:text-secondary focus:border-primary focus:outline-none"
-                            />
-                        </form>
                     </div>
 
                     <div className="flex items-center gap-margin">
                         <div className="hidden h-6 w-px bg-outline-variant sm:block" />
                         <div className="flex items-center gap-space-sm">
                             <div className="hidden text-right sm:block">
-                                <div className="font-label-md text-label-md leading-none text-on-surface">
+                                <div className="font-label-md text-label-md text-on-surface leading-none">
                                     Dimas Pratama
                                 </div>
                                 <div className="mt-0.5 font-label-sm text-label-sm text-secondary">Admin Logistics</div>

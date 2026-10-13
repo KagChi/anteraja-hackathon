@@ -22,7 +22,7 @@ export default function Profile() {
                             key={stat.label}
                             className="flex flex-col items-center rounded-xl border border-black/5 bg-surface-container-lowest p-space-sm"
                         >
-                            <span className="font-headline-sm text-headline-sm font-semibold text-on-surface">
+                            <span className="font-headline-sm font-semibold text-headline-sm text-on-surface">
                                 {stat.value}
                             </span>
                             <span className="text-center font-label-sm text-label-sm text-secondary">{stat.label}</span>
@@ -42,13 +42,10 @@ export default function Profile() {
                             </span>
                         </div>
                     </div>
-                    <p className="rounded-lg bg-surface-container-low p-space-sm font-body-sm text-body-sm text-secondary">
-                        {CLIENT_PROFILE.note}
-                    </p>
                 </section>
 
                 <section className="flex flex-col gap-space-sm rounded-xl border border-black/5 bg-surface-container-lowest p-space-md">
-                    <span className="font-label-sm text-label-sm uppercase text-secondary">Kontak</span>
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">Kontak</span>
                     <a
                         href={whatsappLink("Halo, saya butuh bantuan dengan pengiriman Anteraja Frozen.")}
                         target="_blank"
