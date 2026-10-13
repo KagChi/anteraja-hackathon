@@ -1,5 +1,5 @@
 import { Head, Link } from "@inertiajs/react";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import {
     COURIER_OPTIONS,
@@ -72,7 +72,20 @@ export default function Shipment() {
     const [createOpen, setCreateOpen] = useState(false);
     const [buyer, setBuyer] = useState("");
     const [location, setLocation] = useState("");
-    const [window, setWindow] = useState(CREATE_SCHEDULES[0]);
+    const [deliveryWindow, setDeliveryWindow] = useState(CREATE_SCHEDULES[0]);
+
+    useEffect(() => {
+        if (!assignTarget && !createOpen) return;
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key !== "Escape") return;
+            setCreateOpen(false);
+            setAssignTarget(null);
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [assignTarget, createOpen]);
 
     const rows = useMemo(() => {
         const needle = query.trim().toLowerCase();
@@ -146,7 +159,7 @@ export default function Shipment() {
                 tracking,
                 buyer: buyer.trim(),
                 location: location.trim(),
-                schedule: window,
+                schedule: deliveryWindow,
                 courier: null,
                 status: "Dijadwalkan",
                 statusKey: "scheduled",
@@ -157,7 +170,7 @@ export default function Shipment() {
         ]);
         setBuyer("");
         setLocation("");
-        setWindow(CREATE_SCHEDULES[0]);
+        setDeliveryWindow(CREATE_SCHEDULES[0]);
         setPage(1);
         setCreateOpen(false);
     }
@@ -394,14 +407,21 @@ export default function Shipment() {
             </div>
 
             {assignTarget ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 p-margin">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-margin">
+                    <button
+                        type="button"
+                        aria-label="Tutup dialog"
+                        tabIndex={-1}
+                        onClick={() => setAssignTarget(null)}
+                        className="absolute inset-0 cursor-default bg-inverse-surface/40"
+                    />
                     <form
                         onSubmit={(event) => {
                             event.preventDefault();
                             if (!assignCourier) return;
                             assign(assignTarget.tracking, assignCourier);
                         }}
-                        className="flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
+                        className="relative flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
                     >
                         <div className="flex items-start justify-between gap-space-md">
                             <div className="flex flex-col">
@@ -498,10 +518,17 @@ export default function Shipment() {
             ) : null}
 
             {createOpen ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 p-margin">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-margin">
+                    <button
+                        type="button"
+                        aria-label="Tutup dialog"
+                        tabIndex={-1}
+                        onClick={() => setCreateOpen(false)}
+                        className="absolute inset-0 cursor-default bg-inverse-surface/40"
+                    />
                     <form
                         onSubmit={createShipment}
-                        className="flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
+                        className="relative flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
                     >
                         <div className="flex items-center justify-between">
                             <h2 className="font-headline-sm text-headline-sm text-on-surface">Buat Shipment</h2>
@@ -540,8 +567,8 @@ export default function Shipment() {
                             <span className="font-label-sm text-label-sm text-secondary uppercase">Jadwal</span>
                             <select
                                 id="new-window"
-                                value={window}
-                                onChange={(event) => setWindow(event.target.value)}
+                                value={deliveryWindow}
+                                onChange={(event) => setDeliveryWindow(event.target.value)}
                                 className="h-9 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
                             >
                                 {CREATE_SCHEDULES.map((option) => (
