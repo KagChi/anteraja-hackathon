@@ -15,6 +15,16 @@ React/Inertia UI keeps shipping through the normal web deploy and the APKs only
 need rebuilding when the shell itself changes. The backend API lands in the
 deployed app, so it needs no new APK either.
 
+The screen is `App\NativeComponents\AppShell` and the web view inside it
+carries the site, which keeps navigation inside the app — the legacy web view
+hands external links to the system browser instead.
+
+That web view element comes from the `nativephp/mobile-ui` plugin, and a
+plugin is only compiled into builds once it is registered. If
+`php artisan native:plugin:list` does not list it, `<native:webview>` resolves
+to nothing and the screen dies at render time, so `scripts/build-apk.sh`
+refuses to build until it does.
+
 `mobile/apps.php` is the source of truth for the two identities;
 `config/mobile.php` turns it into the web view URL at runtime.
 

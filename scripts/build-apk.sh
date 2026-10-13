@@ -103,6 +103,21 @@ fi
 APP_VERSION="${NATIVEPHP_APP_VERSION:-0.1.${GITHUB_RUN_NUMBER:-0}}"
 APP_VERSION_CODE="${NATIVEPHP_APP_VERSION_CODE:-${GITHUB_RUN_NUMBER:-1}}"
 
+# The shell's web view is a plugin component. An unregistered plugin is skipped
+# from the build without failing it, which leaves a screen that cannot render —
+# so catch it here instead of on a phone.
+if ! php artisan native:plugin:list 2>/dev/null | grep -q 'nativephp/mobile-ui'; then
+    cat >&2 <<'NOTE'
+nativephp/mobile-ui is not registered, so the shell's <native:webview> element
+would ship without a renderer. Fix it once, then commit the provider:
+
+  php artisan vendor:publish --tag=nativephp-plugins-provider
+  php artisan native:plugin:register nativephp/mobile-ui
+
+NOTE
+    exit 69
+fi
+
 # Stamp this app's .env from the committed template.
 ENV_FILE=".env.$APP"
 sed \

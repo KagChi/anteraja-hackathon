@@ -16,9 +16,9 @@
 @endphp
 
 @if ($url === '')
-    <native:column class="w-full h-full items-center justify-center gap-3 p-6">
-        <native:text class="text-lg font-bold text-center">{{ $appName }}</native:text>
-        <native:text class="text-sm text-center">This build has no site to show yet. Rebuild the APK with MOBILE_WEB_BASE_URL pointing at the deployed site.</native:text>
+    <native:column class="w-full h-full items-center justify-center gap-3 p-6 bg-white dark:bg-zinc-900">
+        <native:text class="text-lg font-bold text-center text-zinc-900 dark:text-zinc-100">{{ $appName }}</native:text>
+        <native:text class="text-sm text-center text-zinc-900 dark:text-zinc-100">This build has no site to show yet. Rebuild the APK with MOBILE_WEB_BASE_URL pointing at the deployed site.</native:text>
     </native:column>
 @else
     <native:webview src="{{ $url }}" javascript dom-storage fullscreen />
