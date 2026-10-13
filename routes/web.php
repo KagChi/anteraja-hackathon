@@ -12,3 +12,10 @@ Route::prefix("admin")->name("admin.")->group(function () {
     Route::get("history", fn () => Inertia::render("admin/History"))->name("history");
 });
 
+Route::prefix("kurir")->name("kurir.")->group(function () {
+    Route::get("tasks", fn () => Inertia::render("kurir/Tasks"))->name("tasks");
+    Route::get("delivery", fn () => Inertia::render("kurir/Delivery"))->name("delivery");
+    Route::get("proof", fn () => Inertia::render("kurir/Proof"))->name("proof");
+    Route::get("issue", fn () => Inertia::render("kurir/Issue"))->name("issue");
+});
+
