@@ -21,6 +21,8 @@ Route::prefix("courier")->name("courier.")->group(function () {
     Route::get("delivery", fn () => Inertia::render("courier/Delivery"))->name("delivery");
     Route::get("proof", fn () => Inertia::render("courier/Proof"))->name("proof");
     Route::get("issue", fn () => Inertia::render("courier/Issue"))->name("issue");
+    Route::get("history", fn () => Inertia::render("courier/History"))->name("history");
+    Route::get("profile", fn () => Inertia::render("courier/Profile"))->name("profile");
 });
 
 Route::prefix("client")->name("client.")->group(function () {
@@ -28,4 +30,3 @@ Route::prefix("client")->name("client.")->group(function () {
     Route::get("schedule", fn () => Inertia::render("client/Schedule"))->name("schedule");
     Route::get("issue", fn () => Inertia::render("client/Issue"))->name("issue");
 });
-

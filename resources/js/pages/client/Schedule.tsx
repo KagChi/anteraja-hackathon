@@ -1,4 +1,3 @@
-import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { SCHEDULE } from "@/data/client";
@@ -37,8 +36,6 @@ export default function Schedule() {
 
     return (
         <ClientLayout title="Detail Produk" backTo="/client/tracking">
-            <Head title="Konfirmasi Jadwal" />
-
             <div className="flex w-full flex-col pb-32">
                 <div className="flex items-center justify-between pb-space-sm pt-space-md">
                     <div className="inline-flex items-center gap-space-xs rounded bg-secondary-container px-2.5 py-1 text-on-secondary-container">

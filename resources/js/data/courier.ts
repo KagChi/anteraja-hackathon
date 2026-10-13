@@ -68,3 +68,32 @@ export const ISSUE_FORM = {
         { value: "akses_ditutup", label: "Akses jalan/lokasi ditutup" }
     ]
 };
+
+export interface CourierHistoryRow {
+    resi: string;
+    recipient: string;
+    completedAt: string;
+    status: string;
+}
+
+export const COURIER_HISTORY: CourierHistoryRow[] = [
+    { resi: "AJ-FRZ-0012344", recipient: "Andi Saputra", completedAt: "Hari ini • 13:42 WIB", status: "Terkirim" },
+    { resi: "AJ-FRZ-0012343", recipient: "Nadia Suryani", completedAt: "Hari ini • 12:18 WIB", status: "Terkirim" },
+    { resi: "AJ-FRZ-0012341", recipient: "Bagus Prasetyo", completedAt: "Hari ini • 11:05 WIB", status: "Terkirim" },
+    { resi: "AJ-FRZ-0012339", recipient: "Tania Wijaya", completedAt: "Hari ini • 10:47 WIB", status: "Terkirim" },
+    { resi: "AJ-FRZ-0012336", recipient: "Rendra Kusuma", completedAt: "Hari ini • 09:52 WIB", status: "Dikembalikan" }
+];
+
+export const COURIER_PROFILE = {
+    name: "Budi Santoso",
+    status: "Aktif",
+    id: "KRR-8821",
+    phone: "0812-3456-7890",
+    hub: "Hub Jakarta Selatan",
+    vehicle: "Motor Box #04",
+    stats: [
+        { label: "Selesai hari ini", value: "8" },
+        { label: "Tepat waktu", value: "97%" },
+        { label: "Rating", value: "4.8" }
+    ]
+};

@@ -1,4 +1,3 @@
-import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { TASK_DETAIL } from "@/data/courier";
@@ -33,9 +32,7 @@ export default function Tasks() {
               : null;
 
     return (
-        <CourierLayout showCourier>
-            <Head title="Tugas Pengiriman" />
-
+        <CourierLayout showCourier title="Daftar Tugas">
             <div className="flex w-full flex-col gap-space-md">
                 <div className="flex items-center justify-between rounded-xl bg-surface-container-high p-space-md">
                     <div className="flex items-center gap-space-sm">

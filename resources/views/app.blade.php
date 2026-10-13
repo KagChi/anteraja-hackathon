@@ -6,10 +6,11 @@
 
         <title inertia>{{ config('app.name', 'Anteraja Frozen') }}</title>
 
-        <!-- Fonts: Inter + Material Symbols for the admin console -->
+        <!-- Fonts: Inter for the Frozen screens, Plus Jakarta Sans for the Hub + Satria apps, Material Symbols for icons -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
         <!-- Scripts -->

@@ -33,7 +33,7 @@ export default function Home() {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-surface px-margin py-margin font-sans text-on-surface antialiased">
             <Head title="Pilih Aplikasi" />
-            <div className="w-full max-w-3xl">
+            <div className="w-full max-w-5xl">
                 <div className="flex items-center gap-space-xs">
                     <span className="font-headline-lg text-headline-lg uppercase tracking-tight text-primary">
                         Anteraja
@@ -44,10 +44,10 @@ export default function Home() {
                 </div>
                 <h1 className="mt-space-sm font-headline-lg text-headline-lg text-on-surface">Pilih Aplikasi</h1>
                 <p className="mt-space-xs font-body-md text-body-md text-secondary">
-                    Demo tiga antarmuka rantai dingin Anteraja Frozen.
+                    Tiga antarmuka Anteraja Frozen: dashboard admin, aplikasi kurir, dan aplikasi pelanggan.
                 </p>
 
-                <div className="mt-space-lg grid grid-cols-1 gap-space-md md:grid-cols-3">
+                <div className="mt-space-lg grid grid-cols-1 gap-space-md sm:grid-cols-2 lg:grid-cols-3">
                     {APPS.map((app) => (
                         <Link
                             key={app.href}

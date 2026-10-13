@@ -1,4 +1,3 @@
-import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { TRACKING } from "@/data/client";
@@ -21,8 +20,6 @@ export default function Tracking() {
 
     return (
         <ClientLayout title="Pelacakan Kurir Beku">
-            <Head title="Pelacakan Kurir Beku" />
-
             <div className="flex w-full flex-col gap-space-lg pb-space-lg">
                 <section className="flex flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg">
                     <div className="flex items-center justify-between pb-space-xs">

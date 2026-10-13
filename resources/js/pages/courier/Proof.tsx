@@ -1,4 +1,3 @@
-import { Head } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { PROOF_FORM } from "@/data/courier";
@@ -23,8 +22,6 @@ export default function Proof() {
 
     return (
         <CourierLayout title="Konfirmasi Pengiriman" backTo="/courier/delivery">
-            <Head title="Bukti Pengiriman" />
-
             <div className="flex w-full flex-col gap-space-lg pb-6">
                 <section className="flex flex-col gap-space-xs rounded-xl bg-surface-container-lowest p-margin">
                     <div className="flex items-center justify-between">

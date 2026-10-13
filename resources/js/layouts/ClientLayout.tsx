@@ -1,6 +1,7 @@
-import { Link } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { MobileShell } from "@/components/MobileShell";
 
 interface ClientLayoutProps {
     children: ReactNode;
@@ -12,18 +13,15 @@ interface ClientLayoutProps {
     backTo?: string;
 }
 
-/**
- * Customer-facing shell for the Anteraja Frozen delivery screens. Applies the
- * "Crisp Coldstream" palette scope (white canvas, chilled-teal cold-chain
- * signals) and keeps the native 420px app frame centred on wider viewports.
- */
+/** Customer-facing shell for the Anteraja Frozen delivery screens. */
 export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
     const backClass =
         "flex min-h-[44px] min-w-[44px] items-center justify-center text-on-surface transition-colors hover:text-primary";
 
     return (
-        <div className="client-app flex min-h-screen w-full justify-center bg-surface-dim font-sans text-on-surface antialiased">
-            <div className="relative flex min-h-screen w-full max-w-[420px] flex-col bg-surface">
+        <MobileShell
+            className="client-app"
+            header={
                 <header className="sticky top-0 z-50 bg-surface/90 pt-safe backdrop-blur-xl">
                     <div className="flex h-14 items-center justify-between px-margin">
                         <div className="flex items-center gap-space-sm">
@@ -64,9 +62,11 @@ export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
                         </div>
                     </div>
                 </header>
-
-                <main className="flex w-full flex-1 flex-col px-margin pt-space-md pb-safe">{children}</main>
-            </div>
-        </div>
+            }
+            bodyClassName="px-margin pt-space-md pb-safe"
+        >
+            <Head title={title} />
+            {children}
+        </MobileShell>
     );
 }

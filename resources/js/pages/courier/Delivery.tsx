@@ -1,4 +1,4 @@
-import { Head, Link } from "@inertiajs/react";
+import { Link } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ACTIVE_DELIVERY, ISSUE_SHEET_OPTIONS } from "@/data/courier";
@@ -12,8 +12,6 @@ export default function Delivery() {
 
     return (
         <CourierLayout title="Detail Paket" backTo="/courier/tasks">
-            <Head title="Pengiriman Berjalan" />
-
             <div className="flex w-full flex-col gap-space-md pb-6 pt-2">
                 <section className="flex items-center justify-between rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
                     <div className="flex flex-col gap-0.5">
