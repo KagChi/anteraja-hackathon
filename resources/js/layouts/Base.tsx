@@ -1,9 +1,5 @@
-import { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 
 export function BaseLayout({ children }: PropsWithChildren) {
-    return (
-        <main>
-            {children}
-        </main>
-    );
+    return <main>{children}</main>;
 }

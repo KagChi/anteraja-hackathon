@@ -1,3 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@utility container {
+    margin-inline: auto;
+    padding-inline: 2rem;
+}
+
+@theme {
+    --object-position-85-15: 85% 15%;
+}

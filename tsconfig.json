@@ -11,7 +11,7 @@
         "forceConsistentCasingInFileNames": true,
         "noEmit": true,
         "allowSyntheticDefaultImports": true,
-        "types": ["vite/client"],
+        "types": ["vite/client", "node"],
         "paths": {
             "@/*": ["./resources/js/*"],
             "components/*": ["./resources/js/components/*"],
@@ -22,7 +22,6 @@
         "resources/js/**/*.tsx",
         "resources/js/**/*.ts",
         "postcss.config.js",
-        "vite.config.js",
-        "tailwind.config.js"
+        "vite.config.js"
     ]
 }
