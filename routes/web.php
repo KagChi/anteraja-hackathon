@@ -12,13 +12,15 @@ Route::redirect("/client", "/client/orders");
 Route::redirect("/client/tracking", "/client/orders");
 
 Route::prefix("admin")->name("admin.")->group(function () {
-    Route::get("shipment", fn () => Inertia::render("admin/Shipment"))->name("shipment");
+    // Filters travel in the query string so a Laporan drill-down and a shared
+    // link both land on the queue with the same view applied.
+    Route::get("shipment", fn (Request $request) => Inertia::render("admin/Shipment", [
+        "date" => $request->query("date"),
+        "status" => $request->query("status")
+    ]))->name("shipment");
     Route::get("report", fn () => Inertia::render("admin/Report"))->name("report");
-    Route::get("exception/{resi}", fn (string $resi) => Inertia::render("admin/Exception", [
-        "resi" => $resi
-    ]))->name("exception");
-    // Kendala handling now lives on the report screen; Riwayat folded into Shipment.
-    Route::redirect("exception", "/admin/report");
+    // The kendala detail lives in the shipment modal, so the old screen is gone.
+    Route::redirect("exception", "/admin/shipment");
     Route::redirect("history", "/admin/shipment");
 });
 

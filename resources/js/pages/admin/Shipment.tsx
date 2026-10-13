@@ -1,13 +1,21 @@
-import { Head, Link } from "@inertiajs/react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { Head } from "@inertiajs/react";
+import { type FormEvent, useMemo, useState } from "react";
+import { CourierPickerDialog } from "@/components/CourierPickerDialog";
+import { Dialog } from "@/components/Dialog";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { ShipmentDetailModal } from "@/components/ShipmentDetailModal";
 import {
     COURIER_OPTIONS,
-    SCHEDULE_OPTIONS,
+    dateForWindow,
+    type IssueDecisionKey,
+    type ResolutionStatus,
     SHIPMENTS,
     type ShipmentRow,
     STATUS_OPTIONS,
-    STATUS_TONE
+    STATUS_TONE,
+    scheduleLabel,
+    TODAY,
+    TOMORROW
 } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
@@ -16,18 +24,14 @@ const PAGE_SIZE = 6;
 
 /** Delivery windows offered when creating a shipment from the console. */
 const CREATE_SCHEDULES = [
-    "Hari ini, 13:00 - 15:00",
-    "Hari ini, 15:00 - 17:00",
-    "Besok, 09:00 - 11:00",
-    "Besok, 13:00 - 15:00"
+    scheduleLabel(TODAY, "13:00 - 15:00"),
+    scheduleLabel(TODAY, "15:00 - 17:00"),
+    scheduleLabel(TOMORROW, "09:00 - 11:00"),
+    scheduleLabel(TOMORROW, "13:00 - 15:00")
 ];
-
-const COURIERS = COURIER_OPTIONS.filter((option) => option.value !== "unassigned");
 
 /** Deliveries that already closed; the `Selesai` status filter collects them. */
 const CLOSED_STATUSES = ["Diterima", "Dikembalikan"];
-
-const SCHEDULE_DAY: Record<string, string> = { today: "Hari ini", tomorrow: "Besok" };
 
 interface FilterSelectProps {
     value: string;
@@ -59,33 +63,25 @@ function FilterSelect({ value, onChange, placeholder, options }: FilterSelectPro
     );
 }
 
-export default function Shipment() {
+interface ShipmentProps {
+    /** Filters carried in by a Laporan drill-down. */
+    status?: string | null;
+    date?: string | null;
+}
+
+export default function Shipment({ status: initialStatus, date: initialDate }: ShipmentProps) {
     const [items, setItems] = useState<ShipmentRow[]>(SHIPMENTS);
     const [query, setQuery] = useState("");
-    const [status, setStatus] = useState("");
+    const [status, setStatus] = useState(initialStatus ?? "");
     const [courier, setCourier] = useState("");
-    const [schedule, setSchedule] = useState("");
+    const [date, setDate] = useState(initialDate ?? "");
     const [page, setPage] = useState(1);
     const [assignTarget, setAssignTarget] = useState<ShipmentRow | null>(null);
-    const [assignCourier, setAssignCourier] = useState("");
-    const [courierSearch, setCourierSearch] = useState("");
+    const [detailResi, setDetailResi] = useState<string | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [buyer, setBuyer] = useState("");
     const [location, setLocation] = useState("");
     const [deliveryWindow, setDeliveryWindow] = useState(CREATE_SCHEDULES[0]);
-
-    useEffect(() => {
-        if (!assignTarget && !createOpen) return;
-
-        function handleKeyDown(event: KeyboardEvent) {
-            if (event.key !== "Escape") return;
-            setCreateOpen(false);
-            setAssignTarget(null);
-        }
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [assignTarget, createOpen]);
 
     const rows = useMemo(() => {
         const needle = query.trim().toLowerCase();
@@ -101,53 +97,58 @@ export default function Shipment() {
             }
             if (courier === "unassigned" && row.courier !== null) return false;
             if (courier && courier !== "unassigned" && row.courier !== courier) return false;
-            if (schedule && !row.schedule.startsWith(SCHEDULE_DAY[schedule])) return false;
+            if (date && row.scheduledDate !== date) return false;
             return true;
         });
-    }, [items, query, status, courier, schedule]);
-
-    const courierMatches = useMemo(() => {
-        const needle = courierSearch.trim().toLowerCase();
-        if (!needle) return COURIERS;
-        return COURIERS.filter((option) => option.label.toLowerCase().includes(needle));
-    }, [courierSearch]);
+    }, [items, query, status, courier, date]);
 
     const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     const currentPage = Math.min(page, pageCount);
     const first = (currentPage - 1) * PAGE_SIZE;
     const pageRows = rows.slice(first, first + PAGE_SIZE);
     const rangeLabel = rows.length === 0 ? "0" : `${first + 1}-${Math.min(first + PAGE_SIZE, rows.length)}`;
-    const filtersActive = query.trim() !== "" || status !== "" || courier !== "" || schedule !== "";
+    const filtersActive = query.trim() !== "" || status !== "" || courier !== "" || date !== "";
 
     function clearFilters() {
         setQuery("");
         setStatus("");
         setCourier("");
-        setSchedule("");
+        setDate("");
         setPage(1);
     }
 
+    /** Hands a delivery to a courier: a fresh assignment waits for the recipient
+     * to confirm, a shipment that already had one only swaps the courier. */
     function assign(tracking: string, name: string) {
         setItems((prev) =>
-            prev.map((row) =>
-                row.tracking === tracking
-                    ? {
-                          ...row,
-                          courier: name,
-                          status: "Menunggu Konfirmasi",
-                          statusKey: "waiting",
-                          tone: "waiting" as const
-                      }
-                    : row
-            )
+            prev.map((row) => {
+                if (row.tracking !== tracking) return row;
+                if (row.courier !== null) return { ...row, courier: name };
+                return {
+                    ...row,
+                    courier: name,
+                    status: "Menunggu Konfirmasi",
+                    statusKey: "waiting",
+                    tone: "waiting" as const
+                };
+            })
         );
         setAssignTarget(null);
     }
 
-    function openAssign(row: ShipmentRow) {
-        setAssignCourier("");
-        setCourierSearch("");
-        setAssignTarget(row);
+    /** Mirrors a saved decision onto the list so Keputusan and Status stay in step. */
+    function recordDecision(tracking: string, update: { decision: IssueDecisionKey; resolution: ResolutionStatus }) {
+        setItems((prev) =>
+            prev.map((row) =>
+                row.tracking === tracking && row.issue
+                    ? { ...row, issue: { ...row.issue, decision: update.decision, resolution: update.resolution } }
+                    : row
+            )
+        );
+    }
+
+    function closeDetail() {
+        setDetailResi(null);
     }
 
     function createShipment(event: FormEvent<HTMLFormElement>) {
@@ -164,7 +165,7 @@ export default function Shipment() {
                 status: "Dijadwalkan",
                 statusKey: "scheduled",
                 tone: "scheduled",
-                hasIssue: false
+                scheduledDate: dateForWindow(deliveryWindow)
             },
             ...prev
         ]);
@@ -232,15 +233,22 @@ export default function Shipment() {
                         placeholder="Semua Kurir"
                         options={COURIER_OPTIONS}
                     />
-                    <FilterSelect
-                        value={schedule}
-                        onChange={(value) => {
-                            setSchedule(value);
-                            setPage(1);
-                        }}
-                        placeholder="Semua Jadwal"
-                        options={SCHEDULE_OPTIONS}
-                    />
+                    <div className="relative">
+                        <MaterialIcon
+                            name="calendar_today"
+                            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[16px] text-secondary"
+                        />
+                        <input
+                            type="date"
+                            value={date}
+                            aria-label="Filter tanggal pengiriman"
+                            onChange={(event) => {
+                                setDate(event.target.value);
+                                setPage(1);
+                            }}
+                            className="h-9 cursor-pointer rounded-md border border-outline-variant bg-surface-container-low pr-2 pl-9 font-body-sm text-body-sm text-on-surface transition-colors hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
+                        />
+                    </div>
                     {filtersActive ? (
                         <button
                             type="button"
@@ -319,19 +327,20 @@ export default function Shipment() {
                                         </div>
                                     </td>
                                     <td className="sticky right-0 z-10 whitespace-nowrap border-black/5 border-l bg-surface-container-lowest px-space-md text-right transition-colors group-hover:bg-surface-container-low">
-                                        {row.hasIssue ? (
-                                            <Link
-                                                href={`/admin/exception/${row.tracking}`}
+                                        {row.issue ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailResi(row.tracking)}
                                                 aria-label={`Detail kendala ${row.tracking}`}
                                                 title="Detail kendala"
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary transition-colors hover:bg-surface-container"
                                             >
                                                 <MaterialIcon name="report_problem" className="text-[18px]" />
-                                            </Link>
+                                            </button>
                                         ) : row.courier === null ? (
                                             <button
                                                 type="button"
-                                                onClick={() => openAssign(row)}
+                                                onClick={() => setAssignTarget(row)}
                                                 aria-label={`Tugaskan kurir untuk ${row.tracking}`}
                                                 title="Tugaskan kurir"
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
@@ -339,14 +348,15 @@ export default function Shipment() {
                                                 <MaterialIcon name="person_add" className="text-[18px]" />
                                             </button>
                                         ) : (
-                                            <Link
-                                                href={`/admin/exception/${row.tracking}`}
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailResi(row.tracking)}
                                                 aria-label={`Lihat detail ${row.tracking}`}
                                                 title="Lihat detail"
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-secondary transition-colors hover:bg-surface-container hover:text-primary"
                                             >
                                                 <MaterialIcon name="visibility" className="text-[18px]" />
-                                            </Link>
+                                            </button>
                                         )}
                                     </td>
                                 </tr>
@@ -406,130 +416,34 @@ export default function Shipment() {
                 </div>
             </div>
 
-            {assignTarget ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-margin">
-                    <button
-                        type="button"
-                        aria-label="Tutup dialog"
-                        tabIndex={-1}
-                        onClick={() => setAssignTarget(null)}
-                        className="absolute inset-0 cursor-default bg-inverse-surface/40"
-                    />
-                    <form
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            if (!assignCourier) return;
-                            assign(assignTarget.tracking, assignCourier);
-                        }}
-                        className="relative flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
-                    >
-                        <div className="flex items-start justify-between gap-space-md">
-                            <div className="flex flex-col">
-                                <h2 className="font-headline-sm text-headline-sm text-on-surface">Tugaskan Kurir</h2>
-                                <p className="mt-0.5 font-body-sm text-body-sm text-secondary">
-                                    {assignTarget.tracking} • {assignTarget.buyer} ({assignTarget.location})
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                aria-label="Tutup"
-                                onClick={() => setAssignTarget(null)}
-                                className="flex h-8 w-8 shrink-0 items-center justify-center text-secondary transition-colors hover:text-on-surface"
-                            >
-                                <MaterialIcon name="close" className="text-[20px]" />
-                            </button>
-                        </div>
-                        <div className="flex flex-col gap-space-sm">
-                            <label
-                                htmlFor="assign-courier-search"
-                                className="font-label-sm text-label-sm text-secondary uppercase"
-                            >
-                                Pilih kurir *
-                            </label>
-                            <div className="relative">
-                                <MaterialIcon
-                                    name="search"
-                                    className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[18px] text-secondary"
-                                />
-                                <input
-                                    id="assign-courier-search"
-                                    type="text"
-                                    value={courierSearch}
-                                    onChange={(event) => setCourierSearch(event.target.value)}
-                                    placeholder="Cari nama kurir..."
-                                    autoComplete="off"
-                                    className="h-9 w-full rounded-md border border-outline-variant bg-surface-container-low pr-space-md pl-9 font-body-sm text-body-sm text-on-surface transition-colors placeholder:text-secondary hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
-                                />
-                            </div>
-                            <div className="flex max-h-56 flex-col overflow-y-auto rounded-lg border border-outline-variant">
-                                {courierMatches.map((option) => {
-                                    const active = assignCourier === option.value;
-                                    return (
-                                        <button
-                                            key={option.value}
-                                            type="button"
-                                            aria-pressed={active}
-                                            onClick={() => setAssignCourier(option.value)}
-                                            className={cx(
-                                                "flex h-10 shrink-0 items-center justify-between px-space-md text-left font-label-md text-label-md transition-colors",
-                                                active
-                                                    ? "bg-surface-container-low font-semibold text-primary"
-                                                    : "text-on-surface hover:bg-surface-container"
-                                            )}
-                                        >
-                                            <span>{option.label}</span>
-                                            {active ? (
-                                                <MaterialIcon name="check" className="text-[18px] text-primary" />
-                                            ) : null}
-                                        </button>
-                                    );
-                                })}
-                                {courierMatches.length === 0 ? (
-                                    <span className="px-space-md py-space-md font-body-sm text-body-sm text-secondary">
-                                        Kurir tidak ditemukan.
-                                    </span>
-                                ) : null}
-                            </div>
-                        </div>
-                        <p className="font-body-sm text-body-sm text-secondary">
-                            {assignCourier
-                                ? `Kurir terpilih: ${assignCourier}. Notifikasi tugas dikirim begitu shipment disimpan.`
-                                : "Pilih kurir dari daftar untuk melanjutkan."}
-                        </p>
-                        <div className="flex items-center justify-end gap-space-sm pt-space-xs">
-                            <button
-                                type="button"
-                                onClick={() => setAssignTarget(null)}
-                                className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:text-on-surface"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={!assignCourier}
-                                className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-40"
-                            >
-                                <MaterialIcon name="check" className="text-[16px]" />
-                                <span>Tugaskan Kurir</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <CourierPickerDialog
+                open={assignTarget !== null}
+                current={assignTarget?.courier ?? null}
+                subtitle={
+                    assignTarget
+                        ? `${assignTarget.tracking} • ${assignTarget.buyer} (${assignTarget.location})`
+                        : undefined
+                }
+                onClose={() => setAssignTarget(null)}
+                onConfirm={(name) => {
+                    if (assignTarget) assign(assignTarget.tracking, name);
+                }}
+            />
+
+            {detailResi ? (
+                <ShipmentDetailModal
+                    key={detailResi}
+                    resi={detailResi}
+                    row={items.find((item) => item.tracking === detailResi)}
+                    onClose={closeDetail}
+                    onCourierChange={assign}
+                    onDecisionChange={recordDecision}
+                />
             ) : null}
 
             {createOpen ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-margin">
-                    <button
-                        type="button"
-                        aria-label="Tutup dialog"
-                        tabIndex={-1}
-                        onClick={() => setCreateOpen(false)}
-                        className="absolute inset-0 cursor-default bg-inverse-surface/40"
-                    />
-                    <form
-                        onSubmit={createShipment}
-                        className="relative flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
-                    >
+                <Dialog onClose={() => setCreateOpen(false)} label="Buat Shipment">
+                    <form onSubmit={createShipment} className="flex flex-col gap-space-md">
                         <div className="flex items-center justify-between">
                             <h2 className="font-headline-sm text-headline-sm text-on-surface">Buat Shipment</h2>
                             <button
@@ -598,7 +512,7 @@ export default function Shipment() {
                             </button>
                         </div>
                     </form>
-                </div>
+                </Dialog>
             ) : null}
         </AdminLayout>
     );
