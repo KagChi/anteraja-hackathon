@@ -46,15 +46,31 @@ done
 if [ ${#missing[@]} -gt 0 ]; then
     echo "Missing required environment:" >&2
     printf '  %s\n' "${missing[@]}" >&2
-    cat >&2 <<'NOTE'
 
-Create a release keystore once, then export the four ANDROID_* values above:
+    if [[ " ${missing[*]} " == *" MOBILE_WEB_BASE_URL "* ]]; then
+        cat >&2 <<'NOTE'
+
+MOBILE_WEB_BASE_URL is the origin of the deployed site, e.g.
+https://anteraja.example.com. In CI it comes from the repository variable of
+the same name (Settings → Secrets and variables → Actions → Variables).
+
+NOTE
+    fi
+
+    for name in ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+        if [[ " ${missing[*]} " == *" $name "* ]]; then
+            cat >&2 <<'NOTE'
+Create a release keystore once, then export the four ANDROID_* values:
 
   mkdir -p mobile/keystore
   keytool -genkeypair -keystore mobile/keystore/anteraja.jks -alias anteraja \
     -keyalg RSA -keysize 2048 -validity 10000
 
 NOTE
+            break
+        fi
+    done
+
     exit 64
 fi
 
@@ -130,6 +146,14 @@ echo "    version:  $APP_VERSION ($APP_VERSION_CODE)"
 bun run build -- --mode=android
 
 php artisan native:install android --no-interaction
+
+# The packager runs Gradle with a hard 10-minute ceiling, and a cold run spends
+# a chunk of that downloading the wrapper and resolving the AGP/Kotlin plugin
+# classpath. Pay that here instead; if this fails the real build reports why.
+if [ -x nativephp/android/gradlew ]; then
+    echo "==> Warming Gradle"
+    (cd nativephp/android && ./gradlew help) || true
+fi
 
 mkdir -p dist
 php artisan native:package android --no-tty --output="$ROOT/dist"
