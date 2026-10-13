@@ -1,0 +1,142 @@
+name: Android APKs
+
+# Two sideloadable shells built from one codebase: Anteraja Kurir and
+# Anteraja Frozen. Each is a native screen wrapping a web view onto the
+# deployed site, so the APKs only need rebuilding when the shell itself
+# changes — the site, and the API behind it, ship independently.
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [kurir, client]
+
+    env:
+      MOBILE_WEB_BASE_URL: ${{ vars.MOBILE_WEB_BASE_URL }}
+      ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/credentials/release.jks
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'anteraja' }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'android' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          # The embedded PHP runtime in NativePHP 4.6 is PHP 8.4, so the
+          # bundle is built with the same minor.
+          php-version: '8.4'
+          extensions: dom, simplexml, zip, mbstring, sqlite3, pdo_sqlite
+          coverage: none
+          tools: composer:v2
+
+      # Gradle 8.14 and AGP 8.13 compile against Java 17; newer JDKs trip the
+      # Gradle/JDK compatibility matrix.
+      - name: Setup JDK 17
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      # Composer's post-install scripts boot the framework, so give it an env
+      # file first; the build script swaps in the per-app one later.
+      - name: Prepare environment file
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate --no-interaction
+
+      - name: Install Node dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Cache Gradle and NativePHP PHP binaries
+        uses: actions/cache@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            nativephp/binaries
+          key: ${{ runner.os }}-${{ matrix.app }}-${{ hashFiles('composer.lock', 'bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.app }}-
+
+      - name: Provide signing keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p credentials
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+            echo "Signing with the keystore from repository secrets."
+          else
+            # Keeps the workflow green before a real keystore exists: these
+            # APKs install fine, they just cannot be updated by a later build
+            # signed with a different key.
+            keytool -genkeypair -keystore "$ANDROID_KEYSTORE_FILE" \
+              -storepass "$ANDROID_KEYSTORE_PASSWORD" -keypass "$ANDROID_KEY_PASSWORD" \
+              -alias "$ANDROID_KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Anteraja Hackathon, OU=Mobile, O=Anteraja, L=Jakarta, C=ID"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is unset — signed with a throwaway key."
+          fi
+
+      # native:package shells out to xdg-open when it finishes. A runner has no
+      # desktop session and xdg-open can block, so shadow it with a no-op.
+      - name: Stub xdg-open
+        run: |
+          printf '#!/bin/sh\nexit 0\n' > "$RUNNER_TEMP/xdg-open"
+          chmod +x "$RUNNER_TEMP/xdg-open"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Build ${{ matrix.app }} APK
+        run: scripts/build-apk.sh ${{ matrix.app }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: anteraja-${{ matrix.app }}
+          path: dist/anteraja-${{ matrix.app }}.apk
+          if-no-files-found: error
+
+  release-assets:
+    name: Attach APKs to the release
+    needs: apk
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Attach APKs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.apk --clobber

@@ -5,11 +5,13 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "^8.5",
+        "php": "^8.4",
         "inertiajs/inertia-laravel": "^3.5",
         "laravel/framework": "^13.0",
         "laravel/octane": "^2.21",
         "laravel/tinker": "^3.0",
+        "nativephp/mobile": "^4.6",
+        "nativephp/mobile-ui": "^0.8.0",
         "predis/predis": "^3.7"
     },
     "require-dev": {
