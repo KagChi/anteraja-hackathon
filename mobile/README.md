@@ -26,7 +26,7 @@ repository settings:
 
 | Kind | Name | Value |
 | --- | --- | --- |
-| Variable | `MOBILE_WEB_BASE_URL` | Origin of the deployed site, e.g. `https://anteraja.example.com` |
+| Variable | `MOBILE_WEB_BASE_URL` | Origin of the deployed site, e.g. `https://anteraja.example.com`. Unset, builds fall back to a reserved `.invalid` host and open on a native notice rather than a web view. |
 | Secret | `ANDROID_KEYSTORE_BASE64` | A release keystore, base64-encoded |
 | Secret | `ANDROID_KEYSTORE_PASSWORD` | Its password |
 | Secret | `ANDROID_KEY_ALIAS` | The key alias |

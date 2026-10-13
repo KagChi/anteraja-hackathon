@@ -6,8 +6,9 @@
     run the Inertia app inside it. `fullscreen` makes it fill the screen and
     extend behind the safe areas.
 
-    A build stamped without MOBILE_WEB_BASE_URL has nothing to load, so it says
-    so instead of opening a blank web view.
+    A build stamped without a real MOBILE_WEB_BASE_URL — absent, or the
+    reserved placeholder CI uses before the site is deployed — has nothing to
+    load, so it says so instead of showing the web view's error page.
 --}}
 @php
     $url = (string) config('mobile.start_url');
@@ -17,7 +18,7 @@
 @if ($url === '')
     <native:column class="w-full h-full items-center justify-center gap-3 p-6">
         <native:text class="text-lg font-bold text-center">{{ $appName }}</native:text>
-        <native:text class="text-sm text-center">This build has no site URL configured. Rebuild the APK with MOBILE_WEB_BASE_URL set.</native:text>
+        <native:text class="text-sm text-center">This build has no site to show yet. Rebuild the APK with MOBILE_WEB_BASE_URL pointing at the deployed site.</native:text>
     </native:column>
 @else
     <native:webview src="{{ $url }}" javascript dom-storage fullscreen />

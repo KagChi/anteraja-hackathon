@@ -25,7 +25,11 @@ jobs:
         app: [kurir, client]
 
     env:
-      MOBILE_WEB_BASE_URL: ${{ vars.MOBILE_WEB_BASE_URL }}
+      # Falls back to a reserved .invalid host so the pipeline can be exercised
+      # before the site is deployed. Such a build opens on a native notice
+      # instead of a web view, and setting the MOBILE_WEB_BASE_URL repository
+      # variable overrides it with no code change.
+      MOBILE_WEB_BASE_URL: ${{ vars.MOBILE_WEB_BASE_URL || 'https://anteraja-hackathon.invalid' }}
       ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/credentials/release.jks
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'anteraja' }}
