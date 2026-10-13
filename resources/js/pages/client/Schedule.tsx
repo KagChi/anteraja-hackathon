@@ -36,7 +36,7 @@ export default function Schedule() {
 
     return (
         <ClientLayout title="Detail Produk" backTo="/client/tracking">
-            <div className="flex w-full flex-col pb-32">
+            <div className="flex w-full flex-col pb-36">
                 <div className="flex items-center justify-between pb-space-sm pt-space-md">
                     <div className="inline-flex items-center gap-space-xs rounded bg-secondary-container px-2.5 py-1 text-on-secondary-container">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
@@ -155,7 +155,7 @@ export default function Schedule() {
                 </div>
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[420px] bg-surface-container-lowest px-margin pt-space-md pb-safe">
+            <div className="fixed inset-x-0 bottom-0 z-40 bg-surface-container-lowest px-margin pt-space-md pb-safe">
                 <div className="flex w-full flex-col gap-2.5">
                     <button
                         type="button"

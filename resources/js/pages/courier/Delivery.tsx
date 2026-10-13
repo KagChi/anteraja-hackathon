@@ -113,11 +113,31 @@ export default function Delivery() {
 
                 <section className="rounded-xl bg-surface-container-lowest p-2 shadow-sm">
                     <div
-                        className="relative flex h-36 w-full items-end overflow-hidden rounded-lg bg-cover bg-center p-2"
-                        style={{ backgroundImage: "url(/images/map-placeholder.svg)" }}
+                        className="relative flex h-36 w-full items-end overflow-hidden rounded-lg bg-surface-container p-2"
                         data-location={delivery.mapLabel}
                     >
-                        <div className="absolute inset-0 bg-inverse-surface/10" />
+                        <svg
+                            aria-hidden="true"
+                            className="absolute inset-0 h-full w-full"
+                            preserveAspectRatio="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <defs>
+                                <pattern id="courier-map-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+                                    <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#dbe3ef" strokeWidth="0.8" />
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="#eef2f9" />
+                            <rect width="100%" height="100%" fill="url(#courier-map-grid)" />
+                            <path d="M -40 108 Q 220 66 480 96 T 1040 118 L 1060 220 L -40 220 Z" fill="#dde6f2" />
+                            <path
+                                d="M -40 40 Q 260 14 560 44 T 1060 60 L 1060 96 Q 560 74 260 54 T -40 76 Z"
+                                fill="#e6edf7"
+                            />
+                        </svg>
+                        <div className="absolute left-1/2 top-[38%] -translate-x-1/2 -translate-y-full">
+                            <MaterialIcon name="location_on" filled className="text-[30px] text-primary drop-shadow" />
+                        </div>
                         <a
                             href={delivery.mapHref}
                             target="_blank"
