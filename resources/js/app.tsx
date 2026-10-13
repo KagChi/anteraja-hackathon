@@ -5,13 +5,13 @@ import { createInertiaApp, type ResolvedComponent } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
 
-const appName = "Example App";
+const appName = "Anteraja Frozen";
 
 void createInertiaApp({
-    title: (title) => (title ? `${appName} - ${title}` : appName),
+    title: (title) => (title ? appName + " - " + title : appName),
     resolve: (name) =>
         resolvePageComponent<ResolvedComponent>(
-            `./pages/${name}.tsx`,
+            "./pages/" + name + ".tsx",
             import.meta.glob<ResolvedComponent>("./pages/**/*.tsx")
         ),
     setup({ el, App, props }) {
