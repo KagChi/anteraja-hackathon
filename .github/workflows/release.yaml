@@ -1,0 +1,71 @@
+name: Release Contents
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup PHP Version
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - name: Setup Node.js
+        uses: useblacksmith/setup-node@65c6ca86fdeb0ab3d85e78f57e4f6a7e4780b391 # v5
+        with:
+          node-version-file: .node-version
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Linting
+        run: pnpm lint
+
+      - name: Compile Vite Requirements
+        run: pnpm build
+
+      - name: Create ZIP archive
+        if: github.event_name == 'push' || github.event_name == 'release'
+        run: zip -r release.zip LICENSE README.md vendor public app bootstrap config database resources routes storage tests artisan composer.json composer.lock package.json .env.example
+
+      - name: Create Staging Release
+        if: github.event_name == 'push' && github.event_name != 'release'
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
+        with:
+          artifacts: "release.zip"
+          allowUpdates: true
+          tag: "staging"
+          replacesArtifacts: true
+          name: "Staging Build"
+          prerelease: true
+      
+      - name: Create Production Release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./release.zip
+          asset_name: release.zip
+          asset_content_type: application/zip
