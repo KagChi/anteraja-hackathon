@@ -1,5 +1,6 @@
 import { Link, router, usePage } from "@inertiajs/react";
 import { type ReactNode, useEffect, useState } from "react";
+import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { cx } from "@/lib/cx";
 
@@ -51,14 +52,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             >
                 <div className="flex flex-col">
                     <div className="flex h-14 items-center justify-between border-b border-outline-variant px-margin">
-                        <div className="flex items-center gap-space-xs">
-                            <span className="font-headline-sm text-headline-sm uppercase tracking-tight text-primary">
-                                Anteraja
-                            </span>
-                            <span className="rounded-sm bg-surface-container-high px-space-xs py-0.5 font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">
-                                Frozen
-                            </span>
-                        </div>
+                        <AnterajaLogo className="h-6" />
                         <MaterialIcon name="ac_unit" className="text-[18px] text-secondary" />
                     </div>
 

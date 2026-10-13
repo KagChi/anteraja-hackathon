@@ -1,7 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
+import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { BottomNav } from "@/components/BottomNav";
-import { BrandLockup } from "@/components/BrandLockup";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MobileShell } from "@/components/MobileShell";
 import { COURIER } from "@/data/courier";
@@ -42,7 +42,7 @@ export function CourierLayout({ children, title, backTo, showCourier = false }: 
                             ) : null}
                             {showCourier ? (
                                 <>
-                                    <BrandLockup tag="Kurir" />
+                                    <AnterajaLogo className="h-6" />
                                     <div className="ml-1 flex flex-col leading-tight">
                                         <span className="font-label-md text-label-md text-on-surface">
                                             {COURIER.name}
@@ -55,7 +55,7 @@ export function CourierLayout({ children, title, backTo, showCourier = false }: 
                                 </>
                             ) : (
                                 <>
-                                    <BrandLockup wordmark={false} markClassName="h-7 w-7" />
+                                    <AnterajaLogo className="h-5" />
                                     <h1 className="ml-1 min-w-0 truncate font-headline-sm text-headline-sm text-on-surface">
                                         {title}
                                     </h1>

@@ -1,5 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
+import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MobileShell } from "@/components/MobileShell";
 import { whatsappLink } from "@/data/client";
@@ -40,10 +41,8 @@ export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
                                     <MaterialIcon name="arrow_back_ios_new" className="text-[20px]" />
                                 </button>
                             )}
-                            <div className="flex flex-col">
-                                <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
-                                    Anteraja Frozen
-                                </span>
+                            <div className="flex flex-col items-start">
+                                <AnterajaLogo className="h-5" />
                                 <h1 className="font-headline-sm text-headline-sm leading-tight text-on-surface">
                                     {title}
                                 </h1>

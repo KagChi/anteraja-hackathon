@@ -1,4 +1,5 @@
 import { Head, Link } from "@inertiajs/react";
+import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { MaterialIcon } from "@/components/MaterialIcon";
 
 interface AppLink {
@@ -34,14 +35,7 @@ export default function Home() {
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-surface px-margin py-margin font-sans text-on-surface antialiased">
             <Head title="Pilih Aplikasi" />
             <div className="w-full max-w-5xl">
-                <div className="flex items-center gap-space-xs">
-                    <span className="font-headline-lg text-headline-lg uppercase tracking-tight text-primary">
-                        Anteraja
-                    </span>
-                    <span className="rounded-sm bg-surface-container-high px-space-xs py-0.5 font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">
-                        Frozen
-                    </span>
-                </div>
+                <AnterajaLogo className="h-9" />
                 <h1 className="mt-space-sm font-headline-lg text-headline-lg text-on-surface">Pilih Aplikasi</h1>
                 <p className="mt-space-xs font-body-md text-body-md text-secondary">
                     Tiga antarmuka Anteraja Frozen: dashboard admin, aplikasi kurir, dan aplikasi pelanggan.
