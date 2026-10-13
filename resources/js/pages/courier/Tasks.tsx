@@ -36,7 +36,7 @@ export default function Tasks() {
             <div className="flex w-full flex-col gap-space-md">
                 <div className="flex items-center justify-between rounded-xl bg-surface-container-high p-space-md">
                     <div className="flex items-center gap-space-sm">
-                        <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 font-label-sm text-label-sm uppercase tracking-wide text-on-primary">
+                        <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 font-label-sm text-label-sm text-on-primary uppercase tracking-wide">
                             Tugas Baru
                         </span>
                         <span className="font-body-sm text-body-sm text-secondary">{task.age}</span>
@@ -47,10 +47,10 @@ export default function Tasks() {
                 <section className="flex flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
                     <div className="flex items-start justify-between gap-space-sm pb-space-xs">
                         <div>
-                            <span className="block font-label-sm text-label-sm uppercase text-secondary">
+                            <span className="block font-label-sm text-label-sm text-secondary uppercase">
                                 Nomor Resi / AWB
                             </span>
-                            <span className="select-all font-data-mono text-headline-sm font-semibold tracking-tight text-on-surface">
+                            <span className="select-all font-data-mono font-semibold text-headline-sm text-on-surface tracking-tight">
                                 {task.tracking}
                             </span>
                         </div>
@@ -79,17 +79,17 @@ export default function Tasks() {
                             <span className="font-label-sm text-label-sm text-secondary">{task.placeType}</span>
                         </div>
                         <h2 className="font-headline-sm text-headline-sm text-on-surface">{task.recipient}</h2>
-                        <p className="font-body-md text-body-md leading-relaxed text-secondary">{task.address}</p>
+                        <p className="font-body-md text-body-md text-secondary leading-relaxed">{task.address}</p>
                     </div>
 
                     <div className="flex flex-col gap-1 rounded-lg bg-surface-container-low p-space-md">
                         <div className="flex items-center gap-1.5 text-primary">
                             <MaterialIcon name="warning" className="text-[18px]" />
-                            <span className="font-label-sm text-label-sm font-bold uppercase tracking-wider">
+                            <span className="font-bold font-label-sm text-label-sm uppercase tracking-wider">
                                 Instruksi Khusus
                             </span>
                         </div>
-                        <p className="font-body-md text-body-md font-medium leading-snug text-on-surface">
+                        <p className="font-body-md font-medium text-body-md text-on-surface leading-snug">
                             {task.instruction}
                         </p>
                     </div>
@@ -98,7 +98,7 @@ export default function Tasks() {
                         {task.metrics.map((metric) => (
                             <div key={metric.label} className="rounded-lg bg-surface-container p-space-sm text-center">
                                 <span className="block font-label-sm text-label-sm text-secondary">{metric.label}</span>
-                                <span className="font-label-md text-label-md font-semibold text-on-surface">
+                                <span className="font-label-md font-semibold text-label-md text-on-surface">
                                     {metric.value}
                                 </span>
                             </div>
@@ -116,7 +116,7 @@ export default function Tasks() {
                             <span className="font-body-sm text-body-sm text-secondary">{task.distance}</span>
                         </div>
                     </div>
-                    <span className="font-label-md text-label-md font-semibold text-on-surface">{task.eta}</span>
+                    <span className="font-label-md font-semibold text-label-md text-on-surface">{task.eta}</span>
                 </div>
 
                 {state === "accepted" ? (
@@ -166,7 +166,7 @@ export default function Tasks() {
                         <button
                             type="button"
                             onClick={() => setToastDismissed(true)}
-                            className="shrink-0 rounded-md px-2 py-1 font-label-sm text-label-sm text-inverse-primary"
+                            className="shrink-0 rounded-md px-2 py-1 font-label-sm text-inverse-primary text-label-sm"
                         >
                             Tutup
                         </button>

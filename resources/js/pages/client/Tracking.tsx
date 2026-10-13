@@ -41,7 +41,7 @@ export default function Tracking({ resi }: TrackingProps) {
                     <div className="flex items-center justify-between pb-space-xs">
                         <div className="flex flex-col">
                             <span className="font-label-sm text-label-sm text-secondary">Nomor Resi</span>
-                            <span className="font-data-mono text-headline-sm font-semibold tracking-tight text-on-surface">
+                            <span className="font-data-mono font-semibold text-headline-sm text-on-surface tracking-tight">
                                 {order.resi}
                             </span>
                         </div>
@@ -96,7 +96,7 @@ export default function Tracking({ resi }: TrackingProps) {
                                 <span className="font-headline-md text-headline-md text-on-surface">
                                     {order.temperature}
                                 </span>
-                                <span className="font-label-sm text-label-sm font-semibold text-tertiary">
+                                <span className="font-label-sm font-semibold text-label-sm text-tertiary">
                                     ({order.temperatureState})
                                 </span>
                             </div>
@@ -114,7 +114,7 @@ export default function Tracking({ resi }: TrackingProps) {
                         <span className="font-label-sm text-label-sm text-secondary">WIB</span>
                     </div>
                     <div className="relative flex flex-col">
-                        <div className="absolute bottom-3 left-[7px] top-3 w-[2px] bg-surface-container-highest" />
+                        <div className="absolute top-3 bottom-3 left-[7px] w-[2px] bg-surface-container-highest" />
                         {order.timeline.map((node) => (
                             <div
                                 key={node.time + node.label}

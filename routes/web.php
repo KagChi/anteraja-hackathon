@@ -12,12 +12,14 @@ Route::redirect("/client", "/client/orders");
 Route::redirect("/client/tracking", "/client/orders");
 
 Route::prefix("admin")->name("admin.")->group(function () {
-    Route::get("shipment", fn (Request $request) => Inertia::render("admin/Shipment", [
-        "q" => $request->query("q")
-    ]))->name("shipment");
-    Route::get("exception", fn () => Inertia::render("admin/Exception"))->name("exception");
+    Route::get("shipment", fn () => Inertia::render("admin/Shipment"))->name("shipment");
     Route::get("report", fn () => Inertia::render("admin/Report"))->name("report");
-    Route::get("history", fn () => Inertia::render("admin/History"))->name("history");
+    Route::get("exception/{resi}", fn (string $resi) => Inertia::render("admin/Exception", [
+        "resi" => $resi
+    ]))->name("exception");
+    // Kendala handling now lives on the report screen; Riwayat folded into Shipment.
+    Route::redirect("exception", "/admin/report");
+    Route::redirect("history", "/admin/shipment");
 });
 
 Route::prefix("courier")->name("courier.")->group(function () {

@@ -10,15 +10,11 @@ export default function Orders() {
             <div className="flex w-full flex-col gap-space-md pb-space-lg">
                 <div className="flex items-center justify-between rounded-xl bg-surface-container-low p-space-md">
                     <div className="flex flex-col">
-                        <span className="font-label-sm text-label-sm uppercase text-secondary">Pesanan Aktif</span>
+                        <span className="font-label-sm text-label-sm text-secondary uppercase">Pesanan Aktif</span>
                         <span className="font-headline-sm text-headline-sm text-on-surface">
                             {CLIENT_ACTIVE_ORDERS.length} pengiriman berjalan
                         </span>
                     </div>
-                    <span className="flex items-center gap-1 rounded-full bg-tertiary-fixed px-2 py-0.5 font-label-sm text-label-sm font-semibold text-tertiary">
-                        <MaterialIcon name="ac_unit" className="text-[14px]" />
-                        Beku -18°C
-                    </span>
                 </div>
 
                 {CLIENT_ACTIVE_ORDERS.map((order) => (
@@ -30,7 +26,7 @@ export default function Orders() {
                             <span className="font-data-mono text-label-sm text-secondary">{order.resi}</span>
                             <span
                                 className={cx(
-                                    "rounded-full px-2 py-0.5 font-label-sm text-label-sm font-semibold",
+                                    "rounded-full px-2 py-0.5 font-label-sm font-semibold text-label-sm",
                                     CLIENT_STATUS_TONE[order.statusKey]
                                 )}
                             >
@@ -47,13 +43,13 @@ export default function Orders() {
                                 {order.recipient} • {order.recipientArea}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between border-t border-black/5 pt-space-sm">
+                        <div className="flex items-center justify-between border-black/5 border-t pt-space-sm">
                             <span className="font-label-sm text-label-sm text-secondary">
                                 {order.etaDate} • {order.etaTime}
                             </span>
                             <Link
                                 href={`/client/tracking/${order.resi}`}
-                                className="flex items-center gap-1 font-label-md text-label-md font-semibold text-primary transition-opacity active:opacity-70"
+                                className="flex items-center gap-1 font-label-md font-semibold text-label-md text-primary transition-opacity active:opacity-70"
                             >
                                 <span>Lacak</span>
                                 <MaterialIcon name="arrow_forward" className="text-[16px]" />
@@ -61,10 +57,6 @@ export default function Orders() {
                         </div>
                     </article>
                 ))}
-
-                <p className="px-1 font-body-sm text-body-sm text-secondary">
-                    Pilih pesanan untuk melihat posisi kurir, suhu cooler box, dan riwayat perjalanan paket.
-                </p>
             </div>
         </ClientLayout>
     );

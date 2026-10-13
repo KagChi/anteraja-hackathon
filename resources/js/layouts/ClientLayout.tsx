@@ -81,7 +81,7 @@ export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
                     items={NAV_ITEMS}
                     ariaLabel="Navigasi pelanggan"
                     activeHref={activeHref}
-                    className="sticky bottom-0 z-50 mt-auto border-t border-black/5 bg-surface/95 pb-safe backdrop-blur-xl"
+                    className="sticky bottom-0 z-50 mt-auto border-black/5 border-t bg-surface/95 pb-safe backdrop-blur-xl"
                     containerClassName="h-16 px-2"
                     labelClassName="text-[10px] font-medium"
                 />

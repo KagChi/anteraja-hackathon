@@ -307,7 +307,6 @@ export const CLIENT_PROFILE = {
     phone: "0812-9876-5432",
     email: "rina.putri@email.com",
     address: "Jl. Melati No. 14, Jakarta Selatan, DKI Jakarta 12410",
-    note: "Alamat utama untuk pengiriman frozen. Penerima wajib ada di lokasi saat kurir tiba.",
     stats: [
         { label: "Pesanan aktif", value: "3" },
         { label: "Selesai", value: "12" },

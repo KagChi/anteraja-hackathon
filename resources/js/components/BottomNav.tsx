@@ -57,7 +57,7 @@ export function BottomNav({
                             <span className="relative flex items-center justify-center">
                                 <MaterialIcon name={item.icon} filled={active} />
                                 {item.badge ? (
-                                    <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+                                    <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-primary" />
                                 ) : null}
                             </span>
                             <span className={labelClassName}>{item.label}</span>

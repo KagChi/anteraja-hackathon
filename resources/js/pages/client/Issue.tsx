@@ -23,13 +23,13 @@ export default function Issue({ resi }: IssueProps) {
 
     return (
         <ClientLayout title="Kendala Pengiriman" backTo={`/client/tracking/${order.resi}`}>
-            <div className="flex w-full flex-col gap-space-lg pb-space-xl pt-space-md">
+            <div className="flex w-full flex-col gap-space-lg pt-space-md pb-space-xl">
                 <section className="flex flex-col gap-space-sm rounded-lg bg-surface-container-lowest p-space-md">
                     <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">
+                        <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
                             No. Resi Pengiriman
                         </span>
-                        <span className="font-data-mono font-label-md text-label-md font-semibold text-on-surface">
+                        <span className="font-data-mono font-label-md font-semibold text-label-md text-on-surface">
                             {order.resi}
                         </span>
                     </div>
@@ -46,7 +46,7 @@ export default function Issue({ resi }: IssueProps) {
                     </div>
                     <div className="flex flex-col pt-space-xs">
                         <span className="font-label-sm text-label-sm text-secondary">Produk Beku</span>
-                        <span className="font-body-md text-body-md font-semibold text-on-surface">{order.product}</span>
+                        <span className="font-body-md font-semibold text-body-md text-on-surface">{order.product}</span>
                     </div>
                 </section>
 
@@ -64,7 +64,7 @@ export default function Issue({ resi }: IssueProps) {
                         <p className="font-headline-sm text-headline-sm text-on-surface">{issue.problem}</p>
                     </div>
                     <div className="flex flex-col gap-space-xs rounded-lg bg-surface-container-low p-space-md">
-                        <span className="font-label-sm text-label-sm font-semibold text-primary">
+                        <span className="font-label-sm font-semibold text-label-sm text-primary">
                             {issue.decisionLabel}
                         </span>
                         <p className="font-body-md text-body-md text-on-surface">{issue.decision}</p>
@@ -73,18 +73,18 @@ export default function Issue({ resi }: IssueProps) {
 
                 <section className="flex flex-col gap-space-xs rounded-lg bg-surface-container-lowest p-space-md">
                     <span className="font-label-md text-label-md text-tertiary">{issue.qualityLabel}</span>
-                    <p className="font-body-sm text-body-sm leading-relaxed text-secondary">{issue.quality}</p>
+                    <p className="font-body-sm text-body-sm text-secondary leading-relaxed">{issue.quality}</p>
                 </section>
 
                 <section className="flex flex-col gap-space-md rounded-lg bg-surface-container-lowest p-space-md">
                     <span className="font-label-lg text-label-lg text-on-surface">Riwayat Penanganan Hub</span>
                     <div className="relative flex flex-col gap-space-lg pl-space-lg">
-                        <div className="absolute bottom-2 left-[5px] top-2 w-[2px] bg-surface-container-highest" />
+                        <div className="absolute top-2 bottom-2 left-[5px] w-[2px] bg-surface-container-highest" />
                         {issue.history.map((node) => (
                             <div key={node.time + node.label} className="relative flex flex-col">
                                 <div
                                     className={cx(
-                                        "absolute -left-[19px] top-1.5 h-3 w-3 rounded-full ring-4 ring-surface-container-lowest",
+                                        "absolute top-1.5 -left-[19px] h-3 w-3 rounded-full ring-4 ring-surface-container-lowest",
                                         node.active ? "bg-primary" : "bg-secondary"
                                     )}
                                 />
@@ -119,7 +119,7 @@ export default function Issue({ resi }: IssueProps) {
                     >
                         Ajukan Pengiriman Ulang
                     </Link>
-                    <p className="px-space-sm text-center font-body-sm text-body-sm leading-normal text-secondary">
+                    <p className="px-space-sm text-center font-body-sm text-body-sm text-secondary leading-normal">
                         Butuh bantuan langsung? Hubungi{" "}
                         <a
                             href={whatsappLink(`Halo, saya butuh bantuan untuk pesanan ${order.resi}.`)}
