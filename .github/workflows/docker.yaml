@@ -1,0 +1,19 @@
+name: Build & Push to container registry
+
+on:
+  release:
+    types: [created]
+  push:
+    branches:
+      - "main"
+  pull_request:
+
+jobs:
+  build:
+    uses: nezuchan/workflows/.github/workflows/docker-build.yml@f1fd8acd1eb6ee76f944ab700ce7beafec5519c0 # main
+    permissions:
+      packages: write
+      contents: read
+    secrets: inherit
+    with:
+      PLATFORMS: linux/amd64

@@ -1,0 +1,44 @@
+name: anteraja-hackathon
+
+services:
+    pgsql:
+        image: postgres:18-alpine
+        restart: unless-stopped
+        ports:
+            - "${FORWARD_DB_PORT:-5432}:5432"
+        environment:
+            POSTGRES_DB: "${DB_DATABASE:-laravel}"
+            POSTGRES_USER: "${DB_USERNAME:-laravel}"
+            POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
+        volumes:
+            - pgsql-data:/var/lib/postgresql
+        healthcheck:
+            test: ["CMD", "pg_isready", "-U", "${DB_USERNAME:-laravel}", "-d", "${DB_DATABASE:-laravel}"]
+            interval: 5s
+            retries: 10
+            timeout: 5s
+        networks:
+            - app
+
+    redis:
+        image: redis:8-alpine
+        restart: unless-stopped
+        ports:
+            - "${FORWARD_REDIS_PORT:-6379}:6379"
+        command: redis-server --save "" --appendonly no
+        volumes:
+            - redis-data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            retries: 10
+            timeout: 5s
+        networks:
+            - app
+
+volumes:
+    pgsql-data:
+    redis-data:
+
+networks:
+    app:
