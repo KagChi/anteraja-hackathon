@@ -40,21 +40,27 @@ export function CourierLayout({ children, title, backTo, showCourier = false }: 
                                     <MaterialIcon name="arrow_back" />
                                 </Link>
                             ) : null}
-                            <BrandLockup tag="Kurir" />
-                            {title ? (
-                                <h1 className="ml-1 truncate font-headline-sm text-headline-sm text-on-surface">
-                                    {title}
-                                </h1>
-                            ) : null}
                             {showCourier ? (
-                                <div className="ml-1 flex flex-col leading-tight">
-                                    <span className="font-label-md text-label-md text-on-surface">{COURIER.name}</span>
-                                    <span className="flex items-center gap-1 font-label-sm text-label-sm text-tertiary">
-                                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-tertiary" />
-                                        {COURIER.status}
-                                    </span>
-                                </div>
-                            ) : null}
+                                <>
+                                    <BrandLockup tag="Kurir" />
+                                    <div className="ml-1 flex flex-col leading-tight">
+                                        <span className="font-label-md text-label-md text-on-surface">
+                                            {COURIER.name}
+                                        </span>
+                                        <span className="flex items-center gap-1 font-label-sm text-label-sm text-tertiary">
+                                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-tertiary" />
+                                            {COURIER.status}
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <BrandLockup wordmark={false} markClassName="h-7 w-7" />
+                                    <h1 className="ml-1 min-w-0 truncate font-headline-sm text-headline-sm text-on-surface">
+                                        {title}
+                                    </h1>
+                                </>
+                            )}
                         </div>
                         <Link
                             href="/courier/profile"
