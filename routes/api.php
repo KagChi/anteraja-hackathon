@@ -113,8 +113,10 @@ Route::prefix('client/{token}')->name('api.client.')
         Route::post('issue/resend', ReplacementController::class)->name('issue.resend');
     });
 
-// OpenAPI / Swagger Documentation Spec
+// OpenAPI / Swagger Documentation Spec (Hanya aktif di non-production)
 Route::get('docs/openapi.json', function () {
+    abort_if(app()->isProduction(), 404);
+
     return response()->file(base_path('docs/openapi.json'), [
         'Content-Type' => 'application/json',
     ]);

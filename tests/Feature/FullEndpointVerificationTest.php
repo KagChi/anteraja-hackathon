@@ -48,6 +48,13 @@ final class FullEndpointVerificationTest extends TestCase
         // 3. POST /api/auth/logout
         $logoutRes = $this->actingAs($this->admin)->postJson('/api/auth/logout');
         $logoutRes->assertOk();
+
+        // 3b. GET /api/docs/openapi.json (OpenAPI Docs Guard)
+        $this->get('/api/docs/openapi.json')->assertOk();
+
+        app()['env'] = 'production';
+        $this->get('/api/docs/openapi.json')->assertNotFound();
+        app()['env'] = 'testing';
     }
 
     public function test_all_admin_endpoints(): void
