@@ -1,4 +1,4 @@
-import { fileURLToPath, URL } from "node:url";
+import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { defineConfig } from "vite";
 import laravel from "laravel-vite-plugin";
 import viteReact from "@vitejs/plugin-react";
@@ -9,11 +9,17 @@ import viteReact from "@vitejs/plugin-react";
 // deployed site, so the bundle the server hands them has to stay a plain
 // browser build; keeping the plugin behind the mode keeps that explicit and
 // stops iOS-only rewrites from leaking into a web build.
+//
+// The specifier is built at runtime rather than written as a literal because
+// Vite bundles this config file and resolves literal dynamic imports while
+// doing so. `vendor/` is not part of an image or an APK build context, so a
+// literal import breaks every web build that runs without it.
+const nativephpPlugin = () =>
+    pathToFileURL(process.cwd() + "/vendor/nativephp/mobile/resources/js/vite-plugin.js").href;
+
 export default defineConfig(async ({ mode }) => {
     const nativeBuild = mode === "android" || mode === "ios";
-    const nativephp = nativeBuild
-        ? await import("./vendor/nativephp/mobile/resources/js/vite-plugin.js")
-        : null;
+    const nativephp = nativeBuild ? await import(nativephpPlugin()) : null;
 
     return {
         plugins: [
