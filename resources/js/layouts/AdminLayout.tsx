@@ -43,7 +43,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <aside
                 aria-label="Navigasi utama"
                 className={cx(
-                    "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col justify-between border-outline-variant border-r bg-surface-container-lowest transition-transform duration-200 lg:translate-x-0",
+                    "fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col border-outline-variant border-r bg-surface-container-lowest transition-transform duration-200 lg:translate-x-0",
                     open ? "translate-x-0" : "-translate-x-full"
                 )}
             >
@@ -78,16 +78,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                             );
                         })}
                     </nav>
-                </div>
-
-                <div className="border-outline-variant border-t bg-surface-container-lowest p-margin">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-space-xs">
-                            <span className="h-2 w-2 rounded-full bg-tertiary-container" />
-                            <span className="font-label-sm text-label-sm text-secondary">Hub Cold-Chain Aktif</span>
-                        </div>
-                        <span className="font-data-mono text-data-mono text-secondary">-20°C</span>
-                    </div>
                 </div>
             </aside>
 
