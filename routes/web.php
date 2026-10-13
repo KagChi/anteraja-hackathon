@@ -19,3 +19,9 @@ Route::prefix("kurir")->name("kurir.")->group(function () {
     Route::get("issue", fn () => Inertia::render("kurir/Issue"))->name("issue");
 });
 
+Route::prefix("frozen")->name("frozen.")->group(function () {
+    Route::get("tracking", fn () => Inertia::render("frozen/Tracking"))->name("tracking");
+    Route::get("schedule", fn () => Inertia::render("frozen/Schedule"))->name("schedule");
+    Route::get("issue", fn () => Inertia::render("frozen/Issue"))->name("issue");
+});
+

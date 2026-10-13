@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Pratinjau produk beku">
+  <rect width="400" height="400" fill="#f0f3ff"/>
+  <g transform="translate(200 180)">
+    <rect x="-115" y="-85" width="230" height="170" rx="16" fill="#ffffff" stroke="#d6e0f3" stroke-width="3"/>
+    <path d="M-115 -45 H115" stroke="#d6e0f3" stroke-width="3"/>
+    <circle cx="-40" cy="10" r="30" fill="#e7eefe"/>
+    <circle cx="20" cy="30" r="26" fill="#e7eefe"/>
+    <circle cx="55" cy="-6" r="22" fill="#e7eefe"/>
+    <circle cx="-10" cy="-18" r="20" fill="#e7eefe"/>
+    <g font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#b6005b">
+      <text x="-45" y="-52">COLD</text>
+    </g>
+    <g transform="translate(62 -52)">
+      <circle r="13" fill="none" stroke="#00685f" stroke-width="2.5"/>
+      <path d="M0 -6 V6 M-6 0 H6" stroke="#00685f" stroke-width="2.5"/>
+    </g>
+  </g>
+  <text x="200" y="330" text-anchor="middle" font-family="Inter, sans-serif" font-size="20" fill="#5a3f46">
+    Pratinjau produk beku
+  </text>
+</svg>

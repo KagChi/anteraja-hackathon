@@ -82,7 +82,7 @@ export function KurirLayout({ children, title, backTo, showCourier = false }: Ku
                     <div className="flex h-16 items-center justify-around px-space-xs">
                         {NAV_ITEMS.map((item) => {
                             const active =
-                                item.available && (pathname === item.href || pathname.startsWith(item.href + "/"));
+                                item.available && (pathname === item.href || pathname.startsWith(`${item.href}/`));
                             const className = cx(
                                 "flex min-h-[48px] min-w-[64px] flex-col items-center justify-center",
                                 active

@@ -8,10 +8,10 @@ import { createRoot } from "react-dom/client";
 const appName = "Anteraja Frozen";
 
 void createInertiaApp({
-    title: (title) => (title ? appName + " - " + title : appName),
+    title: (title) => (title ? `${appName} - ${title}` : appName),
     resolve: (name) =>
         resolvePageComponent<ResolvedComponent>(
-            "./pages/" + name + ".tsx",
+            `./pages/${name}.tsx`,
             import.meta.glob<ResolvedComponent>("./pages/**/*.tsx")
         ),
     setup({ el, App, props }) {
