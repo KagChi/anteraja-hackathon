@@ -1,16 +1,24 @@
+import { Link } from "@inertiajs/react";
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { TRACKING } from "@/data/client";
+import { MissingOrder } from "@/components/MissingOrder";
+import { findOrder } from "@/data/client";
 import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
-export default function Tracking() {
-    const data = TRACKING;
+interface TrackingProps {
+    /** Resi of the order being tracked. */
+    resi?: string;
+}
+
+export default function Tracking({ resi }: TrackingProps) {
+    const order = findOrder(resi);
     const [copied, setCopied] = useState(false);
 
     async function copyResi() {
+        if (!order) return;
         try {
-            await navigator.clipboard.writeText(data.tracking);
+            await navigator.clipboard.writeText(order.resi);
         } catch {
             // Clipboard access can be blocked; the label still acknowledges the intent.
         }
@@ -18,32 +26,48 @@ export default function Tracking() {
         window.setTimeout(() => setCopied(false), 2000);
     }
 
+    if (!order) {
+        return (
+            <ClientLayout title="Pelacakan Kurir Beku" backTo="/client/orders">
+                <MissingOrder resi={resi} />
+            </ClientLayout>
+        );
+    }
+
     return (
-        <ClientLayout title="Pelacakan Kurir Beku">
+        <ClientLayout title="Pelacakan Kurir Beku" backTo="/client/orders">
             <div className="flex w-full flex-col gap-space-lg pb-space-lg">
                 <section className="flex flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg">
                     <div className="flex items-center justify-between pb-space-xs">
                         <div className="flex flex-col">
                             <span className="font-label-sm text-label-sm text-secondary">Nomor Resi</span>
                             <span className="font-data-mono text-headline-sm font-semibold tracking-tight text-on-surface">
-                                {data.tracking}
+                                {order.resi}
                             </span>
                         </div>
                         <div className="flex items-center rounded bg-surface-container-low px-space-sm py-1">
-                            <span className="font-label-md text-label-md text-primary">{data.status}</span>
+                            <span className="font-label-md text-label-md text-primary">{order.status}</span>
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-label-sm text-label-sm text-secondary">Produk</span>
+                        <span className="font-label-lg text-label-lg text-on-surface">{order.product}</span>
+                        <span className="font-body-sm text-body-sm text-secondary">{order.productMeta}</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-space-md pt-space-xs">
                         <div className="flex flex-col">
                             <span className="font-label-sm text-label-sm text-secondary">Estimasi Tiba</span>
-                            <span className="mt-0.5 font-label-lg text-label-lg text-on-surface">{data.etaDate}</span>
-                            <span className="font-body-sm text-body-sm text-secondary">{data.etaTime}</span>
+                            <span className="mt-0.5 font-label-lg text-label-lg text-on-surface">{order.etaDate}</span>
+                            <span className="font-body-sm text-body-sm text-secondary">{order.etaTime}</span>
                         </div>
                         <div className="flex flex-col">
                             <span className="font-label-sm text-label-sm text-secondary">Penerima</span>
-                            <span className="mt-0.5 font-label-lg text-label-lg text-on-surface">{data.recipient}</span>
-                            <span className="font-body-sm text-body-sm text-secondary">{data.recipientArea}</span>
+                            <span className="mt-0.5 font-label-lg text-label-lg text-on-surface">
+                                {order.recipient}
+                            </span>
+                            <span className="font-body-sm text-body-sm text-secondary">{order.recipientArea}</span>
                         </div>
                     </div>
 
@@ -52,11 +76,11 @@ export default function Tracking() {
                             <MaterialIcon name="two_wheeler" className="text-[20px] text-secondary" />
                             <div className="flex flex-col">
                                 <span className="font-label-sm text-label-sm text-secondary">Kurir Pengantar</span>
-                                <span className="font-label-md text-label-md text-on-surface">{data.courier}</span>
+                                <span className="font-label-md text-label-md text-on-surface">{order.courier}</span>
                             </div>
                         </div>
                         <span className="rounded bg-surface-container-lowest px-2 py-0.5 font-label-sm text-label-sm text-secondary">
-                            {data.courierBox}
+                            {order.courierBox}
                         </span>
                     </div>
                 </section>
@@ -70,17 +94,17 @@ export default function Tracking() {
                             <span className="font-label-sm text-label-sm text-secondary">Suhu Cooler Box</span>
                             <div className="flex items-baseline gap-space-xs">
                                 <span className="font-headline-md text-headline-md text-on-surface">
-                                    {data.temperature}
+                                    {order.temperature}
                                 </span>
                                 <span className="font-label-sm text-label-sm font-semibold text-tertiary">
-                                    ({data.temperatureState})
+                                    ({order.temperatureState})
                                 </span>
                             </div>
                         </div>
                     </div>
                     <div className="flex flex-col items-end">
                         <span className="font-label-sm text-label-sm text-secondary">Rantai Dingin</span>
-                        <span className="font-label-sm text-label-sm text-tertiary">{data.coldChain}</span>
+                        <span className="font-label-sm text-label-sm text-tertiary">{order.coldChain}</span>
                     </div>
                 </section>
 
@@ -91,7 +115,7 @@ export default function Tracking() {
                     </div>
                     <div className="relative flex flex-col">
                         <div className="absolute bottom-3 left-[7px] top-3 w-[2px] bg-surface-container-highest" />
-                        {data.timeline.map((node) => (
+                        {order.timeline.map((node) => (
                             <div
                                 key={node.time + node.label}
                                 className="relative flex items-start gap-space-md pb-space-lg last:pb-0"
@@ -132,9 +156,27 @@ export default function Tracking() {
                 </section>
 
                 <div className="flex flex-col gap-space-sm pt-space-xs">
+                    {order.statusKey === "waiting" ? (
+                        <Link
+                            href={`/client/schedule/${order.resi}`}
+                            className="flex h-12 w-full items-center justify-center gap-space-sm rounded-lg border border-primary bg-primary-fixed/50 font-label-lg text-label-lg text-primary transition-colors active:bg-primary-fixed"
+                        >
+                            <MaterialIcon name="event_available" className="text-[20px]" />
+                            Konfirmasi Jadwal
+                        </Link>
+                    ) : null}
+                    {order.statusKey === "issue" ? (
+                        <Link
+                            href={`/client/issue/${order.resi}`}
+                            className="flex h-12 w-full items-center justify-center gap-space-sm rounded-lg border border-error/30 bg-error-container font-label-lg text-label-lg text-on-error-container transition-colors"
+                        >
+                            <MaterialIcon name="report_problem" className="text-[20px]" />
+                            Lihat Detail Kendala
+                        </Link>
+                    ) : null}
                     <a
-                        href={data.courierTel}
-                        aria-label={`Hubungi Kurir ${data.courier}`}
+                        href={order.courierTel}
+                        aria-label={`Hubungi Kurir ${order.courier}`}
                         className="flex h-12 w-full items-center justify-center gap-space-sm rounded-lg bg-primary font-label-lg text-label-lg text-on-primary transition-colors active:bg-primary-container"
                     >
                         <MaterialIcon name="call" className="text-[20px]" />

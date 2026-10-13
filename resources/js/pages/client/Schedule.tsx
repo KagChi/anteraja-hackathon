@@ -1,13 +1,20 @@
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { SCHEDULE, whatsappLink } from "@/data/client";
+import { MissingOrder } from "@/components/MissingOrder";
+import { findOrder, whatsappLink } from "@/data/client";
 import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
 type ConfirmState = "idle" | "saving" | "confirmed";
 
-export default function Schedule() {
-    const data = SCHEDULE;
+interface ScheduleProps {
+    /** Resi of the order whose delivery window is being confirmed. */
+    resi?: string;
+}
+
+export default function Schedule({ resi }: ScheduleProps) {
+    const order = findOrder(resi);
+    const schedule = order?.schedule;
     const [confirmState, setConfirmState] = useState<ConfirmState>("idle");
     const [copied, setCopied] = useState(false);
 
@@ -18,8 +25,9 @@ export default function Schedule() {
     }
 
     async function copyResi() {
+        if (!order) return;
         try {
-            await navigator.clipboard.writeText(data.tracking);
+            await navigator.clipboard.writeText(order.resi);
         } catch {
             // Clipboard access can be blocked; the label still acknowledges the intent.
         }
@@ -27,15 +35,23 @@ export default function Schedule() {
         window.setTimeout(() => setCopied(false), 2000);
     }
 
+    if (!order || !schedule) {
+        return (
+            <ClientLayout title="Konfirmasi Jadwal" backTo="/client/orders">
+                <MissingOrder resi={resi} />
+            </ClientLayout>
+        );
+    }
+
     return (
-        <ClientLayout title="Detail Produk" backTo="/client/tracking">
-            <div className="flex w-full flex-col pb-36">
+        <ClientLayout title="Konfirmasi Jadwal" backTo={`/client/tracking/${order.resi}`}>
+            <div className="flex w-full flex-col pb-52">
                 <div className="flex items-center justify-between pb-space-sm pt-space-md">
                     <div className="inline-flex items-center gap-space-xs rounded bg-secondary-container px-2.5 py-1 text-on-secondary-container">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                        <span className="font-label-sm text-label-sm uppercase tracking-wider">{data.status}</span>
+                        <span className="font-label-sm text-label-sm uppercase tracking-wider">{schedule.status}</span>
                     </div>
-                    <span className="font-label-sm text-label-sm text-secondary">ID: {data.tracking}</span>
+                    <span className="font-label-sm text-label-sm text-secondary">ID: {order.resi}</span>
                 </div>
 
                 <div className="flex flex-col gap-space-md">
@@ -58,9 +74,9 @@ export default function Schedule() {
                             </div>
                             <div className="flex min-w-0 flex-col">
                                 <span className="truncate font-headline-sm text-headline-sm text-on-surface">
-                                    {data.recipient}
+                                    {order.recipient}
                                 </span>
-                                <span className="font-body-sm text-body-sm text-secondary">{data.address}</span>
+                                <span className="font-body-sm text-body-sm text-secondary">{order.address}</span>
                             </div>
                         </div>
                     </section>
@@ -72,31 +88,31 @@ export default function Schedule() {
                             </span>
                             <div className="inline-flex items-center gap-1 rounded bg-tertiary-fixed px-2 py-0.5 font-label-sm text-label-sm text-on-tertiary-fixed">
                                 <MaterialIcon name="ac_unit" className="text-[13px]" />
-                                <span>{data.coldBadge}</span>
+                                <span>{schedule.coldBadge}</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-space-md">
                             <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container text-secondary">
                                 <img
                                     src="/images/product-placeholder.svg"
-                                    alt={data.productName}
+                                    alt={schedule.productName}
                                     className="h-full w-full object-cover"
                                 />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col">
                                 <span className="font-label-sm text-label-sm text-tertiary">
-                                    {data.productCategory}
+                                    {schedule.productCategory}
                                 </span>
                                 <h2 className="truncate font-headline-sm text-headline-sm text-on-surface">
-                                    {data.productName}
+                                    {schedule.productName}
                                 </h2>
-                                <span className="font-body-sm text-body-sm text-secondary">{data.productMeta}</span>
+                                <span className="font-body-sm text-body-sm text-secondary">{schedule.productMeta}</span>
                             </div>
                         </div>
                         <div className="flex items-start gap-2 rounded bg-surface-container-low p-2.5">
                             <MaterialIcon name="inventory_2" className="mt-0.5 shrink-0 text-[16px] text-tertiary" />
                             <p className="font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-                                {data.productNote}
+                                {schedule.productNote}
                             </p>
                         </div>
                     </section>
@@ -107,17 +123,17 @@ export default function Schedule() {
                                 Jadwal Pengantaran Terpilih
                             </span>
                             <span className="font-label-sm text-label-sm font-semibold text-primary">
-                                {data.priority}
+                                {schedule.priority}
                             </span>
                         </div>
                         <div className="flex flex-col gap-space-xs rounded bg-surface-container p-space-md">
                             <div className="flex items-center gap-space-xs text-on-surface">
                                 <MaterialIcon name="schedule" className="text-[20px] text-primary" />
                                 <span className="font-headline-md text-headline-md font-bold text-on-surface">
-                                    {data.window}
+                                    {schedule.window}
                                 </span>
                             </div>
-                            <span className="ml-7 font-body-md text-body-md text-secondary">{data.windowDate}</span>
+                            <span className="ml-7 font-body-md text-body-md text-secondary">{schedule.windowDate}</span>
                         </div>
                         <div className="flex items-center justify-between pt-space-xs">
                             <div className="flex items-center gap-space-sm">
@@ -125,8 +141,12 @@ export default function Schedule() {
                                     <MaterialIcon name="two_wheeler" className="text-[20px]" />
                                 </div>
                                 <div className="flex min-w-0 flex-col">
-                                    <span className="font-label-md text-label-md text-on-surface">{data.courier}</span>
-                                    <span className="font-body-sm text-body-sm text-secondary">{data.courierRole}</span>
+                                    <span className="font-label-md text-label-md text-on-surface">
+                                        {schedule.courier}
+                                    </span>
+                                    <span className="font-body-sm text-body-sm text-secondary">
+                                        {schedule.courierRole}
+                                    </span>
                                 </div>
                             </div>
                             <div
@@ -141,14 +161,16 @@ export default function Schedule() {
                     <div className="flex items-start gap-space-sm rounded-lg bg-surface-container-low p-space-md">
                         <MaterialIcon name="info" className="mt-0.5 shrink-0 text-[20px] text-primary" />
                         <div className="flex flex-col gap-0.5">
-                            <span className="font-label-md text-label-md text-on-surface">{data.noticeTitle}</span>
-                            <p className="font-body-sm text-body-sm leading-relaxed text-secondary">{data.notice}</p>
+                            <span className="font-label-md text-label-md text-on-surface">{schedule.noticeTitle}</span>
+                            <p className="font-body-sm text-body-sm leading-relaxed text-secondary">
+                                {schedule.notice}
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 z-40 bg-surface-container-lowest px-margin pt-space-md pb-safe">
+            <div className="fixed inset-x-0 bottom-16 z-40 bg-surface-container-lowest px-margin pt-space-md pb-safe">
                 <div className="flex w-full flex-col gap-2.5">
                     <button
                         type="button"
@@ -179,7 +201,7 @@ export default function Schedule() {
                         )}
                     </button>
                     <a
-                        href={whatsappLink(`Saya ingin meminta jadwal pengantaran lain untuk resi ${data.tracking}.`)}
+                        href={whatsappLink(`Saya ingin meminta jadwal pengantaran lain untuk resi ${order.resi}.`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex h-12 w-full items-center justify-center rounded bg-surface-container-lowest font-label-lg text-label-lg text-on-surface transition-colors hover:bg-surface-container"

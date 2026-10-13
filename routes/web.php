@@ -8,7 +8,8 @@ Route::get("/", fn () => Inertia::render("Home"))->name("home");
 
 Route::redirect("/admin", "/admin/shipment");
 Route::redirect("/courier", "/courier/tasks");
-Route::redirect("/client", "/client/tracking");
+Route::redirect("/client", "/client/orders");
+Route::redirect("/client/tracking", "/client/orders");
 
 Route::prefix("admin")->name("admin.")->group(function () {
     Route::get("shipment", fn (Request $request) => Inertia::render("admin/Shipment", [
@@ -29,7 +30,16 @@ Route::prefix("courier")->name("courier.")->group(function () {
 });
 
 Route::prefix("client")->name("client.")->group(function () {
-    Route::get("tracking", fn () => Inertia::render("client/Tracking"))->name("tracking");
-    Route::get("schedule", fn () => Inertia::render("client/Schedule"))->name("schedule");
-    Route::get("issue", fn () => Inertia::render("client/Issue"))->name("issue");
+    Route::get("orders", fn () => Inertia::render("client/Orders"))->name("orders");
+    Route::get("history", fn () => Inertia::render("client/History"))->name("history");
+    Route::get("profile", fn () => Inertia::render("client/Profile"))->name("profile");
+    Route::get("tracking/{resi}", fn (string $resi) => Inertia::render("client/Tracking", [
+        "resi" => $resi
+    ]))->name("tracking");
+    Route::get("schedule/{resi}", fn (string $resi) => Inertia::render("client/Schedule", [
+        "resi" => $resi
+    ]))->name("schedule");
+    Route::get("issue/{resi}", fn (string $resi) => Inertia::render("client/Issue", [
+        "resi" => $resi
+    ]))->name("issue");
 });

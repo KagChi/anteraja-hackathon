@@ -26,7 +26,7 @@ const APPS: AppLink[] = [
         title: "Aplikasi Pelanggan",
         description: "Lacak kurir beku, konfirmasi jadwal, dan lihat kendala pengiriman.",
         icon: "ac_unit",
-        href: "/client/tracking"
+        href: "/client/orders"
     }
 ];
 
