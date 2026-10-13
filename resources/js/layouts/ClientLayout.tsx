@@ -2,6 +2,7 @@ import { Head, Link } from "@inertiajs/react";
 import type { ReactNode } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { MobileShell } from "@/components/MobileShell";
+import { whatsappLink } from "@/data/client";
 
 interface ClientLayoutProps {
     children: ReactNode;
@@ -49,13 +50,15 @@ export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
                             </div>
                         </div>
                         <div className="flex items-center gap-space-sm">
-                            <button
-                                type="button"
-                                aria-label="Bantuan"
+                            <a
+                                href={whatsappLink("Halo, saya butuh bantuan dengan pengiriman Anteraja Frozen.")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label="Bantuan via WhatsApp"
                                 className="flex min-h-[44px] min-w-[44px] items-center justify-center text-secondary transition-colors hover:text-on-surface"
                             >
                                 <MaterialIcon name="help_outline" className="text-[22px]" />
-                            </button>
+                            </a>
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                                 <MaterialIcon name="person" className="text-[18px] text-on-primary" />
                             </div>

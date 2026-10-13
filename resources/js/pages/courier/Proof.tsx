@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { PhotoInput } from "@/components/PhotoInput";
 import { PROOF_FORM } from "@/data/courier";
 import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
+import { usePhoto } from "@/lib/photo";
 
 type SubmitState = "idle" | "saving" | "done";
 
@@ -10,7 +12,15 @@ export default function Proof() {
     const form = PROOF_FORM;
     const [recipientName, setRecipientName] = useState(form.recipient);
     const [relation, setRelation] = useState(form.relations[0]);
-    const [photoName, setPhotoName] = useState(form.photoName);
+    const {
+        photo,
+        open: openCamera,
+        onFile,
+        inputRef
+    } = usePhoto({
+        name: form.photoName,
+        meta: form.photoMeta
+    });
     const [notes, setNotes] = useState("");
     const [submitState, setSubmitState] = useState<SubmitState>("idle");
 
@@ -101,27 +111,28 @@ export default function Proof() {
                             <div className="flex min-w-0 items-center gap-3">
                                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container-high">
                                     <img
-                                        src="/images/proof-placeholder.svg"
+                                        src={photo?.url}
                                         alt="Bukti serah terima paket beku"
                                         className="h-full w-full object-cover"
                                     />
                                 </div>
                                 <div className="flex min-w-0 flex-col">
                                     <span className="truncate font-label-md text-label-md text-on-surface">
-                                        {photoName}
+                                        {photo?.name}
                                     </span>
-                                    <span className="font-body-sm text-body-sm text-secondary">{form.photoMeta}</span>
+                                    <span className="font-body-sm text-body-sm text-secondary">{photo?.meta}</span>
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                onClick={() => setPhotoName("bukti_serah_terima_baru.jpg")}
+                                onClick={openCamera}
                                 className="flex h-10 shrink-0 items-center gap-1 rounded-lg bg-surface-container-highest px-3 font-label-md text-label-md text-on-surface transition-colors hover:bg-secondary-container"
                             >
                                 <MaterialIcon name="photo_camera" className="text-[18px]" />
                                 Ambil Ulang
                             </button>
                         </div>
+                        <PhotoInput inputRef={inputRef} onFile={onFile} />
                         <p className="font-body-sm text-body-sm text-secondary">
                             Ambil foto paket bersama penerima atau di depan pintu rumah/lokasi penyerahan.
                         </p>

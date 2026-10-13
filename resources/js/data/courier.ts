@@ -37,7 +37,7 @@ export const ACTIVE_DELIVERY = {
     address: "Jl. Melati Indah No. 42, RT 03 / RW 07, Tebet Barat, Jakarta Selatan",
     instruction: "Produk beku, serahkan langsung ke penerima",
     mapLabel: "Jl. Melati Indah No. 42, Tebet Barat, Jakarta Selatan",
-    mapHref: "https://maps.google.com"
+    mapHref: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Jl. Melati Indah No. 42, RT 03 / RW 07, Tebet Barat, Jakarta Selatan")}`
 };
 
 export const ISSUE_SHEET_OPTIONS = ["Penerima Tidak Ada di Tempat", "Alamat Tidak Ditemukan", "Paket Rusak / Mencair"];

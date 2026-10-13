@@ -3,6 +3,7 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { REPORT_ISSUES } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
+import { downloadCsv } from "@/lib/download";
 
 interface MetricCardProps {
     label: string;
@@ -61,13 +62,19 @@ export default function Report() {
                     </div>
                     <button
                         type="button"
-                        className="px-1 py-1 font-label-md text-label-md text-primary transition-colors hover:underline"
-                    >
-                        Ubah Tanggal
-                    </button>
-                    <div className="h-4 w-px bg-outline-variant" />
-                    <button
-                        type="button"
+                        onClick={() =>
+                            downloadCsv("anteraja-frozen-laporan-harian.csv", [
+                                ["Resi", "Pembeli", "Kurir", "Jenis Kendala", "Keputusan", "Status"],
+                                ...REPORT_ISSUES.map((row) => [
+                                    row.tracking,
+                                    row.buyer,
+                                    row.courier,
+                                    row.issue,
+                                    row.decision,
+                                    row.status
+                                ])
+                            ])
+                        }
                         className="flex items-center gap-space-xs rounded-sm border border-outline-variant bg-surface-container-lowest px-space-md py-1.5 font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
                     >
                         <MaterialIcon name="download" className="text-[16px]" />
@@ -169,21 +176,6 @@ export default function Report() {
                     <span className="font-label-sm text-label-sm text-secondary">
                         Menampilkan 5 dari 7 total kendala hari ini
                     </span>
-                    <div className="flex items-center gap-space-xs">
-                        <button
-                            type="button"
-                            disabled
-                            className="rounded-sm border border-outline-variant px-2 py-1 font-label-sm text-label-sm text-secondary hover:text-on-surface disabled:opacity-50"
-                        >
-                            Sebelumnya
-                        </button>
-                        <button
-                            type="button"
-                            className="rounded-sm border border-outline-variant px-2 py-1 font-label-sm text-label-sm text-secondary hover:text-on-surface"
-                        >
-                            Berikutnya
-                        </button>
-                    </div>
                 </div>
             </div>
         </AdminLayout>

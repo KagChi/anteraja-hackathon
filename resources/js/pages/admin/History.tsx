@@ -4,6 +4,7 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { DELIVERY_HISTORY } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
+import { downloadCsv } from "@/lib/download";
 
 export default function History() {
     const [query, setQuery] = useState("");
@@ -27,6 +28,12 @@ export default function History() {
                 </div>
                 <button
                     type="button"
+                    onClick={() =>
+                        downloadCsv("anteraja-frozen-riwayat.csv", [
+                            ["Resi", "Pembeli", "Kurir", "Selesai", "Status"],
+                            ...rows.map((row) => [row.tracking, row.buyer, row.courier, row.completedAt, row.status])
+                        ])
+                    }
                     className="flex h-9 items-center gap-space-xs self-start rounded-md bg-surface-container-lowest px-space-md font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
                 >
                     <MaterialIcon name="file_download" className="text-[16px]" />

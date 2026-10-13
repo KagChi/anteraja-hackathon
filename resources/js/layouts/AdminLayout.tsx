@@ -1,4 +1,4 @@
-import { Link, usePage } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { cx } from "@/lib/cx";
@@ -24,6 +24,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     const { url } = usePage();
     const pathname = url.split("?")[0];
     const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: close the drawer whenever the route changes
     useEffect(() => {
@@ -67,7 +68,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
                     <nav className="flex flex-col gap-space-xs px-space-xs">
                         {NAV_ITEMS.map((item) => {
-                            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+                            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                             return (
                                 <Link
                                     key={item.href}
@@ -110,33 +111,30 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                         >
                             <MaterialIcon name="menu" className="text-[18px]" />
                         </button>
-                        <div className="relative flex w-56 items-center md:w-80">
-                            <MaterialIcon name="search" className="absolute left-space-sm text-[18px] text-secondary" />
+                        <form
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                const term = search.trim();
+                                router.get("/admin/shipment", term ? { q: term } : {});
+                            }}
+                            className="relative flex w-56 items-center md:w-80"
+                        >
+                            <MaterialIcon
+                                name="search"
+                                className="pointer-events-none absolute left-space-sm text-[18px] text-secondary"
+                            />
                             <input
-                                type="text"
+                                type="search"
+                                value={search}
+                                onChange={(event) => setSearch(event.target.value)}
+                                aria-label="Cari pengiriman"
                                 placeholder="Cari nomor resi / AWB / driver..."
                                 className="h-9 w-full rounded-md border border-outline-variant bg-surface-container-lowest pl-8 pr-space-md font-body-sm text-body-sm text-on-surface placeholder:text-secondary focus:border-primary focus:outline-none"
                             />
-                        </div>
+                        </form>
                     </div>
 
                     <div className="flex items-center gap-margin">
-                        <div className="hidden items-center gap-space-sm sm:flex">
-                            <button
-                                type="button"
-                                aria-label="Notifikasi"
-                                className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                            >
-                                <MaterialIcon name="notifications" className="text-[18px]" />
-                            </button>
-                            <button
-                                type="button"
-                                aria-label="Pemantauan suhu"
-                                className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                            >
-                                <MaterialIcon name="thermostat" className="text-[18px]" />
-                            </button>
-                        </div>
                         <div className="hidden h-6 w-px bg-outline-variant sm:block" />
                         <div className="flex items-center gap-space-sm">
                             <div className="hidden text-right sm:block">

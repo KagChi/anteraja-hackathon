@@ -1,4 +1,5 @@
-import { ISSUE } from "@/data/client";
+import { Link } from "@inertiajs/react";
+import { ISSUE, SUPPORT, whatsappLink } from "@/data/client";
 import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
@@ -97,17 +98,22 @@ export default function Issue() {
                 </section>
 
                 <div className="flex flex-col items-center gap-space-md pt-space-xs">
-                    <button
-                        type="button"
+                    <Link
+                        href="/client/schedule"
                         className="flex h-12 w-full items-center justify-center rounded-lg bg-primary font-label-lg text-label-lg text-on-primary transition-colors active:bg-primary-container"
                     >
                         Ajukan Pengiriman Ulang
-                    </button>
+                    </Link>
                     <p className="px-space-sm text-center font-body-sm text-body-sm leading-normal text-secondary">
                         Butuh bantuan langsung? Hubungi{" "}
-                        <button type="button" className="font-semibold text-primary hover:underline">
-                            Layanan Pelanggan Anteraja Frozen
-                        </button>
+                        <a
+                            href={whatsappLink("Halo, saya butuh bantuan untuk pengiriman saya.")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-primary hover:underline"
+                        >
+                            {SUPPORT.label}
+                        </a>
                         .
                     </p>
                 </div>

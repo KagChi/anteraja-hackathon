@@ -78,6 +78,72 @@ export const SHIPMENTS: ShipmentRow[] = [
         statusKey: "scheduled",
         tone: "scheduled",
         hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012351",
+        buyer: "Maya Safitri",
+        location: "Bintaro, Tangsel",
+        schedule: "Hari ini, 13:00 - 15:00",
+        courier: "Budi Santoso",
+        status: "Sedang Diantar",
+        statusKey: "transit",
+        tone: "transit",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012352",
+        buyer: "Farhan Malik",
+        location: "Tebet, Jaksel",
+        schedule: "Hari ini, 15:00 - 17:00",
+        courier: "Dani Kurniawan",
+        status: "Menunggu Konfirmasi",
+        statusKey: "waiting",
+        tone: "waiting",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012353",
+        buyer: "Cindy Claudia",
+        location: "Sunter, Jakut",
+        schedule: "Hari ini, 16:00 - 18:00",
+        courier: "Ahmad Subagyo",
+        status: "Diterima",
+        statusKey: "delivered",
+        tone: "done",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012354",
+        buyer: "Hendro Hartono",
+        location: "Bekasi Barat",
+        schedule: "Besok, 09:00 - 11:00",
+        courier: null,
+        status: "Dijadwalkan",
+        statusKey: "scheduled",
+        tone: "scheduled",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012355",
+        buyer: "Nadia Suryani",
+        location: "Depok",
+        schedule: "Besok, 11:00 - 13:00",
+        courier: null,
+        status: "Dijadwalkan",
+        statusKey: "scheduled",
+        tone: "scheduled",
+        hasIssue: false
+    },
+    {
+        tracking: "AJ-FRZ-0012356",
+        buyer: "Bagus Prasetyo",
+        location: "Cempaka Putih",
+        schedule: "Besok, 13:00 - 15:00",
+        courier: null,
+        status: "Dijadwalkan",
+        statusKey: "scheduled",
+        tone: "scheduled",
+        hasIssue: false
     }
 ];
 

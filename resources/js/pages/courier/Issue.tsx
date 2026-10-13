@@ -1,8 +1,10 @@
 import { type FormEvent, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { PhotoInput } from "@/components/PhotoInput";
 import { ISSUE_FORM } from "@/data/courier";
 import { CourierLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
+import { usePhoto } from "@/lib/photo";
 
 type SubmitState = "idle" | "sending" | "done";
 
@@ -10,7 +12,16 @@ export default function Issue() {
     const form = ISSUE_FORM;
     const [issueType, setIssueType] = useState(form.options[0].value);
     const [note, setNote] = useState(form.note);
-    const [photoAttached, setPhotoAttached] = useState(true);
+    const {
+        photo,
+        open: openCamera,
+        onFile,
+        inputRef,
+        reset: clearPhoto
+    } = usePhoto({
+        name: form.photoName,
+        meta: form.photoMeta
+    });
     const [submitState, setSubmitState] = useState<SubmitState>("idle");
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -111,35 +122,33 @@ export default function Issue() {
                             <span className="font-label-md text-label-md font-semibold text-on-surface">
                                 Bukti Foto Fisik <span className="text-error">*</span>
                             </span>
-                            {photoAttached ? (
+                            {photo ? (
                                 <span className="flex items-center gap-1 font-body-sm text-body-sm font-semibold text-tertiary">
                                     <MaterialIcon name="check_circle" className="text-[16px]" />1 Terlampir
                                 </span>
                             ) : null}
                         </div>
-                        {photoAttached ? (
+                        {photo ? (
                             <div className="flex items-center justify-between gap-space-md rounded-xl bg-surface-container-lowest p-space-md shadow-sm">
                                 <div className="flex min-w-0 items-center gap-space-md">
                                     <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container-high">
                                         <img
-                                            src="/images/proof-placeholder.svg"
+                                            src={photo.url}
                                             alt="Bukti foto kemasan paket beku"
                                             className="h-full w-full object-cover"
                                         />
                                     </div>
                                     <div className="flex min-w-0 flex-col">
                                         <span className="truncate font-label-md text-label-md font-semibold text-on-surface">
-                                            {form.photoName}
+                                            {photo.name}
                                         </span>
-                                        <span className="font-body-sm text-body-sm text-secondary">
-                                            {form.photoMeta}
-                                        </span>
+                                        <span className="font-body-sm text-body-sm text-secondary">{photo.meta}</span>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     aria-label="Hapus foto"
-                                    onClick={() => setPhotoAttached(false)}
+                                    onClick={clearPhoto}
                                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-error-container hover:text-error"
                                 >
                                     <MaterialIcon name="delete" className="text-[20px]" />
@@ -148,12 +157,13 @@ export default function Issue() {
                         ) : null}
                         <button
                             type="button"
-                            onClick={() => setPhotoAttached(true)}
+                            onClick={openCamera}
                             className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-surface-container-low font-label-md text-label-md text-on-surface transition-all hover:bg-surface-container active:scale-[0.99]"
                         >
                             <MaterialIcon name="photo_camera" className="text-[20px]" />
                             Ambil Foto Ulang
                         </button>
+                        <PhotoInput inputRef={inputRef} onFile={onFile} />
                     </div>
 
                     <div className="flex items-start gap-space-sm rounded-xl bg-surface-container-low p-space-md">

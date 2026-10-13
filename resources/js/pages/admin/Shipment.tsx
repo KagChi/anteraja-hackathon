@@ -1,9 +1,29 @@
 import { Head, Link } from "@inertiajs/react";
-import { useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { COURIER_OPTIONS, SCHEDULE_OPTIONS, SHIPMENTS, STATUS_OPTIONS, STATUS_TONE } from "@/data/admin";
+import {
+    COURIER_OPTIONS,
+    SCHEDULE_OPTIONS,
+    SHIPMENTS,
+    type ShipmentRow,
+    STATUS_OPTIONS,
+    STATUS_TONE
+} from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
+import { downloadCsv } from "@/lib/download";
+
+const PAGE_SIZE = 6;
+
+/** Delivery windows offered when creating a shipment from the console. */
+const CREATE_SCHEDULES = [
+    "Hari ini, 13:00 - 15:00",
+    "Hari ini, 15:00 - 17:00",
+    "Besok, 09:00 - 11:00",
+    "Besok, 13:00 - 15:00"
+];
+
+const COURIERS = COURIER_OPTIONS.filter((option) => option.value !== "unassigned");
 
 interface FilterSelectProps {
     value: string;
@@ -35,15 +55,32 @@ function FilterSelect({ value, onChange, placeholder, options }: FilterSelectPro
     );
 }
 
-export default function Shipment() {
-    const [query, setQuery] = useState("");
+interface ShipmentProps {
+    /** Search term handed over by the console header search. */
+    q?: string | null;
+}
+
+export default function Shipment({ q }: ShipmentProps) {
+    const [items, setItems] = useState<ShipmentRow[]>(SHIPMENTS);
+    const [query, setQuery] = useState(q ?? "");
     const [status, setStatus] = useState("");
     const [courier, setCourier] = useState("");
     const [schedule, setSchedule] = useState("today");
+    const [page, setPage] = useState(1);
+    const [assigning, setAssigning] = useState<string | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [buyer, setBuyer] = useState("");
+    const [location, setLocation] = useState("");
+    const [window, setWindow] = useState(CREATE_SCHEDULES[0]);
+
+    useEffect(() => {
+        setQuery(q ?? "");
+        setPage(1);
+    }, [q]);
 
     const rows = useMemo(() => {
         const needle = query.trim().toLowerCase();
-        return SHIPMENTS.filter((row) => {
+        return items.filter((row) => {
             if (needle) {
                 const haystack = [row.tracking, row.buyer, row.location, row.courier ?? ""].join(" ").toLowerCase();
                 if (!haystack.includes(needle)) return false;
@@ -53,7 +90,69 @@ export default function Shipment() {
             if (courier && courier !== "unassigned" && row.courier !== courier) return false;
             return true;
         });
-    }, [query, status, courier]);
+    }, [items, query, status, courier]);
+
+    const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    const currentPage = Math.min(page, pageCount);
+    const first = (currentPage - 1) * PAGE_SIZE;
+    const pageRows = rows.slice(first, first + PAGE_SIZE);
+    const rangeLabel = rows.length === 0 ? "0" : `${first + 1}-${Math.min(first + PAGE_SIZE, rows.length)}`;
+
+    function exportCsv() {
+        downloadCsv("anteraja-frozen-shipment.csv", [
+            ["Resi", "Pembeli", "Lokasi", "Jadwal", "Kurir", "Status"],
+            ...rows.map((row) => [
+                row.tracking,
+                row.buyer,
+                row.location,
+                row.schedule,
+                row.courier ?? "Belum Ditugaskan",
+                row.status
+            ])
+        ]);
+    }
+
+    function assign(tracking: string, name: string) {
+        setItems((prev) =>
+            prev.map((row) =>
+                row.tracking === tracking
+                    ? {
+                          ...row,
+                          courier: name,
+                          status: "Menunggu Konfirmasi",
+                          statusKey: "waiting",
+                          tone: "waiting" as const
+                      }
+                    : row
+            )
+        );
+        setAssigning(null);
+    }
+
+    function createShipment(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!buyer.trim() || !location.trim()) return;
+        const tracking = `AJ-FRZ-${String(12300 + items.length + 1).padStart(7, "0")}`;
+        setItems((prev) => [
+            {
+                tracking,
+                buyer: buyer.trim(),
+                location: location.trim(),
+                schedule: window,
+                courier: null,
+                status: "Dijadwalkan",
+                statusKey: "scheduled",
+                tone: "scheduled",
+                hasIssue: false
+            },
+            ...prev
+        ]);
+        setBuyer("");
+        setLocation("");
+        setWindow(CREATE_SCHEDULES[0]);
+        setPage(1);
+        setCreateOpen(false);
+    }
 
     return (
         <AdminLayout>
@@ -69,6 +168,7 @@ export default function Shipment() {
                 <div className="flex items-center gap-space-sm">
                     <button
                         type="button"
+                        onClick={exportCsv}
                         className="flex h-9 items-center gap-space-xs rounded-md bg-surface-container-lowest px-space-md font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
                     >
                         <MaterialIcon name="file_download" className="text-[16px]" />
@@ -76,6 +176,7 @@ export default function Shipment() {
                     </button>
                     <button
                         type="button"
+                        onClick={() => setCreateOpen(true)}
                         className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
                     >
                         <MaterialIcon name="add" className="text-[16px]" />
@@ -91,20 +192,29 @@ export default function Shipment() {
                         <input
                             type="text"
                             value={query}
-                            onChange={(event) => setQuery(event.target.value)}
+                            onChange={(event) => {
+                                setQuery(event.target.value);
+                                setPage(1);
+                            }}
                             placeholder="Cari resi, pembeli, lokasi..."
                             className="h-8 w-full rounded-md bg-surface-container-lowest pl-8 pr-space-sm font-body-sm text-body-sm text-on-surface placeholder:text-secondary focus:bg-surface-container-low focus:outline-none"
                         />
                     </div>
                     <FilterSelect
                         value={status}
-                        onChange={setStatus}
+                        onChange={(value) => {
+                            setStatus(value);
+                            setPage(1);
+                        }}
                         placeholder="Semua Status"
                         options={STATUS_OPTIONS}
                     />
                     <FilterSelect
                         value={courier}
-                        onChange={setCourier}
+                        onChange={(value) => {
+                            setCourier(value);
+                            setPage(1);
+                        }}
                         placeholder="Semua Kurir"
                         options={COURIER_OPTIONS}
                     />
@@ -128,28 +238,21 @@ export default function Shipment() {
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr className="h-9 bg-surface-container-low">
-                                <th className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
-                                    Resi
-                                </th>
-                                <th className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
-                                    Pembeli
-                                </th>
-                                <th className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
-                                    Jadwal
-                                </th>
-                                <th className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
-                                    Kurir
-                                </th>
-                                <th className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
-                                    Status
-                                </th>
+                                {["Resi", "Pembeli", "Jadwal", "Kurir", "Status"].map((heading) => (
+                                    <th
+                                        key={heading}
+                                        className="px-space-lg font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary"
+                                    >
+                                        {heading}
+                                    </th>
+                                ))}
                                 <th className="px-space-lg text-right font-label-sm text-label-sm font-semibold uppercase tracking-wider text-secondary">
                                     Aksi
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-container">
-                            {rows.map((row) => (
+                            {pageRows.map((row) => (
                                 <tr
                                     key={row.tracking}
                                     className="h-10 transition-colors hover:bg-surface-container-low"
@@ -202,9 +305,27 @@ export default function Shipment() {
                                             >
                                                 Detail Kendala
                                             </Link>
+                                        ) : assigning === row.tracking ? (
+                                            <select
+                                                aria-label="Pilih kurir"
+                                                defaultValue=""
+                                                onChange={(event) => {
+                                                    if (event.target.value) assign(row.tracking, event.target.value);
+                                                }}
+                                                onBlur={() => setAssigning(null)}
+                                                className="h-7 cursor-pointer rounded-sm border border-outline-variant bg-surface-container-lowest px-1 font-label-md text-label-md text-on-surface focus:outline-none"
+                                            >
+                                                <option value="">Pilih kurir...</option>
+                                                {COURIERS.map((option) => (
+                                                    <option key={option.value} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         ) : row.courier === null ? (
                                             <button
                                                 type="button"
+                                                onClick={() => setAssigning(row.tracking)}
                                                 className="inline-flex h-7 items-center gap-1 rounded-sm bg-surface-container px-space-sm font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-high"
                                             >
                                                 Tugaskan
@@ -236,47 +357,121 @@ export default function Shipment() {
 
                 <div className="flex h-12 items-center justify-between px-space-lg">
                     <span className="font-body-sm text-body-sm text-secondary">
-                        Menampilkan {rows.length === 0 ? 0 : "1-" + rows.length} dari 142 pengiriman
+                        Menampilkan {rangeLabel} dari {rows.length} pengiriman
                     </span>
                     <div className="flex items-center gap-space-xs">
                         <button
                             type="button"
-                            disabled
+                            onClick={() => setPage(currentPage - 1)}
+                            disabled={currentPage === 1}
                             className="h-8 rounded-sm bg-surface-container-low px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-40"
                         >
                             Sebelumnya
                         </button>
-                        <button
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary font-label-md text-label-md text-on-primary"
-                        >
-                            1
-                        </button>
-                        {["2", "3"].map((page) => (
+                        {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
                             <button
-                                key={page}
+                                key={pageNumber}
                                 type="button"
-                                className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-container-lowest font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+                                onClick={() => setPage(pageNumber)}
+                                aria-current={pageNumber === currentPage ? "page" : undefined}
+                                className={cx(
+                                    "flex h-8 w-8 items-center justify-center rounded-sm font-label-md text-label-md",
+                                    pageNumber === currentPage
+                                        ? "bg-primary text-on-primary"
+                                        : "bg-surface-container-lowest text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+                                )}
                             >
-                                {page}
+                                {pageNumber}
                             </button>
                         ))}
-                        <span className="px-1 font-body-sm text-secondary">...</span>
                         <button
                             type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-container-lowest font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                        >
-                            24
-                        </button>
-                        <button
-                            type="button"
-                            className="h-8 rounded-sm bg-surface-container-low px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+                            onClick={() => setPage(currentPage + 1)}
+                            disabled={currentPage === pageCount}
+                            className="h-8 rounded-sm bg-surface-container-low px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-40"
                         >
                             Selanjutnya
                         </button>
                     </div>
                 </div>
             </div>
+
+            {createOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/40 p-margin">
+                    <form
+                        onSubmit={createShipment}
+                        className="flex w-full max-w-md flex-col gap-space-md rounded-xl bg-surface-container-lowest p-space-lg shadow-xl"
+                    >
+                        <div className="flex items-center justify-between">
+                            <h2 className="font-headline-sm text-headline-sm text-on-surface">Buat Shipment</h2>
+                            <button
+                                type="button"
+                                aria-label="Tutup"
+                                onClick={() => setCreateOpen(false)}
+                                className="flex h-8 w-8 items-center justify-center text-secondary transition-colors hover:text-on-surface"
+                            >
+                                <MaterialIcon name="close" className="text-[20px]" />
+                            </button>
+                        </div>
+                        <label className="flex flex-col gap-1" htmlFor="new-buyer">
+                            <span className="font-label-sm text-label-sm uppercase text-secondary">Pembeli</span>
+                            <input
+                                id="new-buyer"
+                                value={buyer}
+                                onChange={(event) => setBuyer(event.target.value)}
+                                required
+                                placeholder="Nama pembeli"
+                                className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1" htmlFor="new-location">
+                            <span className="font-label-sm text-label-sm uppercase text-secondary">Lokasi</span>
+                            <input
+                                id="new-location"
+                                value={location}
+                                onChange={(event) => setLocation(event.target.value)}
+                                required
+                                placeholder="Kecamatan, kota"
+                                className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                            />
+                        </label>
+                        <label className="flex flex-col gap-1" htmlFor="new-window">
+                            <span className="font-label-sm text-label-sm uppercase text-secondary">Jadwal</span>
+                            <select
+                                id="new-window"
+                                value={window}
+                                onChange={(event) => setWindow(event.target.value)}
+                                className="h-9 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                            >
+                                {CREATE_SCHEDULES.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <p className="font-body-sm text-body-sm text-secondary">
+                            Resi dibuat otomatis dan kurir ditugaskan setelah paket masuk sistem.
+                        </p>
+                        <div className="flex items-center justify-end gap-space-sm pt-space-xs">
+                            <button
+                                type="button"
+                                onClick={() => setCreateOpen(false)}
+                                className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:text-on-surface"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                            >
+                                <MaterialIcon name="check" className="text-[16px]" />
+                                <span>Simpan Shipment</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            ) : null}
         </AdminLayout>
     );
 }

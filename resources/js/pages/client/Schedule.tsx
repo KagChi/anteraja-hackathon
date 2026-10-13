@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
-import { SCHEDULE } from "@/data/client";
+import { SCHEDULE, whatsappLink } from "@/data/client";
 import { ClientLayout } from "@/layouts";
 import { cx } from "@/lib/cx";
 
@@ -9,19 +9,12 @@ type ConfirmState = "idle" | "saving" | "confirmed";
 export default function Schedule() {
     const data = SCHEDULE;
     const [confirmState, setConfirmState] = useState<ConfirmState>("idle");
-    const [rescheduling, setRescheduling] = useState(false);
     const [copied, setCopied] = useState(false);
 
     function confirmSchedule() {
         if (confirmState !== "idle") return;
         setConfirmState("saving");
         window.setTimeout(() => setConfirmState("confirmed"), 900);
-    }
-
-    function requestReschedule() {
-        if (rescheduling) return;
-        setRescheduling(true);
-        window.setTimeout(() => setRescheduling(false), 1200);
     }
 
     async function copyResi() {
@@ -185,13 +178,14 @@ export default function Schedule() {
                             </>
                         )}
                     </button>
-                    <button
-                        type="button"
-                        onClick={requestReschedule}
+                    <a
+                        href={whatsappLink(`Saya ingin meminta jadwal pengantaran lain untuk resi ${data.tracking}.`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex h-12 w-full items-center justify-center rounded bg-surface-container-lowest font-label-lg text-label-lg text-on-surface transition-colors hover:bg-surface-container"
                     >
-                        {rescheduling ? "Membuka Kalender..." : "Minta Jadwal Lain"}
-                    </button>
+                        Minta Jadwal Lain
+                    </a>
                 </div>
             </div>
         </ClientLayout>

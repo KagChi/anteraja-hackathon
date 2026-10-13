@@ -90,3 +90,15 @@ export const ISSUE = {
         }
     ]
 };
+
+/** Customer-service channel used by the help, complaint and reschedule actions. */
+export const SUPPORT = {
+    label: "Layanan Pelanggan Anteraja Frozen",
+    phone: "0812-8899-1234",
+    whatsapp: "6281288991234"
+};
+
+/** Build a WhatsApp deep link with a pre-filled message. */
+export function whatsappLink(text: string): string {
+    return `https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(text)}`;
+}
