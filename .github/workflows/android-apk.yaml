@@ -1,9 +1,12 @@
 name: Android APKs
 
-# Two sideloadable shells built from one codebase: Anteraja Kurir and
-# Anteraja Frozen. Each is a native screen wrapping a web view onto the
-# deployed site, so the APKs only need rebuilding when the shell itself
-# changes — the site, and the API behind it, ship independently.
+# The sideloadable Anteraja Kurir shell, built from the Laravel codebase. Its
+# screens are native UI (NativeComponent + EDGE elements) compiled to Jetpack
+# Compose, so the APK needs neither a site URL nor web assets.
+#
+# Anteraja Frozen is not built here yet: its screens have no native
+# implementation, and mobile/apps.php leaves its start route null so the build
+# script refuses it rather than shipping a build that opens the courier flow.
 
 on:
   push:
@@ -22,14 +25,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [kurir, client]
+        # Only apps whose native screens exist; see mobile/apps.php.
+        app: [kurir]
 
     env:
-      # Falls back to a reserved .invalid host so the pipeline can be exercised
-      # before the site is deployed. Such a build opens on a native notice
-      # instead of a web view, and setting the MOBILE_WEB_BASE_URL repository
-      # variable overrides it with no code change.
-      MOBILE_WEB_BASE_URL: ${{ vars.MOBILE_WEB_BASE_URL || 'https://anteraja-hackathon.invalid' }}
       ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/credentials/release.jks
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'anteraja' }}

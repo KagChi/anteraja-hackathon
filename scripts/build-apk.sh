@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
-# Build a signed release APK for one of the two NativePHP Android shells.
+# Build a signed release APK for one of the NativePHP Android shells.
 #
 #     scripts/build-apk.sh kurir
-#     scripts/build-apk.sh client
 #
-# The two apps share this codebase, so the package id, display name, launcher
-# icon and start path are stamped into .env and public/icon.png before each
-# build, and your development .env is put back afterwards. Identity comes from
-# mobile/apps.php; the site URL comes from the environment.
+# The apps share this codebase, so the package id, display name, launcher icon
+# and start route are stamped into .env and public/icon.png before each build,
+# and your development .env is put back afterwards. Identity and the start route
+# come from mobile/apps.php.
+#
+# The screens are native UI (NativeComponent + EDGE elements), so the build
+# needs neither a site URL nor the web assets: nothing is fetched at runtime.
 #
 # Required environment:
-#   MOBILE_WEB_BASE_URL         origin of the deployed site, e.g. https://anteraja.example.com
 #   ANDROID_KEYSTORE_FILE       keystore (.jks) that signs the release build
 #   ANDROID_KEYSTORE_PASSWORD   its password
 #   ANDROID_KEY_ALIAS           the key's alias
@@ -38,28 +39,44 @@ esac
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# Identity and start route are plain data, so a bare require reads them without
+# booting the framework. The exit status matters: an app with no native entry
+# route must not be packaged at all.
+if ! APP_LINE="$(php -r '
+    $apps = require "mobile/apps.php";
+    $app = $apps[$argv[1]] ?? null;
+    if ($app === null) {
+        fwrite(STDERR, "unknown app: {$argv[1]}\n");
+        exit(1);
+    }
+    if (empty($app["start"])) {
+        fwrite(STDERR, "{$argv[1]} has no native screens yet\n");
+        exit(2);
+    }
+    echo $app["app_id"], "|", $app["name"], "|", $app["start"];
+' "$APP")"; then
+    cat >&2 <<'NOTE'
+
+This app has no native entry route yet, so there is nothing to package. Port
+its screens to NativeComponent classes, register them in routes/mobile.php,
+then set `start` in mobile/apps.php to the route it should open on.
+
+NOTE
+    exit 69
+fi
+
+IFS='|' read -r APP_ID APP_NAME APP_START <<< "$APP_LINE"
+
 missing=()
-for name in MOBILE_WEB_BASE_URL ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+for name in ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
     [ -n "${!name:-}" ] || missing+=("$name")
 done
 
 if [ ${#missing[@]} -gt 0 ]; then
     echo "Missing required environment:" >&2
     printf '  %s\n' "${missing[@]}" >&2
+    cat >&2 <<'NOTE'
 
-    if [[ " ${missing[*]} " == *" MOBILE_WEB_BASE_URL "* ]]; then
-        cat >&2 <<'NOTE'
-
-MOBILE_WEB_BASE_URL is the origin of the deployed site, e.g.
-https://anteraja.example.com. In CI it comes from the repository variable of
-the same name (Settings → Secrets and variables → Actions → Variables).
-
-NOTE
-    fi
-
-    for name in ANDROID_KEYSTORE_FILE ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-        if [[ " ${missing[*]} " == *" $name "* ]]; then
-            cat >&2 <<'NOTE'
 Create a release keystore once, then export the four ANDROID_* values:
 
   mkdir -p mobile/keystore
@@ -67,10 +84,6 @@ Create a release keystore once, then export the four ANDROID_* values:
     -keyalg RSA -keysize 2048 -validity 10000
 
 NOTE
-            break
-        fi
-    done
-
     exit 64
 fi
 
@@ -78,20 +91,6 @@ if [ ! -f "$ANDROID_KEYSTORE_FILE" ]; then
     echo "Keystore not found: $ANDROID_KEYSTORE_FILE" >&2
     exit 66
 fi
-
-BASE_URL="${MOBILE_WEB_BASE_URL%/}"
-
-# The shared app registry is plain data, so a bare require reads it without
-# booting the framework.
-IFS='|' read -r APP_ID APP_NAME APP_PATH <<< "$(php -r '
-    $apps = require "mobile/apps.php";
-    $app = $apps[$argv[1]] ?? null;
-    if ($app === null) {
-        fwrite(STDERR, "unknown app: {$argv[1]}\n");
-        exit(1);
-    }
-    echo $app["app_id"], "|", $app["name"], "|", $app["path"];
-' "$APP")"
 
 APP_KEY="${APP_KEY:-$(grep -m1 '^APP_KEY=' .env 2>/dev/null | cut -d= -f2- || true)}"
 APP_KEY="${APP_KEY:-$(grep -m1 '^APP_KEY=' .env.example 2>/dev/null | cut -d= -f2- || true)}"
@@ -103,13 +102,13 @@ fi
 APP_VERSION="${NATIVEPHP_APP_VERSION:-0.1.${GITHUB_RUN_NUMBER:-0}}"
 APP_VERSION_CODE="${NATIVEPHP_APP_VERSION_CODE:-${GITHUB_RUN_NUMBER:-1}}"
 
-# The shell's web view is a plugin component. An unregistered plugin is skipped
-# from the build without failing it, which leaves a screen that cannot render —
-# so catch it here instead of on a phone.
+# The UI elements are plugin components. An unregistered plugin is skipped from
+# the build without failing it, which leaves a screen that cannot render — so
+# catch it here instead of on a phone.
 if ! php artisan native:plugin:list 2>/dev/null | grep -q 'nativephp/mobile-ui'; then
     cat >&2 <<'NOTE'
-nativephp/mobile-ui is not registered, so the shell's <native:webview> element
-would ship without a renderer. Fix it once, then commit the provider:
+nativephp/mobile-ui is not registered, so the EDGE elements the screens are
+built from would ship without renderers. Fix it once, then commit the provider:
 
   php artisan vendor:publish --tag=nativephp-plugins-provider
   php artisan native:plugin:register nativephp/mobile-ui
@@ -124,7 +123,7 @@ sed \
     -e "s|__MOBILE_APP__|$APP|g" \
     -e "s|__APP_ID__|$APP_ID|g" \
     -e "s|__APP_NAME__|$APP_NAME|g" \
-    -e "s|__WEB_BASE_URL__|$BASE_URL|g" \
+    -e "s|__START_URL__|$APP_START|g" \
     -e "s|__APP_KEY__|$APP_KEY|g" \
     -e "s|__APP_VERSION__|$APP_VERSION|g" \
     -e "s|__APP_VERSION_CODE__|$APP_VERSION_CODE|g" \
@@ -155,10 +154,8 @@ cp "mobile/icons/$APP.png" public/icon.png
 php artisan config:clear --no-interaction >/dev/null
 
 echo "==> $APP_NAME ($APP_ID)"
-echo "    web view: $BASE_URL$APP_PATH"
-echo "    version:  $APP_VERSION ($APP_VERSION_CODE)"
-
-bun run build -- --mode=android
+echo "    starts at: $APP_START"
+echo "    version:   $APP_VERSION ($APP_VERSION_CODE)"
 
 php artisan native:install android --no-interaction
 
