@@ -42,7 +42,7 @@ export function ClientLayout({ children, title, backTo }: ClientLayoutProps) {
                                 </button>
                             )}
                             <div className="flex flex-col items-start">
-                                <AnterajaLogo className="h-5" />
+                                <AnterajaLogo className="mb-1.5 h-4" />
                                 <h1 className="font-headline-sm text-headline-sm leading-tight text-on-surface">
                                     {title}
                                 </h1>
