@@ -53,16 +53,40 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
-
-      # Only the platform is pinned: the project's compileSdk is 36, and the
-      # build-tools version is AGP's to choose, so let Gradle fetch the one it
-      # wants rather than naming a package this step could get wrong.
-      - name: Install Android SDK packages
+      # No android-actions/setup-android: its default package list still asks
+      # for the legacy "tools" package, which the SDK repository has dropped,
+      # so the action dies on "Failed to find package 'tools'" before the
+      # build starts (run 38422551132). The runner image already ships the SDK
+      # and its cmdline-tools.
+      #
+      # Only the platform is named. build-tools belongs to AGP, so Gradle
+      # fetches the version it wants once the licences are accepted.
+      - name: Install Android SDK platform
         run: |
-          sdkmanager --install "platform-tools" "platforms;android-36"
-          yes | sdkmanager --licenses > /dev/null || true
+          sdk_root="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -d "$sdk_root" || { echo "Android SDK not found at $sdk_root" >&2; exit 1; }
+
+          # Gradle reads ANDROID_HOME/ANDROID_SDK_ROOT; NativePHP also writes
+          # nativephp/android/local.properties from NATIVEPHP_ANDROID_SDK_LOCATION.
+          # Set all three so the packager cannot end up without an SDK.
+          {
+            echo "ANDROID_HOME=$sdk_root"
+            echo "ANDROID_SDK_ROOT=$sdk_root"
+            echo "NATIVEPHP_ANDROID_SDK_LOCATION=$sdk_root"
+          } >> "$GITHUB_ENV"
+
+          sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$sdkmanager_bin" ]; then
+            sdkmanager_bin="$(ls -d "$sdk_root"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | sort -V | tail -n 1)"
+          fi
+          test -n "$sdkmanager_bin" || { echo "No sdkmanager under $sdk_root/cmdline-tools" >&2; exit 1; }
+
+          "$sdkmanager_bin" --install "platforms;android-36" \
+            || echo "::warning::sdkmanager could not install platforms;android-36"
+          yes | "$sdkmanager_bin" --licenses > /dev/null || true
+
+          test -d "$sdk_root/platforms/android-36" \
+            || { echo "The Android SDK has no platforms/android-36, which the packager's compileSdk needs." >&2; exit 1; }
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
