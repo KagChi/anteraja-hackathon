@@ -6,6 +6,18 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-5 p-4 pb-6">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($form === null)
+            <native:column class="w-full items-center gap-3 rounded-xl bg-theme-surface-container-lowest p-5">
+                <native:text class="text-lg font-bold text-theme-on-surface">Paket tidak dapat dikonfirmasi</native:text>
+                <native:text class="text-center text-sm text-theme-secondary">
+                    Konfirmasi pengiriman hanya tersedia saat paket sedang diantar.
+                </native:text>
+                <native:button variant="primary" label="Kembali ke Tugas" @navigate="'/courier/tasks'" />
+            </native:column>
+        @else
+
         {{-- Which shipment this proof belongs to. --}}
         <native:column class="w-full gap-1 rounded-xl bg-theme-surface-container-lowest p-4">
             <native:row class="w-full items-center justify-between">
@@ -85,6 +97,8 @@
         </native:column>
 
         {{-- Hand it over. --}}
+        @include('native.partials.action-error', ['message' => $actionError])
+
         <native:column class="w-full gap-2">
             @if ($state === 'done')
                 <native:button variant="success" label="Pengiriman Berhasil Selesai" @tap="backToTasks"
@@ -99,5 +113,6 @@
             </native:text>
         </native:column>
 
+        @endif
     </native:column>
 </scroll-view>

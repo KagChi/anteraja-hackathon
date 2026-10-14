@@ -48,6 +48,18 @@ class AppServiceProvider extends ServiceProvider
             });
         });
 
+        RateLimiter::for('courier-auth', function (Request $request) {
+            $email = (string) $request->input('email', '');
+            $ip = $request->ip() ?? '127.0.0.1';
+
+            return Limit::perMinute(5)->by($email.'|'.$ip)->response(function () {
+                return response()->json([
+                    'message' => 'Terlalu banyak percobaan login. Silakan coba lagi beberapa saat.',
+                    'code' => 'TOO_MANY_REQUESTS',
+                ], 429);
+            });
+        });
+
         // Restore the theme the user picked in the mobile shells. Only they
         // carry that preference, and only they have a cache store to read it
         // from: an artisan run — composer's post-autoload package:discover,

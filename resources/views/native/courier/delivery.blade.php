@@ -6,6 +6,18 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4 pb-6">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($delivery === null)
+            <native:column class="w-full items-center gap-3 rounded-xl bg-theme-surface-container-lowest p-5">
+                <native:text class="text-lg font-bold text-theme-on-surface">Paket tidak ditemukan</native:text>
+                <native:text class="text-center text-sm text-theme-secondary">
+                    Paket ini tidak dapat dibuka. Pilih tugas lain dari daftar.
+                </native:text>
+                <native:button variant="primary" label="Kembali ke Tugas" @navigate="'/courier/tasks'" />
+            </native:column>
+        @else
+
         {{-- Resi and service tier. --}}
         <native:row class="w-full items-center justify-between rounded-xl bg-theme-surface-container-lowest p-5">
             <native:column class="gap-0.5">
@@ -82,6 +94,8 @@
                 :ios-icon="Ios::MapFill" :android-icon="Android::Navigation" />
         </native:column>
 
+        @include('native.partials.action-error', ['message' => $actionError])
+
         <native:button variant="primary" label="Serahkan Paket"
             @navigate="'/courier/proof/' . $resi"
             :ios-icon="Ios::Shippingbox" :android-icon="Android::Inventory" />
@@ -90,6 +104,7 @@
             <native:text class="text-md text-theme-secondary underline">Laporkan Kendala</native:text>
         </native:pressable>
 
+        @endif
     </native:column>
 </scroll-view>
 

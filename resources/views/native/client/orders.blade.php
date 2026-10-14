@@ -7,6 +7,10 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @else
+
         {{-- How much is on the road right now. --}}
         <native:column class="w-full gap-1 rounded-xl bg-theme-surface-container-low p-4">
             <native:text class="text-sm text-theme-secondary uppercase">Pesanan Aktif</native:text>
@@ -60,5 +64,6 @@
             <native:text class="text-md text-theme-secondary">Belum ada pengiriman berjalan.</native:text>
         @endforelse
 
+        @endif
     </native:column>
 </scroll-view>

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Client\ScheduleConfirmationController as ClientApiS
 use App\Http\Controllers\Api\Client\ScheduleController as ClientApiScheduleController;
 use App\Http\Controllers\Api\Client\ScheduleRescheduleController as ClientApiScheduleRescheduleController;
 use App\Http\Controllers\Api\Client\TrackingController as ClientApiTrackingController;
+use App\Http\Controllers\Api\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Client\EntryController;
 use App\Http\Controllers\Client\IssueController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
 use App\Http\Controllers\Media\MediaPreviewController;
+use App\Http\Middleware\AuthenticateCourier;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -92,8 +94,17 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     Route::get('history/export', HistoryExportController::class)->name('history.export');
 });
 
+// Courier Mobile Auth (Staff email + password -> Sanctum token)
+Route::prefix('courier/auth')->name('api.courier.auth.')
+    ->middleware(['force.json', 'throttle:courier-auth'])
+    ->group(function () {
+        Route::post('login', [CourierAuthController::class, 'login'])->name('login');
+    });
+
 // Courier Mobile API Routes (Protected by staff.role:COURIER)
-Route::prefix('courier')->name('api.courier.')->middleware(['staff.role:COURIER'])->group(function () {
+Route::prefix('courier')->name('api.courier.')->middleware([AuthenticateCourier::class, 'abilities:courier', 'staff.role:COURIER'])->group(function () {
+    Route::post('auth/logout', [CourierAuthController::class, 'logout'])->name('auth.logout');
+
     // 1. Tasks
     Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::get('tasks/{package:tracking_number}/distance', TaskDistanceController::class)->name('tasks.distance');

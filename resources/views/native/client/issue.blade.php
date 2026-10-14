@@ -9,7 +9,9 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4 pb-8">
 
-        @if ($issue === null)
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($issue === null)
             @include('native.client.partials.missing-order', ['resi' => $resi])
         @else
 
@@ -96,6 +98,8 @@
             </native:column>
 
             {{-- The way out. --}}
+            @include('native.partials.action-error', ['message' => $actionError])
+
             <native:column class="w-full items-center gap-3 pt-1">
                 <native:button class="w-full" variant="primary" label="Ajukan Pengiriman Ulang" @tap="requestResend"
                     :ios-icon="Ios::ArrowClockwise" :android-icon="Android::Refresh" />

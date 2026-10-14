@@ -5,8 +5,9 @@ The Android app is built from this codebase with
 
 Its screens are **native UI**: `NativeComponent` classes rendering EDGE
 elements, compiled to Jetpack Compose on Android and SwiftUI on iOS. There is
-no web view, nothing is fetched at runtime, and no site URL has to be
-configured — which is why a build can never open on "no site to show yet".
+no web view and no Blade page: every screen reads and writes through the
+backend API over HTTPS with a Sanctum bearer token, so a build can never open
+on "no site to show yet".
 
 ## The apps
 
@@ -14,8 +15,11 @@ configured — which is why a build can never open on "no site to show yet".
 
 | App | Package id | Opens on | Status |
 | --- | --- | --- | --- |
-| Anteraja Kurir | `com.anteraja.kurir` | `/courier/tasks` | Built |
-| Anteraja Frozen | `com.anteraja.frozen` | `/client/orders` | Built |
+| Anteraja Kurir | `com.anteraja.kurir` | `/courier/start` | Built |
+| Anteraja Frozen | `com.anteraja.frozen` | `/client/start` | Built |
+
+`/courier/start` and `/client/start` are auth gates: they forward a
+signed-in user to the first tab and everyone else to that app's login screen.
 
 An app whose `start` is `null` is refused by `scripts/build-apk.sh` rather than
 packaged, so a build can never open the wrong flow. Both apps are packaged
@@ -41,6 +45,10 @@ Each screen is a class in `app/NativeComponents/` plus a Blade view in
 | `/client/tracking/{resi}` | `Client\Tracking` | `native/client/tracking.blade.php` |
 | `/client/schedule/{resi}` | `Client\Schedule` | `native/client/schedule.blade.php` |
 | `/client/issue/{resi}` | `Client\Issue` | `native/client/issue.blade.php` |
+| `/courier/start` | `Courier\Start` | `native/start.blade.php` |
+| `/courier/login` | `Courier\Login` | `native/courier/login.blade.php` |
+| `/client/start` | `Client\Start` | `native/start.blade.php` |
+| `/client/login` | `Client\Login` | `native/client/login.blade.php` |
 
 Each app's three tab destinations share a layout — `Layouts\CourierTabsLayout`
 or `Layouts\ClientTabsLayout` (a `NativeLayout`) for their bottom bar; the
@@ -49,12 +57,17 @@ back-navigable top bar. The three customer flow screens share one partial,
 `native/client/partials/missing-order.blade.php`, for the "resi not on
 this account" card.
 
-Screen content comes from `App\Support\CourierData` and
-`App\Support\ClientData`, one-for-one ports of the fixtures the web screens
-use (`resources/js/data/courier.ts`, `client.ts`). They are the single seam to
-replace when a flow is wired to the API — nothing else reads those values.
-`ClientData` also owns the pill colours both customer order lists share, so the
-Pesanan and Riwayat tabs cannot drift apart.
+Screen content comes from the backend API. `App\Support\MobileApi` is the one
+door to it: it carries the realm's bearer token, prefixes
+`config('mobile.api_base_url')`, and folds transport failures into an
+`ApiResult`. `App\Support\MobileToken` keeps that token in the platform
+keychain (falling back to the cache store off-device), `ClientPayload` and
+`CourierPayload` map the JSON onto the shapes the blades read, and
+`App\Support\Concerns\LoadsFromApi` gives every screen the shared
+`$error` / `retry()` pair. `ClientData` still owns the pill colours both
+customer order lists share, so the Pesanan and Riwayat tabs cannot drift apart.
+The customer API lives under `/api/client/...`, the courier API under
+`/api/courier/...`; both are signed in to from a native login screen.
 
 Styling is Tailwind utility classes over the theme tokens in
 `config/native-ui.php`, which mirror the Material roles in
@@ -117,7 +130,10 @@ scripts/build-apk.sh client         # signed release APK → dist/anteraja-clien
 ```
 
 The script stamps `.env` and `public/icon.png` from `mobile/apps.php` and
-`mobile/icons/`, then restores your development `.env`.
+`mobile/icons/`, then restores your development `.env`. The API host is
+stamped from `MOBILE_API_BASE_URL` and defaults to
+`https://hackathon.kagchi.my.id/api`; export it to point a build at another
+backend.
 
 ## Testing
 

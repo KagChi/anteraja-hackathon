@@ -15,6 +15,8 @@ servers:
 tags:
 - name: Auth
   description: Autentikasi sesi staf internal (Admin & Kurir)
+- name: Courier - Auth
+  description: Login kurir berbasis bearer token Sanctum untuk aplikasi Android Kurir
 - name: Admin - Shipments
   description: Manajemen data pengiriman, alokasi armada, dan penjadwalan
 - name: Admin - Exceptions
@@ -202,11 +204,11 @@ components:
     CourierDistanceRequest:
       type: object
       properties:
-        latitude:
+        lat:
           type: number
           format: float
           example: -6.229746
-        longitude:
+        lng:
           type: number
           format: float
           example: 106.848529
@@ -738,6 +740,63 @@ paths:
             text/csv:
               schema:
                 type: string
+  /courier/auth/login:
+    post:
+      tags:
+      - Courier - Auth
+      summary: Login Kurir (Token Sanctum)
+      description: Mengautentikasi staf kurir aktif dengan email & password, lalu
+        menerbitkan bearer token Sanctum dengan ability courier untuk aplikasi Android
+        Kurir. Token berlaku 30 hari.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 12|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        format: date-time
+                      courier:
+                        $ref: '#/components/schemas/StaffUser'
+        '401':
+          description: Email atau password salah
+        '403':
+          description: Bukan akun kurir, atau akun kurir dinonaktifkan
+        '429':
+          description: Terlalu banyak percobaan login
+  /courier/auth/logout:
+    post:
+      tags:
+      - Courier - Auth
+      summary: Logout Kurir
+      description: Menghapus bearer token yang sedang dipakai aplikasi kurir.
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSuccess'
+        '401':
+          description: Belum terautentikasi
   /courier/tasks:
     get:
       tags:
@@ -766,13 +825,13 @@ paths:
         schema:
           type: string
           example: AJ-FRZ-0012351
-      - name: latitude
+      - name: lat
         in: query
         schema:
           type: number
           format: float
           example: -6.229746
-      - name: longitude
+      - name: lng
         in: query
         schema:
           type: number
