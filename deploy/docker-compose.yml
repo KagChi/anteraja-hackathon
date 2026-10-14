@@ -5,7 +5,7 @@ version: '3.8'
 # =============================================================================
 # Arsitektur Jaringan (Zero Trust):
 #   - backend-net  : Terhubung ke Nginx Centralized Reverse Proxy
-#                    Nginx upstream: server anteraja_nginx:80;
+#                    Nginx upstream: server anteraja-frozen-backend:80;
 #   - anteraja-net : Jaringan privat internal terisolasi (App <-> PostgreSQL, Redis)
 #                    Database & Redis TIDAK terhubung ke backend-net maupun internet.
 # =============================================================================
@@ -19,9 +19,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
-    # container_name HARUS anteraja_nginx agar cocok dengan konfigurasi Nginx:
-    # upstream anteraja_laravel { server anteraja_nginx:80; }
-    container_name: anteraja_nginx
+    container_name: anteraja-frozen-backend
     restart: unless-stopped
     # Port 80 hanya diekspose ke internal docker network (Zero Trust)
     expose:
@@ -66,7 +64,7 @@ services:
   # ---------------------------------------------------------------------------
   pgsql:
     image: postgres:18-alpine
-    container_name: anteraja-postgres
+    container_name: anteraja-frozen-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: "${DB_DATABASE:-anteraja_frozen}"
@@ -87,7 +85,7 @@ services:
   # ---------------------------------------------------------------------------
   redis:
     image: redis:8-alpine
-    container_name: anteraja-redis
+    container_name: anteraja-frozen-redis
     restart: unless-stopped
     command: redis-server --save "" --appendonly no
     volumes:
@@ -118,8 +116,8 @@ networks:
 # =============================================================================
 volumes:
   pgsql-data:
-    name: anteraja_pgsql_data
+    name: anteraja_frozen_pgsql_data
   redis-data:
-    name: anteraja_redis_data
+    name: anteraja_frozen_redis_data
   anteraja-storage:
-    name: anteraja_storage_data
+    name: anteraja_frozen_storage_data
