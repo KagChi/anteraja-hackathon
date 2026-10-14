@@ -10,6 +10,7 @@ use App\NativeComponents\Client\Orders;
 use App\NativeComponents\Client\Profile;
 use App\NativeComponents\Client\Schedule;
 use App\NativeComponents\Client\Tracking;
+use App\Support\Appearance;
 use Native\Mobile\Testing\Native;
 use Tests\TestCase;
 
@@ -51,6 +52,65 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Rina Putri')
             ->assertSee('Jl. Melati No. 14')
             ->assertSee('Layanan Pelanggan Anteraja Frozen');
+    }
+
+    /** The profile carries the theme switcher, and picking a mode pins it. */
+    public function test_the_profile_switches_the_app_theme(): void {
+        $dark = config('native-ui.theme.dark');
+        $light = config('native-ui.theme.light');
+
+        Native::test(Profile::class)
+            ->assertSee('Tema')
+            ->assertSee('Sistem')
+            ->assertSee('Terang')
+            ->assertSee('Gelap')
+            ->assertSet('appearance', 0)
+            ->call('setAppearance', 2)
+            ->assertSet('appearance', 2);
+
+        $this->assertSame(Appearance::DARK, Appearance::get());
+
+        // Pinned, not merely stored: the light block carries the dark palette
+        // too, because the platform picks per element from the OS scheme.
+        $this->assertSame($dark['background'], config('native-ui.theme.light.background'));
+        $this->assertNotSame('#F9F9FF', config('native-ui.theme.light.background'));
+
+        // And the next frame draws the pinned palette rather than the authored
+        // light one — a resolved class string must not survive the switch.
+        $pinned = json_encode(Native::test(Profile::class)->tree());
+        $this->assertStringContainsString($dark['on-surface'], $pinned);
+        $this->assertStringNotContainsString($light['on-surface'], $pinned);
+    }
+
+    /** "Sistem" hands the palette back to the device. */
+    public function test_choosing_the_device_theme_restores_the_authored_palette(): void {
+        $light = config('native-ui.theme.light');
+        $dark = config('native-ui.theme.dark');
+
+        Native::test(Profile::class)
+            ->call('setAppearance', 1)
+            ->assertSet('appearance', 1);
+
+        $this->assertSame(Appearance::LIGHT, Appearance::get());
+        $this->assertEquals($light, config('native-ui.theme.light'));
+        $this->assertEquals($light, config('native-ui.theme.dark'));
+
+        // A fresh mount reads the stored mode back, and the way out restores
+        // the authored pair — the dark block derived from light again.
+        Native::test(Profile::class)
+            ->assertSet('appearance', 1)
+            ->call('setAppearance', 0)
+            ->assertSet('appearance', 0);
+
+        $this->assertSame(Appearance::SYSTEM, Appearance::get());
+        $this->assertEquals($light, config('native-ui.theme.light'));
+        $this->assertEquals($dark, config('native-ui.theme.dark'));
+
+        // The frame is back on the authored pair: the light palette is drawn
+        // again, and the dark companion is back beside it.
+        $restored = json_encode(Native::test(Profile::class)->tree());
+        $this->assertStringContainsString($light['on-surface'], $restored);
+        $this->assertStringContainsString('"dark_color"', $restored);
     }
 
     public function test_tracking_shows_the_cold_chain_reading_and_the_journey(): void {
