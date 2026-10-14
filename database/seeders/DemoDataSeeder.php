@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Buyer;
+use App\Models\Product;
+use App\Models\Staff;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 final class DemoDataSeeder extends Seeder
 {
@@ -15,68 +17,66 @@ final class DemoDataSeeder extends Seeder
     {
         $now = Carbon::now('UTC');
 
+        // Demo data uses fixed phones, tracking numbers and client tokens, so a
+        // second db:seed run would violate every unique index. Packages are the
+        // last records created; once they exist the data is already in place.
+        if (DB::table('packages')->exists()) {
+            $this->command?->info('Demo data already present; skipping DemoDataSeeder.');
+
+            return;
+        }
+
         // 1. Staff (Admin & Couriers)
-        $adminId = DB::table('staff')->insertGetId([
+        // The admin account is upserted on phone so seeding is repeatable and
+        // the seeded credentials stay stable. Staff::password carries the
+        // "hashed" cast, so the plain value below is hashed on write.
+        $adminId = Staff::firstOrCreate(['phone' => '081112345678'], [
             'name' => 'Dimas Pratama',
             'role' => 'ADMIN',
-            'phone' => '081112345678',
             'email' => 'dimas@anteraja.id',
-            'password' => Hash::make('password'),
+            'password' => 'password',
             'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $budiId = DB::table('staff')->insertGetId([
+        $budiId = Staff::firstOrCreate(['phone' => '081298765432'], [
             'name' => 'Budi Santoso',
             'role' => 'COURIER',
-            'phone' => '081298765432',
             'email' => 'budi@anteraja.id',
-            'password' => Hash::make('password'),
+            'password' => 'password',
             'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $ahmadId = DB::table('staff')->insertGetId([
+        $ahmadId = Staff::firstOrCreate(['phone' => '081234567890'], [
             'name' => 'Ahmad Subagyo',
             'role' => 'COURIER',
-            'phone' => '081234567890',
             'email' => 'ahmad@anteraja.id',
-            'password' => Hash::make('password'),
+            'password' => 'password',
             'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $daniId = DB::table('staff')->insertGetId([
+        $daniId = Staff::firstOrCreate(['phone' => '081311223344'], [
             'name' => 'Dani Kurniawan',
             'role' => 'COURIER',
-            'phone' => '081311223344',
             'email' => 'dani@anteraja.id',
-            'password' => Hash::make('password'),
+            'password' => 'password',
             'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $hendraCourierId = DB::table('staff')->insertGetId([
+        $hendraCourierId = Staff::firstOrCreate(['phone' => '081399887766'], [
             'name' => 'Hendra Setiawan',
             'role' => 'COURIER',
-            'phone' => '081399887766',
             'email' => 'hendra.courier@anteraja.id',
-            'password' => Hash::make('password'),
+            'password' => 'password',
             'is_active' => true,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
         // 2. Buyers
-        $buyerPassword = Hash::make('password123');
+        // Buyers normalise phone to E.164 on save, so the lookup key must
+        // already be in +62 form or a re-run would insert a duplicate.
+        $buyerPassword = 'password123';
 
-        $rinaId = DB::table('buyers')->insertGetId([
+        $rinaId = Buyer::firstOrCreate(['phone' => '+6281298765432'], [
             'name' => 'Rina Putri',
-            'phone' => '+6281298765432',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
@@ -85,98 +85,69 @@ final class DemoDataSeeder extends Seeder
             'address_type' => 'RESIDENTIAL',
             'latitude' => -6.229746,
             'longitude' => 106.848529,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $hendraBuyerId = DB::table('buyers')->insertGetId([
+        $hendraBuyerId = Buyer::firstOrCreate(['phone' => '+6281222334455'], [
             'name' => 'Hendra Wijaya',
-            'phone' => '+6281222334455',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
             'address' => 'Jl. Boulevard Raya No. 12, Kelapa Gading, Jakarta Utara',
             'area' => 'Kelapa Gading, Jakarta Utara',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $sitiId = DB::table('buyers')->insertGetId([
+        $sitiId = Buyer::firstOrCreate(['phone' => '+6281333445566'], [
             'name' => 'Siti Rahma',
-            'phone' => '+6281333445566',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
             'address' => 'Jl. Kyai Maja No. 8, Kebayoran Baru, Jakarta Selatan',
             'area' => 'Kebayoran Baru, Jakarta Selatan',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $kevinId = DB::table('buyers')->insertGetId([
+        $kevinId = Buyer::firstOrCreate(['phone' => '+6281744556677'], [
             'name' => 'Kevin Tan',
-            'phone' => '+6281744556677',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
             'address' => 'Pluit Kencana No. 5, Pluit, Jakarta Utara',
             'area' => 'Pluit, Jakarta Utara',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $dewiId = DB::table('buyers')->insertGetId([
+        $dewiId = Buyer::firstOrCreate(['phone' => '+6281855667788'], [
             'name' => 'Dewi Lestari',
-            'phone' => '+6281855667788',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
             'address' => 'Jl. BSD Grand Boulevard, Serpong, Tangerang Selatan',
             'area' => 'Serpong, Tangerang Selatan',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $rizkyId = DB::table('buyers')->insertGetId([
+        $rizkyId = Buyer::firstOrCreate(['phone' => '+6281966778899'], [
             'name' => 'Rizky Ramadhan',
-            'phone' => '+6281966778899',
             'password' => $buyerPassword,
             'phone_verified_at' => $now,
             'is_active' => true,
             'address' => 'Jl. TB Simatupang No. 20, Cilandak, Jakarta Selatan',
             'area' => 'Cilandak, Jakarta Selatan',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
         // 3. Products
-        $p1 = DB::table('products')->insertGetId([
-            'name' => 'Nugget Ayam 1 kg',
+        $p1 = Product::firstOrCreate(['name' => 'Nugget Ayam 1 kg'], [
             'handling_notes' => 'Makanan Beku (Frozen Food). Suhu standar -18°C s/d -25°C. Wajib cooler box & ice gel.',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $p2 = DB::table('products')->insertGetId([
-            'name' => 'Daging Sapi Slice 500g',
+        $p2 = Product::firstOrCreate(['name' => 'Daging Sapi Slice 500g'], [
             'handling_notes' => 'Daging segar beku. Suhu -18°C. Jaga segel kemasan vakum.',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $p3 = DB::table('products')->insertGetId([
-            'name' => 'Salmon Fillet Beku 250g',
+        $p3 = Product::firstOrCreate(['name' => 'Salmon Fillet Beku 250g'], [
             'handling_notes' => 'Ikan beku higienis. Suhu -20°C.',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
-        $p4 = DB::table('products')->insertGetId([
-            'name' => 'Es Krim Premium 1L',
+        $p4 = Product::firstOrCreate(['name' => 'Es Krim Premium 1L'], [
             'handling_notes' => 'Sensitif terhadap suhu. Suhu harus di bawah -20°C.',
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        ])->id;
 
         // Helper to safely step package statuses through FSM
         $transition = function (int $packageId, string $toStatus, ?int $staffId = null): void {

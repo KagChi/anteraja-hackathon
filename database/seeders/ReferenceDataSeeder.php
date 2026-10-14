@@ -53,10 +53,9 @@ final class ReferenceDataSeeder extends Seeder
             ['from_status' => 'RETURNED',              'to_status' => 'CLOSED'],
         ];
 
-        DB::table('package_status_transitions')->upsert(
-            $transitions,
-            ['from_status', 'to_status'],
-            []
-        );
+        // An empty update list makes upsert() degrade to a plain INSERT, which
+        // trips the composite primary key on a re-run. insertOrIgnore keeps the
+        // reference data safe to seed repeatedly.
+        DB::table('package_status_transitions')->insertOrIgnore($transitions);
     }
 }

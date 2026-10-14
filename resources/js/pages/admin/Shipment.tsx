@@ -141,8 +141,6 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
     const rangeLabel = total === 0 ? "0" : `${paginator?.from ?? 1}-${paginator?.to ?? 0}`;
     const filtersActive = query.trim() !== "" || status !== "" || courier !== "" || date !== todayIso();
 
-    const exportQuery = { q: query.trim(), status, courier, date, per_page: PER_PAGE };
-
     return (
         <AdminLayout>
             <Head title="Shipment" />
@@ -155,13 +153,6 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                     </p>
                 </div>
                 <div className="flex items-center gap-space-sm self-start">
-                    <a
-                        href={api.shipments.exportUrl(exportQuery)}
-                        className="flex h-9 items-center gap-space-xs rounded-md border border-outline-variant px-space-md font-label-md text-label-md text-on-surface transition-colors hover:border-secondary hover:bg-surface-container"
-                    >
-                        <MaterialIcon name="download" className="text-[16px]" />
-                        <span>Ekspor CSV</span>
-                    </a>
                     <button
                         type="button"
                         onClick={() => setCreateOpen(true)}
