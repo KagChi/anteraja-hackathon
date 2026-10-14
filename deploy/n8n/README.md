@@ -37,7 +37,8 @@ Sumber nilainya adalah Secret `n8n-secrets` dan `waha-secrets` di namespace
 
 URL dan nama model bukan rahasia, jadi ditulis langsung di workflow:
 `http://waha` untuk WAHA, `http://anteraja-hackathon-service` untuk app, dan
-`http://nine-router-service:20128/v1` untuk endpoint OpenAI-compatible.
+`http://nine-router-service:20128/v1` untuk endpoint OpenAI-compatible dengan
+model `deepseek-v4-flash`. Kunci LLM-nya adalah API key 9router.
 
 ## Deploy
 
