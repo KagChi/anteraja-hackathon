@@ -28,6 +28,8 @@ membaca konfigurasi dari ConfigMap `anteraja-hackathon-config` dan Secret
 - Secret `image-pull-secrets` (kredensial GHCR) sudah ada di namespace.
 - Cluster CloudNativePG bernama `postgres` sudah berjalan (write service `postgres-rw`).
 - `dragonfly` (Redis-compatible) sudah berjalan.
+- DNS `hackathon.kagchi.my.id` sudah mengarah ke ingress cluster lewat proxy
+  Cloudflare. Isu sertifikat memakai HTTP-01, jadi DNS harus aktif lebih dulu.
 
 ## 2. Membuat Secret
 
