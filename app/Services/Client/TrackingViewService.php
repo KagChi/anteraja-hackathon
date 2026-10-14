@@ -63,14 +63,21 @@ final class TrackingViewService
             $rescheduleBanner = 'Permintaan jadwal ulang diterima, admin akan mengusulkan jadwal baru.';
         }
 
+        $firstItem = $package->items->first();
+        $productName = $firstItem?->product?->name ?? 'Paket Frozen';
+        $itemCount = $package->items->count() ?: 1;
+        $weightGrams = (int) round(((float) ($package->weight_kg ?? 1.0)) * 1000);
+        $weightFormatted = number_format($weightGrams, 0, ',', '.');
+        $productMeta = "{$itemCount} Paket • Berat {$weightFormatted}g";
+
         return new TrackingView(
             trackingNumber: $package->tracking_number,
             status: $status->value,
             statusLabel: $statusLabel,
             statusTone: $statusTone,
             estimatedDelivery: $estimatedDelivery,
-            buyerName: $package->buyer->name,
-            buyerArea: $package->buyer->area ?? 'Jabodetabek',
+            buyerName: $package->buyer?->name ?? 'Pembeli',
+            buyerArea: $package->buyer?->area ?? 'Jabodetabek',
             courierName: $courier?->name,
             coolerBoxCode: $package->cooler_box_code,
             coldChain: $coldChain,
@@ -79,6 +86,8 @@ final class TrackingViewService
             courierPhone: $courierPhone,
             issueBanner: $issueBanner,
             rescheduleBanner: $rescheduleBanner,
+            productName: $productName,
+            productMeta: $productMeta,
         );
     }
 }

@@ -10,21 +10,37 @@ final class ClientLinkService
 {
     public function entry(Package $package): string
     {
-        return route('api.client.entry', ['token' => $package->client_token]);
+        if (! empty($package->client_token)) {
+            return url("/api/client/{$package->client_token}");
+        }
+
+        return url("/api/client/orders/{$package->tracking_number}");
     }
 
     public function tracking(Package $package): string
     {
-        return route('api.client.tracking.show', ['token' => $package->client_token]);
+        if (! empty($package->client_token)) {
+            return url("/api/client/{$package->client_token}/tracking");
+        }
+
+        return url("/api/client/orders/{$package->tracking_number}/tracking");
     }
 
     public function schedule(Package $package): string
     {
-        return route('api.client.schedule.show', ['token' => $package->client_token]);
+        if (! empty($package->client_token)) {
+            return url("/api/client/{$package->client_token}/schedule");
+        }
+
+        return url("/api/client/orders/{$package->tracking_number}/schedule");
     }
 
     public function issue(Package $package): string
     {
-        return route('api.client.issue.show', ['token' => $package->client_token]);
+        if (! empty($package->client_token)) {
+            return url("/api/client/{$package->client_token}/issue");
+        }
+
+        return url("/api/client/orders/{$package->tracking_number}/issue");
     }
 }

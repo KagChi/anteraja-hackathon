@@ -26,6 +26,8 @@ final readonly class TrackingView
         public ?string $courierPhone,
         public ?array $issueBanner = null,
         public ?string $rescheduleBanner = null,
+        public ?string $productName = null,
+        public ?string $productMeta = null,
     ) {}
 
     /**
@@ -49,6 +51,8 @@ final readonly class TrackingView
             'courier_phone' => $this->courierPhone,
             'issue_banner' => $this->issueBanner,
             'reschedule_banner' => $this->rescheduleBanner,
+            'product_name' => $this->productName,
+            'product_meta' => $this->productMeta,
         ];
     }
 }
