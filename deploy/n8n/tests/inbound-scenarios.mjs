@@ -388,7 +388,8 @@ scenario('a resi that resolves attaches the package and answers its pending step
 scenario('a resi the sender does not own is reported back', () => {
   const out = decide({ text: 'AJ-FRZ-0000000', state: NO_STATE, lookup: { found: false } });
   eq(out.decision.intent, 'info:none', 'intent');
-  contains(out.reply.text, 'tidak kami temukan', 'not found text');
+  contains(out.reply.text, 'tidak terdaftar untuk nomor WhatsApp ini', 'not found text');
+  contains(out.reply.text, 'nomor pembeli yang terdaftar', 'explains the phone rule');
 });
 
 scenario('a stored conversation is kept when the resi matches it', () => {
