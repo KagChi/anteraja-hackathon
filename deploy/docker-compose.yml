@@ -29,7 +29,7 @@ services:
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - APP_URL=${APP_URL:-https://madgo.my.id/anter-aja-backend}
+      - APP_URL=${APP_URL:-https://madgo.my.id/anteraja-frozen}
       - OCTANE_SERVER=frankenphp
       - OCTANE_PORT=80
       - OCTANE_WORKERS=${OCTANE_WORKERS:-4}

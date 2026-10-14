@@ -54,12 +54,12 @@ File konfigurasi Nginx siap pakai telah disediakan di [`deploy/nginx-anteraja.co
 2. **Tambahkan Routing / Location (di dalam blok `server { listen 8080; ... }`):**
    ```nginx
    # Redirect non-trailing slash
-   location = /anter-aja-backend {
-       return 301 https://$http_host/anter-aja-backend/;
+   location = /anteraja-frozen {
+       return 301 https://$http_host/anteraja-frozen/;
    }
 
    # SSE Stream (Server-Sent Events)
-   location /anter-aja-backend/api/v1/sse/stream {
+   location /anteraja-frozen/api/v1/sse/stream {
        proxy_pass http://anteraja_frozen_backend/api/v1/sse/stream;
        proxy_buffering off;
        proxy_cache off;
@@ -76,7 +76,7 @@ File konfigurasi Nginx siap pakai telah disediakan di [`deploy/nginx-anteraja.co
    }
 
    # REST API & Application Backend
-   location /anter-aja-backend/ {
+   location /anteraja-frozen/ {
        limit_req zone=api_limit burst=30 nodelay;
        proxy_pass http://anteraja_frozen_backend/;
        proxy_http_version 1.1;
@@ -110,7 +110,7 @@ cp .env.production.example .env
 Edit file `.env` dan pastikan:
 - `APP_KEY=...` (Key rahasia Laravel)
 - `DB_PASSWORD=...` (Password aman untuk PostgreSQL)
-- `APP_URL=https://madgo.my.id/anter-aja-backend`
+- `APP_URL=https://madgo.my.id/anteraja-frozen`
 
 ### Langkah 3: Build & Jalankan Stack
 ```bash
