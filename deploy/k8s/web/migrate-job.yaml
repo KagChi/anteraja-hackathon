@@ -39,7 +39,11 @@ spec:
                 name: anteraja-hackathon-secrets
           resources:
             requests:
-              cpu: 50m
+              # A one-shot artisan run only needs its request to be schedulable;
+              # CPU is compressible, so keep this tiny and let it burst while it
+              # runs. The cluster this deploys to runs at ~99% committed CPU, so
+              # a 50m request left the Job stuck in Pending.
+              cpu: 5m
               memory: 256Mi
             limits:
               memory: 512Mi
