@@ -79,17 +79,6 @@ export default function History({ q: initialQuery, status: initialStatus }: Hist
                         Arsip pengiriman yang sudah selesai, diterima, atau dikembalikan
                     </p>
                 </div>
-                <a
-                    href={api.history.exportUrl({ q: query.trim(), status })}
-                    aria-disabled={total === 0}
-                    className={cx(
-                        "flex h-9 items-center gap-space-xs self-start rounded-md border border-outline-variant px-space-md font-label-md text-label-md text-on-surface transition-colors hover:border-secondary hover:bg-surface-container",
-                        total === 0 && "pointer-events-none opacity-40"
-                    )}
-                >
-                    <MaterialIcon name="download" className="text-[16px]" />
-                    <span>Ekspor CSV</span>
-                </a>
             </div>
 
             {error ? (

@@ -202,7 +202,7 @@ export default function Report() {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-space-sm">
-                        <div className="relative">
+                        <div className="relative w-full sm:w-auto">
                             <select
                                 value={category}
                                 aria-label="Filter jenis kendala"
@@ -210,7 +210,7 @@ export default function Report() {
                                     setCategory(event.target.value);
                                     setPage(1);
                                 }}
-                                className="h-9 cursor-pointer appearance-none rounded-md border border-outline-variant bg-surface-container-low pr-8 pl-space-md font-body-sm text-body-sm text-on-surface transition-colors hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
+                                className="h-9 w-full cursor-pointer appearance-none rounded-md border border-outline-variant bg-surface-container-low pr-8 pl-space-md font-body-sm text-body-sm text-on-surface transition-colors hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none sm:w-auto"
                             >
                                 <option value="">Semua Jenis Kendala</option>
                                 {categories.map((key) => (
@@ -224,20 +224,85 @@ export default function Report() {
                                 className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[18px] text-secondary"
                             />
                         </div>
-                        <a
-                            href={api.reports.exportUrl({ date, category })}
-                            aria-disabled={total === 0}
-                            className={cx(
-                                "flex h-9 items-center gap-space-xs rounded-md border border-outline-variant px-space-md font-label-md text-label-md text-on-surface transition-colors hover:border-secondary hover:bg-surface-container",
-                                total === 0 && "pointer-events-none opacity-40"
-                            )}
-                        >
-                            <MaterialIcon name="download" className="text-[16px]" />
-                            <span>Ekspor CSV</span>
-                        </a>
                     </div>
                 </div>
-                <div className="w-full overflow-x-auto">
+                <div
+                    className={cx(
+                        "divide-y divide-surface-container md:hidden",
+                        loading && "opacity-60 transition-opacity"
+                    )}
+                >
+                    {rows.map((row) => (
+                        <button
+                            key={row.id}
+                            type="button"
+                            onClick={() => setDetailResi(row.tracking)}
+                            className="flex w-full flex-col gap-space-sm p-space-lg text-left transition-colors hover:bg-surface-container-low"
+                        >
+                            <div className="flex items-start justify-between gap-space-sm">
+                                <div className="flex min-w-0 flex-col">
+                                    <span className="font-data-mono font-semibold text-body-md text-on-surface">
+                                        {row.tracking}
+                                    </span>
+                                    <span className="mt-0.5 truncate font-body-sm text-body-sm text-secondary">
+                                        {row.buyer}
+                                    </span>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                    <span
+                                        className={cx(
+                                            "h-2 w-2 shrink-0 rounded-full",
+                                            STATUS_TONE[row.resolutionTone].dot
+                                        )}
+                                    />
+                                    <span
+                                        className={cx(
+                                            "font-label-sm text-label-sm",
+                                            STATUS_TONE[row.resolutionTone].text
+                                        )}
+                                    >
+                                        {row.resolutionStatus}
+                                    </span>
+                                </div>
+                            </div>
+                            <dl className="grid grid-cols-2 gap-x-space-md gap-y-space-sm">
+                                <div className="flex flex-col gap-0.5">
+                                    <dt className="font-label-sm text-label-sm text-secondary uppercase tracking-wide">
+                                        Jenis Kendala
+                                    </dt>
+                                    <dd
+                                        className={cx(
+                                            "font-body-sm text-body-sm",
+                                            row.resolutionStatus === "Menunggu Keputusan"
+                                                ? "font-medium text-primary"
+                                                : "text-on-surface"
+                                        )}
+                                    >
+                                        {row.category}
+                                    </dd>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <dt className="font-label-sm text-label-sm text-secondary uppercase tracking-wide">
+                                        Kurir
+                                    </dt>
+                                    <dd className="font-body-sm text-body-sm text-secondary">{row.courier}</dd>
+                                </div>
+                                <div className="col-span-2 flex flex-col gap-0.5">
+                                    <dt className="font-label-sm text-label-sm text-secondary uppercase tracking-wide">
+                                        Keputusan
+                                    </dt>
+                                    <dd className="font-body-sm text-body-sm text-secondary">{row.decision}</dd>
+                                </div>
+                            </dl>
+                        </button>
+                    ))}
+                    {!loading && rows.length === 0 ? (
+                        <p className="px-space-lg py-space-xl text-center font-body-sm text-body-sm text-secondary">
+                            Tidak ada kendala pada tanggal ini.
+                        </p>
+                    ) : null}
+                </div>
+                <div className="hidden w-full overflow-x-auto md:block">
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr className="h-9 bg-surface-container-low">
@@ -332,7 +397,7 @@ export default function Report() {
                         </tbody>
                     </table>
                 </div>
-                <div className="flex h-12 items-center justify-between px-space-lg">
+                <div className="flex min-h-12 flex-wrap items-center justify-between gap-space-sm px-space-lg py-space-sm">
                     <span className="font-body-sm text-body-sm text-secondary">
                         Menampilkan {rangeLabel} dari {total} kendala
                     </span>

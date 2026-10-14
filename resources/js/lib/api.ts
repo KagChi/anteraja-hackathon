@@ -364,8 +364,7 @@ export const api = {
             post<{ message: string }>(`/admin/shipments/${encodeURIComponent(resi)}/reschedule`, {
                 scheduled_date: scheduledDate,
                 scheduled_time_window: window
-            }),
-        exportUrl: (query: ShipmentQuery) => `/api/admin/shipments/export${toQueryString(query)}`
+            })
     },
     exceptions: {
         show: (resi: string) => get<ExceptionDetailResponse>(`/admin/exceptions/${encodeURIComponent(resi)}`),
@@ -374,11 +373,9 @@ export const api = {
     },
     reports: {
         index: (query: { date?: string; category?: string; page?: number }) =>
-            get<ReportResponse>("/admin/reports", query),
-        exportUrl: (query: { date?: string; category?: string }) => `/api/admin/reports/export${toQueryString(query)}`
+            get<ReportResponse>("/admin/reports", query)
     },
     history: {
-        index: (query: { q?: string; status?: string; page?: number }) => get<HistoryResponse>("/admin/history", query),
-        exportUrl: (query: { q?: string; status?: string }) => `/api/admin/history/export${toQueryString(query)}`
+        index: (query: { q?: string; status?: string; page?: number }) => get<HistoryResponse>("/admin/history", query)
     }
 };
