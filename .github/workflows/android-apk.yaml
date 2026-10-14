@@ -1,12 +1,13 @@
 name: Android APKs
 
-# The sideloadable Anteraja Kurir shell, built from the Laravel codebase. Its
-# screens are native UI (NativeComponent + EDGE elements) compiled to Jetpack
-# Compose, so the APK needs neither a site URL nor web assets.
+# The sideloadable Anteraja shells — Kurir for the courier, Frozen for the
+# customer — built from the Laravel codebase. Their screens are native UI
+# (NativeComponent + EDGE elements) compiled to Jetpack Compose, so an APK
+# needs neither a site URL nor web assets.
 #
-# Anteraja Frozen is not built here yet: its screens have no native
-# implementation, and mobile/apps.php leaves its start route null so the build
-# script refuses it rather than shipping a build that opens the courier flow.
+# Each app's package id, launch icon and start route come from mobile/apps.php;
+# the build script refuses an app whose start route is still null, so a build
+# can never open the wrong flow.
 
 on:
   push:
@@ -26,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         # Only apps whose native screens exist; see mobile/apps.php.
-        app: [kurir]
+        app: [kurir, client]
 
     env:
       ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/credentials/release.jks

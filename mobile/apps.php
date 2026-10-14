@@ -31,8 +31,6 @@ return [
     'client' => [
         'app_id' => 'com.anteraja.frozen',
         'name' => 'Anteraja Frozen',
-        // The customer journey (orders, tracking, scheduling) has no native
-        // screens yet — port them before building this app.
-        'start' => null,
+        'start' => '/client/orders',
     ],
 ];

@@ -15,12 +15,12 @@ configured — which is why a build can never open on "no site to show yet".
 | App | Package id | Opens on | Status |
 | --- | --- | --- | --- |
 | Anteraja Kurir | `com.anteraja.kurir` | `/courier/tasks` | Built |
-| Anteraja Frozen | `com.anteraja.frozen` | — | Not built: the customer journey has no native screens yet |
+| Anteraja Frozen | `com.anteraja.frozen` | `/client/orders` | Built |
 
 An app whose `start` is `null` is refused by `scripts/build-apk.sh` rather than
-packaged, so a build can never open the wrong flow. Port the customer screens
-(`orders`, `tracking`, `schedule`, `issue`) to `app/NativeComponents/Client/`,
-register them in `routes/mobile.php`, and set `start` to switch it on.
+packaged, so a build can never open the wrong flow. Both apps are packaged
+today; the guard stays because any shell added later has to port its screens
+before it can be built.
 
 ## Screens
 
@@ -35,15 +35,26 @@ Each screen is a class in `app/NativeComponents/` plus a Blade view in
 | `/courier/delivery/{resi}` | `Courier\Delivery` | `native/courier/delivery.blade.php` |
 | `/courier/proof/{resi}` | `Courier\Proof` | `native/courier/proof.blade.php` |
 | `/courier/issue/{resi}` | `Courier\Issue` | `native/courier/issue.blade.php` |
+| `/client/orders` | `Client\Orders` | `native/client/orders.blade.php` |
+| `/client/history` | `Client\History` | `native/client/history.blade.php` |
+| `/client/profile` | `Client\Profile` | `native/client/profile.blade.php` |
+| `/client/tracking/{resi}` | `Client\Tracking` | `native/client/tracking.blade.php` |
+| `/client/schedule/{resi}` | `Client\Schedule` | `native/client/schedule.blade.php` |
+| `/client/issue/{resi}` | `Client\Issue` | `native/client/issue.blade.php` |
 
-The three tab destinations share `Layouts\CourierTabsLayout` (a `NativeLayout`)
-for their bottom bar; the pushed flow screens sit outside that group and carry
-their own back-navigable top bar.
+Each app's three tab destinations share a layout — `Layouts\CourierTabsLayout`
+or `Layouts\ClientTabsLayout` (a `NativeLayout`) for their bottom bar; the
+pushed flow screens sit outside those groups and carry their own
+back-navigable top bar. The three customer flow screens share one partial,
+`native/client/partials/missing-order.blade.php`, for the "resi not on
+this account" card.
 
-Screen content comes from `App\Support\CourierData`, a one-for-one port of the
-fixtures the web screens use (`resources/js/data/courier.ts`). It is the single
-seam to replace when the courier flow is wired to the API — nothing else reads
-those values.
+Screen content comes from `App\Support\CourierData` and
+`App\Support\ClientData`, one-for-one ports of the fixtures the web screens
+use (`resources/js/data/courier.ts`, `client.ts`). They are the single seam to
+replace when a flow is wired to the API — nothing else reads those values.
+`ClientData` also owns the pill colours both customer order lists share, so the
+Pesanan and Riwayat tabs cannot drift apart.
 
 Styling is Tailwind utility classes over the theme tokens in
 `config/native-ui.php`, which mirror the Material roles in
@@ -53,9 +64,9 @@ platform gets a real symbol rather than a Material name iOS cannot resolve.
 
 ## Building an APK
 
-`.github/workflows/android-apk.yaml` builds the app on every push to `main`, on
-release creation, and on demand from the Actions tab. It needs these repository
-settings:
+`.github/workflows/android-apk.yaml` builds both apps on every push to `main`,
+on release creation, and on demand from the Actions tab. It needs these
+repository settings:
 
 | Kind | Name | Value |
 | --- | --- | --- |
@@ -72,7 +83,7 @@ keystore with:
 
 ```sh
 mkdir -p mobile/keystore
-keytool -genkeypair -keystore mobile/keystore/anteraja.jks -alias anteraja \\
+keytool -genkeypair -keystore mobile/keystore/anteraja.jks -alias anteraja \
   -keyalg RSA -keysize 2048 -validity 10000
 base64 -i mobile/keystore/anteraja.jks | pbcopy   # → ANDROID_KEYSTORE_BASE64
 ```
@@ -85,6 +96,7 @@ export ANDROID_KEYSTORE_PASSWORD=... ANDROID_KEY_ALIAS=anteraja ANDROID_KEY_PASS
 
 php artisan native:run android      # compile and launch on an emulator or device
 scripts/build-apk.sh kurir          # signed release APK → dist/anteraja-kurir.apk
+scripts/build-apk.sh client         # signed release APK → dist/anteraja-client.apk
 ```
 
 The script stamps `.env` and `public/icon.png` from `mobile/apps.php` and
@@ -95,17 +107,26 @@ The script stamps `.env` and `public/icon.png` from `mobile/apps.php` and
 Component tests render the element tree in-process — no device, no simulator:
 
 ```sh
-vendor/bin/phpunit --filter CourierNativeScreensTest
+vendor/bin/phpunit --filter 'CourierNativeScreensTest|ClientNativeScreensTest'
 ```
 
 `Native::test(Tasks::class)` mounts a screen by class and `Native::visit(...)`
 mounts it by route, with `tap()`, `set()`, `call()` and the `assert*` methods
-driving and inspecting it.
+driving and inspecting it. The customer tests cover the same ground from the
+other side: every tab and pushed route resolves, each flow screen renders the
+order its resi names, and no screen contains a web view.
 
 ## Known limitations
 
-- The customer app is not ported; see the table above.
-- There is no native map element, so the delivery screen opens the route in the
-  system maps app instead of drawing it inline.
+- There is no native map element, so the courier delivery screen opens the
+  route in the system maps app instead of drawing it inline.
+- There is no clipboard bridge in core, so the customer screens mark the resi
+  `select-text` and let the OS long-press copy handle it, instead of the web's
+  copy button.
+- The native image stack has no SVG decoder, so the customer schedule screen
+  draws a themed cold-chain tile where the web dropped in
+  `public/images/product-placeholder.svg`.
 - `php artisan native:validate` reports `Unknown native element type` for
-  plugin-provided elements such as `list-item`. Its element list is core-only.
+  plugin-provided elements such as `pressable` and `list-item`, and `Class
+  does not extend NativeComponent` for the tab layouts, which extend
+  `NativeLayout` instead. Its element and component lists are core-only.
