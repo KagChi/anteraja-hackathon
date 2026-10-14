@@ -60,6 +60,18 @@ class AppServiceProvider extends ServiceProvider
             });
         });
 
+        // The landing page's resi lookup. Tracking numbers are sequential, so
+        // the limit is what stops someone walking the whole range: generous for
+        // a person typing a resi, tight for a scraper.
+        RateLimiter::for('track-resi', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip() ?? '127.0.0.1')->response(function () {
+                return response()->json([
+                    'message' => 'Terlalu banyak pencarian resi. Coba lagi sebentar lagi.',
+                    'code' => 'TOO_MANY_REQUESTS',
+                ], 429);
+            });
+        });
+
         // Restore the theme the user picked in the mobile shells. Only they
         // carry that preference, and only they have a cache store to read it
         // from: an artisan run — composer's post-autoload package:discover,

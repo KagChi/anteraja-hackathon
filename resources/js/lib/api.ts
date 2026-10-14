@@ -324,6 +324,26 @@ export interface GpsDecisionPayload {
     decision_reason: string;
 }
 
+/** Public resi lookup: status only, never anything that names the recipient. */
+export interface TrackTimelineEntry {
+    label: string;
+    time: string;
+    detail: string;
+    is_accent: boolean;
+}
+
+export interface TrackResult {
+    resi: string;
+    status: { code: string; label: string; tone: Tone };
+    service: string;
+    category: string;
+    cold_chain: string;
+    destination_city: string | null;
+    schedule_label: string;
+    updated_label: string;
+    timeline: TrackTimelineEntry[];
+}
+
 export interface ShipmentCreateOptions {
     products: ProductOption[];
     buyers: BuyerOption[];
@@ -439,6 +459,9 @@ export function toQueryString(params: object): string {
 }
 
 export const api = {
+    track: {
+        show: (resi: string) => get<{ data: TrackResult }>("/track/" + encodeURIComponent(resi))
+    },
     auth: {
         login: (email: string, password: string, remember = false) =>
             post<{ message: string; user: StaffUser }>("/auth/login", { email, password, remember }),

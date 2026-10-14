@@ -54,8 +54,9 @@ export const SERVICES: LandingService[] = [
     {
         icon: "local_shipping",
         title: "Anteraja Frozen Reguler",
-        sla: "SLA 1 - 2 hari",
-        description: "Pengiriman terjadwal untuk stok mingguan rumah tangga, toko frozen food, dan reseller.",
+        sla: "Same day Jabodetabek",
+        description:
+            "Pengiriman terjadwal untuk stok mingguan rumah tangga, toko frozen food, dan reseller di Jabodetabek.",
         points: ["Jendela antar yang bisa dipilih", "Kontrol suhu sebelum berangkat", "Bukti foto serah terima"]
     },
     {
@@ -99,15 +100,28 @@ export const ADVANTAGES: LandingAdvantage[] = [
     }
 ];
 
+/**
+ * Service area. Jabodetabek only: the hub network, the instant tier and the
+ * cold-chain fleet all live in Greater Jakarta, so the page must not imply
+ * nationwide coverage.
+ */
 export const COVERAGE: CoverageArea[] = [
-    { region: "DKI Jakarta", areas: ["Jak-Sel", "Jak-Tim", "Jak-Pus", "Jak-Bar", "Jak-Ut"], eta: "Instant 2 - 4 jam" },
-    { region: "Jabodetabek", areas: ["Depok", "Tangerang", "Bekasi", "Bogor"], eta: "Same day" },
-    { region: "Jawa Barat", areas: ["Bandung", "Cimahi", "Bekasi Kota"], eta: "1 hari" },
-    { region: "Jawa Tengah & DIY", areas: ["Semarang", "Solo", "Yogyakarta"], eta: "1 - 2 hari" },
-    { region: "Jawa Timur", areas: ["Surabaya", "Malang", "Sidoarjo"], eta: "1 - 2 hari" },
-    { region: "Bali & Nusa Tenggara", areas: ["Denpasar", "Mataram"], eta: "2 hari" },
-    { region: "Sumatera", areas: ["Medan", "Palembang", "Padang"], eta: "2 - 3 hari" },
-    { region: "Kalimantan & Sulawesi", areas: ["Balikpapan", "Makassar", "Manado"], eta: "2 - 3 hari" }
+    { region: "Jakarta Selatan", areas: ["Tebet", "Kebayoran", "Cilandak", "Pasar Minggu"], eta: "Instant 2 - 4 jam" },
+    {
+        region: "Jakarta Pusat & Selatan",
+        areas: ["Setiabudi", "Kuningan", "Mampang", "Senayan"],
+        eta: "Instant 2 - 4 jam"
+    },
+    {
+        region: "Jakarta Timur & Barat",
+        areas: ["Cakung", "Pulogadung", "Kebon Jeruk", "Grogol"],
+        eta: "Instant 2 - 4 jam"
+    },
+    { region: "Jakarta Utara", areas: ["Kelapa Gading", "Penjaringan", "Tanjung Priok"], eta: "Same day" },
+    { region: "Depok", areas: ["Margonda", "Cinere", "Beji"], eta: "Same day" },
+    { region: "Tangerang & Tangerang Selatan", areas: ["BSD", "Bintaro", "Karawaci"], eta: "Same day" },
+    { region: "Bekasi", areas: ["Bekasi Barat", "Bekasi Timur", "Cikarang"], eta: "Same day" },
+    { region: "Bogor", areas: ["Bogor Barat", "Cibinong", "Sentul"], eta: "Same day" }
 ];
 
 /** The three interfaces a visitor can walk into from the landing page. */
@@ -140,13 +154,13 @@ export const NAV_LINKS = [
     { label: "Blog", href: "#blog" }
 ];
 
-/** Estimated per-kilogram rate used by the showcase shipping-fee form. */
+/** Estimated per-kilogram rate used by the shipping-fee panel, Jabodetabek only. */
 export const FEE_ZONES = [
-    { value: "jabodetabek", label: "Jabodetabek", perKg: 12000, minDays: 1, maxDays: 1 },
-    { value: "jawa", label: "Pulau Jawa", perKg: 18000, minDays: 1, maxDays: 2 },
-    { value: "bali-nusra", label: "Bali & Nusa Tenggara", perKg: 26000, minDays: 2, maxDays: 3 },
-    { value: "sumatera", label: "Sumatera", perKg: 30000, minDays: 2, maxDays: 3 },
-    { value: "kalimantan-sulawesi", label: "Kalimantan & Sulawesi", perKg: 34000, minDays: 2, maxDays: 4 }
+    { value: "jakarta-selatan", label: "Jakarta Selatan", perKg: 11000, minDays: 1, maxDays: 1 },
+    { value: "jakarta-lainnya", label: "Jakarta lainnya", perKg: 13000, minDays: 1, maxDays: 1 },
+    { value: "depok-bekasi", label: "Depok & Bekasi", perKg: 15000, minDays: 1, maxDays: 1 },
+    { value: "tangerang", label: "Tangerang & Tangsel", perKg: 16000, minDays: 1, maxDays: 1 },
+    { value: "bogor", label: "Bogor", perKg: 17000, minDays: 1, maxDays: 1 }
 ];
 
 export const FEE_SERVICES = [

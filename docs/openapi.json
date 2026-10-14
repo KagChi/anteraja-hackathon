@@ -79,6 +79,10 @@
     {
       "name": "Admin - Location",
       "description": "Radius geofence per jenis layanan dan antrean validasi GPS"
+    },
+    {
+      "name": "Public - Tracking",
+      "description": "Pelacakan resi publik untuk halaman utama. Hanya status, jadwal, kota tujuan, dan riwayat berlabel tetap, tanpa identitas penerima."
     }
   ],
   "components": {
@@ -987,6 +991,78 @@
           "decided_by": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "PublicTracking": {
+        "type": "object",
+        "properties": {
+          "resi": {
+            "type": "string",
+            "example": "AJ-FRZ-0012345"
+          },
+          "status": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "IN_DELIVERY"
+              },
+              "label": {
+                "type": "string",
+                "example": "Sedang Diantar"
+              },
+              "tone": {
+                "type": "string",
+                "example": "dark"
+              }
+            }
+          },
+          "service": {
+            "type": "string",
+            "example": "Instant Frozen"
+          },
+          "category": {
+            "type": "string",
+            "example": "Frozen Food"
+          },
+          "cold_chain": {
+            "type": "string",
+            "example": "Beku -18°C"
+          },
+          "destination_city": {
+            "type": "string",
+            "nullable": true,
+            "description": "Kecamatan atau kota saja, diambil dari bagian terakhir area penerima.",
+            "example": "Jakarta Selatan"
+          },
+          "schedule_label": {
+            "type": "string",
+            "example": "Hari ini, 13:00 - 15:00"
+          },
+          "updated_label": {
+            "type": "string",
+            "example": "Hari ini • 13:20 WIB"
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "time": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "is_accent": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       }
@@ -2409,6 +2485,49 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/track/{resi}": {
+      "get": {
+        "tags": [
+          "Public - Tracking"
+        ],
+        "summary": "Lacak resi publik",
+        "description": "Dipakai panel Lacak Pesananmu di halaman utama. Jawabannya sengaja dibatasi - status, jadwal, kota tujuan, dan riwayat berlabel tetap - sehingga tidak ada nama, nomor telepon, atau alamat penerima yang keluar. Dibatasi 20 permintaan per menit per IP karena nomor resi berurutan.",
+        "parameters": [
+          {
+            "name": "resi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paket ditemukan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PublicTracking"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nomor resi tidak dikenal"
+          },
+          "429": {
+            "description": "Terlalu banyak pencarian resi dalam satu menit"
           }
         }
       }

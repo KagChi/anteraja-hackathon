@@ -47,6 +47,7 @@ use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
 use App\Http\Controllers\Api\Internal\WhatsappLookupController;
+use App\Http\Controllers\Api\Tracking\TrackController;
 use App\Http\Controllers\Media\MediaPreviewController;
 use App\Http\Middleware\AuthenticateCourier;
 use Illuminate\Support\Facades\Route;
@@ -158,6 +159,14 @@ Route::prefix('client/catalog')->name('api.client.catalog.')
         Route::get('/', [ClientCatalogController::class, 'index'])->name('index');
         Route::get('{slug}', [ClientCatalogController::class, 'show'])->where('slug', '[a-z0-9-]+')->name('show');
     });
+
+// 1c) Public resi lookup for the landing page. Read-only: status, window,
+//     destination city and a timeline of fixed labels. Rate limited per IP so
+//     the sequential tracking numbers cannot be enumerated at speed.
+Route::get('track/{resi}', TrackController::class)
+    ->where('resi', '[A-Za-z0-9-]{4,32}')
+    ->middleware(['force.json', 'client.headers', 'throttle:track-resi'])
+    ->name('api.track.show');
 
 // 2) Authenticated Client Mobile API (Sanctum with ability "client")
 Route::prefix('client')->name('api.client.')

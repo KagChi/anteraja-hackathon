@@ -141,13 +141,6 @@ export default function Landing({ products }: LandingProps) {
                                     antar dalam satu alur.
                                 </p>
                             </div>
-                            <Link
-                                href="/client/orders"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-4 py-2 font-label-md text-label-md text-on-surface transition-colors hover:border-primary hover:text-primary"
-                            >
-                                Buka portal pelanggan
-                                <MaterialIcon name="arrow_forward" className="text-[16px]" />
-                            </Link>
                         </Reveal>
 
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -291,11 +284,11 @@ export default function Landing({ products }: LandingProps) {
                         <Reveal className="flex flex-col gap-3">
                             <span className="font-label-sm text-label-sm text-primary uppercase">Jangkauan</span>
                             <h2 className="font-headline-lg text-headline-lg text-on-surface sm:text-[30px]">
-                                Dari Jakarta Selatan ke seluruh Indonesia
+                                Dari Jakarta Selatan ke seluruh Jabodetabek
                             </h2>
                             <p className="font-body-md text-body-md text-secondary">
-                                Jaringan hub kami menyimpan paket tetap beku selama transit. Estimasi di bawah adalah
-                                waktu tempuh normal di luar musim puncak.
+                                Hub kami melayani Jakarta, Depok, Tangerang, Bekasi, dan Bogor. Di luar Jabodetabek
+                                belum ada rute, karena paket beku tidak boleh transit selama itu.
                             </p>
                             <div className="relative mt-2 h-40 overflow-hidden rounded-2xl border border-black/5 bg-gradient-to-br from-sky-50 via-white to-emerald-50">
                                 <span className="drift absolute inset-0 flex items-center justify-around">
