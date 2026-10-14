@@ -16,6 +16,7 @@ use App\Models\Staff;
 use App\Support\DisplayTime;
 use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
+use App\Support\PhoneFormatter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -48,15 +49,24 @@ final class CreatePackage
                 $buyerId = (int) $data['buyer_id'];
             } else {
                 $buyerData = $data['buyer'] ?? [];
-                $buyer = Buyer::create([
-                    'name' => $buyerData['name'],
-                    'phone' => $buyerData['phone'],
-                    'address' => $buyerData['address'],
-                    'area' => $buyerData['area'] ?? null,
-                    'address_type' => $buyerData['address_type'] ?? 'RESIDENTIAL',
-                    'latitude' => isset($buyerData['latitude']) ? (float) $buyerData['latitude'] : null,
-                    'longitude' => isset($buyerData['longitude']) ? (float) $buyerData['longitude'] : null,
-                ]);
+                $phone = $buyerData['phone'] ?? '';
+                $normalizedPhone = PhoneFormatter::toE164Id($phone);
+
+                $buyer = Buyer::where('phone', $normalizedPhone)
+                    ->orWhere('phone', $phone)
+                    ->first();
+
+                if (! $buyer) {
+                    $buyer = Buyer::create([
+                        'name' => $buyerData['name'],
+                        'phone' => $normalizedPhone,
+                        'address' => $buyerData['address'],
+                        'area' => $buyerData['area'] ?? null,
+                        'address_type' => $buyerData['address_type'] ?? 'RESIDENTIAL',
+                        'latitude' => isset($buyerData['latitude']) ? (float) $buyerData['latitude'] : null,
+                        'longitude' => isset($buyerData['longitude']) ? (float) $buyerData['longitude'] : null,
+                    ]);
+                }
                 $buyerId = $buyer->id;
             }
 
