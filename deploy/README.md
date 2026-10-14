@@ -39,58 +39,29 @@ Dokumentasi ini menjelaskan konfigurasi dan tata cara deployment service Backend
 
 ## 2. Konfigurasi Nginx Reverse Proxy di VPS
 
-File konfigurasi Nginx siap pakai telah disediakan di [`deploy/nginx-anteraja.conf`](./nginx-anteraja.conf).
+File konfigurasi Nginx siap pakai telah disediakan di [`deploy/frozen.conf`](./frozen.conf).
 
-### Ringkasan Penambahan ke Nginx VPS (`production.conf`):
+### Cara Pasang di Docker Compose Nginx VPS:
 
-1. **Tambahkan Upstream (di luar blok `server`):**
-   ```nginx
-   upstream anteraja_frozen_backend {
-       server anteraja-frozen-backend:80;
-       keepalive 32;
-   }
+1. Buat file `frozen.conf` di folder Nginx VPS Anda (isinya sama persis dengan [`deploy/frozen.conf`](./frozen.conf)).
+2. Di file `docker-compose.yml` milik Nginx VPS, tambahkan volume mount untuk `frozen.conf`:
+   ```yaml
+       volumes:
+         # Konfigurasi Nginx utama
+         - ./production.conf:/etc/nginx/conf.d/default.conf:ro
+         # Static files — root HTML (gallery + configs-page inside)
+         - ./html:/usr/share/nginx/html:ro
+         # Images directory — served at /images/
+         - ./images:/usr/share/nginx/images:ro
+         # Konfigurasi subdomain
+         - ./n8n.conf:/etc/nginx/conf.d/n8n.conf:ro
+         - ./frozen.conf:/etc/nginx/conf.d/frozen.conf:ro
    ```
-
-2. **Tambahkan Routing / Location (di dalam blok `server { listen 8080; ... }`):**
-   ```nginx
-   # Redirect non-trailing slash
-   location = /anteraja-frozen {
-       return 301 https://$http_host/anteraja-frozen/;
-   }
-
-   # SSE Stream (Server-Sent Events)
-   location /anteraja-frozen/api/v1/sse/stream {
-       proxy_pass http://anteraja_frozen_backend/api/v1/sse/stream;
-       proxy_buffering off;
-       proxy_cache off;
-       chunked_transfer_encoding off;
-       proxy_http_version 1.1;
-       proxy_set_header Connection '';
-       proxy_read_timeout 3600s;
-       proxy_send_timeout 3600s;
-       proxy_set_header Host              $host;
-       proxy_set_header X-Real-IP         $remote_addr;
-       proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-       proxy_set_header CF-Connecting-IP  $http_cf_connecting_ip;
-   }
-
-   # REST API & Application Backend
-   location /anteraja-frozen/ {
-       limit_req zone=api_limit burst=30 nodelay;
-       proxy_pass http://anteraja_frozen_backend/;
-       proxy_http_version 1.1;
-       proxy_set_header Connection "";
-       proxy_set_header Host              $host;
-       proxy_set_header X-Real-IP         $remote_addr;
-       proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-       proxy_set_header CF-Connecting-IP  $http_cf_connecting_ip;
-       client_max_body_size 25M;
-       proxy_connect_timeout 60s;
-       proxy_send_timeout 60s;
-       proxy_read_timeout 60s;
-   }
+3. Restart atau reload container Nginx:
+   ```bash
+   docker compose restart nginx
+   # atau
+   docker exec -it nginx-proxy nginx -s reload
    ```
 
 ---
