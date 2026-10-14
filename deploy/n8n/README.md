@@ -105,11 +105,23 @@ outbound saat notifikasi dikirim):
 
 | `last_template` | Balasan yang diterima | Aksi ke API guest |
 | --- | --- | --- |
-| `schedule_request` | "siap", "ya", "oke" | `POST /schedule/confirm` |
-| `schedule_request` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
+| `schedule_request`, `schedule_rescheduled` | "siap", "ya", "oke" | `POST /schedule/confirm` |
+| `schedule_request`, `schedule_rescheduled` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
 | `issue_options` | `1`-`4` atau "kirim ulang"/"retur"/"lanjut"/"diskusi" | `POST /issue/choice` |
-| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat + tautan lacak |
+| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat (sesuai keputusan yang tercatat) + tautan lacak |
 | tidak ada state | apa pun | balasan bantuan: minta nomor resi, tanpa menu 1-4 |
+
+Notifikasi `schedule_rescheduled` (admin mengusulkan jadwal baru) memakai
+pertanyaan yang sama dengan permintaan pertama: status paket kembali
+`AWAITING_CONFIRMATION` dan konfirmasinya masih `PENDING`, jadi pembeli harus
+menjawab lagi.
+
+Baris state menyimpan `context.window`, `context.client_url`, dan
+`context.decision` dari notifikasi terakhir, sehingga bot bisa menyebut jadwal
+yang sedang ditunggu, menautkan pelacakan, dan menyebut keputusan kendala.
+Menyebut nomor resi akan menyegarkan state dari endpoint lookup, jadi template
+yang tertinggal (mis. sesudah admin menyusun ulang) tidak lagi membuat bot
+menjawab dengan teks bantuan.
 
 Setelah aksi berhasil, `last_template` dimajukan (`confirmed`,
 `reschedule_requested`, `issue_choice_recorded`) supaya bot tidak menagih

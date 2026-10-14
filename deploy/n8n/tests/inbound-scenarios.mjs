@@ -148,9 +148,19 @@ function decide(options) {
   return { context: context, decision: decision, reply: reply };
 }
 
-const SCHEDULE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'schedule_request' };
-const ISSUE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'issue_options' };
-const NO_STATE = { phone: PHONE, tracking_number: null, client_token: null, last_template: null };
+const CONTEXT = { window: 'Hari ini, 13:00 - 15:00', client_url: 'https://app/api/client/tok' };
+const SCHEDULE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'schedule_request', context: CONTEXT };
+const RESCHEDULED_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'schedule_rescheduled', context: CONTEXT };
+const ISSUE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'issue_options', context: CONTEXT };
+const NO_STATE = { phone: PHONE, tracking_number: null, client_token: null, last_template: null, context: null };
+const FOUND_REQUEST = {
+  found: true,
+  tracking_number: RESI,
+  client_token: 'tok',
+  client_url: 'https://app/api/client/tok',
+  template: 'schedule_request',
+  status_label: 'Menunggu Konfirmasi',
+};
 
 const FOUND = {
   found: true,
@@ -356,6 +366,46 @@ scenario('a window tomorrow still goes through', () => {
   eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
 });
 
+scenario('the rescheduled notice is answered like a first request', () => {
+  for (const word of ['siap', 'oke', 'ya']) {
+    const out = decide({ text: word, state: RESCHEDULED_STATE });
+    eq(out.decision.intent, 'confirm', 'intent for ' + word);
+    contains(out.decision.app_url, '/schedule/confirm', 'app url for ' + word);
+    eq(out.decision.next_template, 'confirmed', 'state advanced for ' + word);
+  }
+});
+
+scenario('the rescheduled notice also accepts a new window', () => {
+  const out = decide({
+    text: 'minta jadwal lain',
+    state: RESCHEDULED_STATE,
+    llm: { intent: 'request_reschedule' },
+  });
+  eq(out.decision.intent, 'reschedule', 'intent');
+  contains(out.decision.reply_text, '09:00-11:00', 'offers the slots');
+});
+
+scenario('an unrelated reply re-asks the rescheduled confirmation with the window', () => {
+  const out = decide({ text: 'apa kabar', state: RESCHEDULED_STATE });
+  eq(out.decision.intent, 'info:schedule_rescheduled', 'intent');
+  contains(out.reply.text, 'Hari ini, 13:00 - 15:00', 'quotes the pending window');
+  contains(out.reply.text, 'SIAP', 'offers SIAP');
+  absent(out.reply.text, 'Kirimkan nomor resi', 'never the help text');
+});
+
+scenario('the same re-ask stands without a stored window', () => {
+  const out = decide({ text: 'apa kabar', state: { ...RESCHEDULED_STATE, context: null } });
+  contains(out.reply.text, 'masih menunggu konfirmasi jadwal', 'names the pending step');
+  absent(out.reply.text, 'konfirmasi jadwal untuk', 'no dangling window phrase');
+});
+
+scenario('a resi refreshes a stale stored template instead of falling back to help', () => {
+  const out = decide({ text: RESI, state: RESCHEDULED_STATE, lookup: FOUND_REQUEST });
+  eq(out.context.last_template, 'schedule_request', 'template refreshed from the app');
+  contains(out.reply.text, 'masih menunggu konfirmasi jadwal', 'asks for the confirmation');
+  absent(out.reply.text, 'Kirimkan nomor resi', 'never the help text');
+});
+
 scenario('an unrelated message re-asks the confirmation, with no issue menu', () => {
   const out = decide({ text: 'apa kabar', state: SCHEDULE_STATE });
   eq(out.decision.intent, 'info:schedule_request', 'intent');
@@ -438,6 +488,24 @@ scenario('a number with no menu open is never a choice', () => {
   }
 });
 
+scenario('option 2 only promises a replacement when one was created', () => {
+  const withReplacement = decide({
+    text: '2',
+    state: ISSUE_STATE,
+    app: { success: true, data: { choice: 'RESEND', replacement_tracking_number: 'AJ-FRZ-0012400' } },
+  });
+  contains(withReplacement.reply.text, 'AJ-FRZ-0012400', 'names the replacement resi');
+  contains(withReplacement.reply.text, 'konfirmasi jadwal', 'asks for the new window');
+
+  const withoutReplacement = decide({
+    text: '2',
+    state: ISSUE_STATE,
+    app: { success: true, data: { choice: 'RESEND', replacement_tracking_number: null } },
+  });
+  absent(withoutReplacement.reply.text, 'resi pengganti', 'no phantom replacement');
+  contains(withoutReplacement.reply.text, 'diteruskan ke tim operasional', 'hands it to the ops team');
+});
+
 // --------------------------------------------------- inbound informative states
 
 console.log('');
@@ -455,6 +523,34 @@ scenario('notification-only states answer without a menu', () => {
     eq(out.decision.app_url, null, 'no action for ' + pair[0]);
     contains(out.reply.text, pair[1], 'marker for ' + pair[0]);
     absent(out.reply.text, MENU, 'no menu for ' + pair[0]);
+  }
+});
+
+scenario('a decided issue is described for what was decided', () => {
+  const expected = [
+    ['RETURN', 'dikembalikan ke pengirim'],
+    ['RESEND', 'sedang disiapkan tim kami'],
+    ['RECHECK', 'diperiksa ulang'],
+    ['PROCEED', 'dilanjutkan sesuai keputusan tim kami'],
+  ];
+
+  for (const pair of expected) {
+    const out = decide({
+      text: 'oke',
+      state: { ...SCHEDULE_STATE, last_template: 'issue_decision_update:' + pair[0], context: { decision: pair[0], client_url: CONTEXT.client_url } },
+    });
+    eq(out.decision.app_url, null, 'no action for ' + pair[0]);
+    contains(out.reply.text, pair[1], 'wording for ' + pair[0]);
+  }
+});
+
+scenario('informational replies offer the tracking link the notification carried', () => {
+  for (const template of ['on_the_way', 'issue_decision_update:RETURN']) {
+    const context = template.startsWith('issue_decision')
+      ? { decision: 'RETURN', client_url: CONTEXT.client_url }
+      : CONTEXT;
+    const out = decide({ text: 'oke', state: { ...SCHEDULE_STATE, last_template: template, context: context } });
+    contains(out.reply.text, CONTEXT.client_url, 'link for ' + template);
   }
 });
 
@@ -522,7 +618,7 @@ function render(template, payload, decision) {
 scenario('every buyer step renders and sends', () => {
   const expected = [
     ['schedule_request', 'Balas *SIAP*'],
-    ['schedule_rescheduled', 'Berhasil menjadwalkan ulang'],
+    ['schedule_rescheduled', 'Admin telah mengusulkan jadwal baru'],
     ['issue_options', '1. Pengembalian Paket ke Pengirim'],
     ['on_the_way', 'sedang diantar'],
     ['courier_arrived', 'sudah tiba di lokasi'],
@@ -545,6 +641,21 @@ scenario('the decision update carries which decision was made', () => {
     eq(out.should_send, true, 'should_send for ' + pair[0]);
     contains(out.text, pair[1], 'marker for ' + pair[0]);
   }
+});
+
+scenario('the resend notice carries the replacement resi and asks nothing', () => {
+  const out = render('issue_decision_update', { issue_label: 'Kemasan bocor', message: 'Pengiriman ulang disiapkan. Resi pengganti: AJ-FRZ-0012399.' }, 'RESEND');
+  eq(out.should_send, true, 'should_send');
+  contains(out.text, 'AJ-FRZ-0012399', 'names the replacement resi');
+  absent(out.text, 'Balas *SIAP*', 'asks for no confirmation');
+  absent(out.text, 'Estimasi Penerimaan Baru', 'shows no window it does not have');
+});
+
+scenario('a recheck decision reaches the buyer', () => {
+  const out = render('issue_decision_update', { issue_label: 'Kemasan bocor', message: 'Paket sedang diperiksa ulang oleh tim operasional kami.' }, 'RECHECK');
+  eq(out.should_send, true, 'should_send');
+  contains(out.text, 'diperiksa ulang', 'says what is happening');
+  eq(out.template, 'issue_decision_update:RECHECK', 'stored template');
 });
 
 scenario('courier and admin steps stay in the app', () => {

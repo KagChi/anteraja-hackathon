@@ -22,6 +22,7 @@ use App\Models\Package;
 use App\Models\PackageItem;
 use App\Models\Product;
 use App\Models\Staff;
+use App\Support\DisplayTime;
 use App\Support\NotificationQueue;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
@@ -163,6 +164,54 @@ final class WhatsAppNotificationFlowTest extends TestCase
         $this->assertSame($package->tracking_number, $payload['tracking_number']);
         $this->assertSame($package->client_token, $payload['client_token']);
         $this->assertNotEmpty($payload['client_url']);
+        // A caller that names the window keeps it.
+        $this->assertSame('Besok 13:00-15:00', $payload['window']);
+    }
+
+    /** Without a caller-supplied window the payload gets the readable label. */
+    public function test_a_queued_confirmation_carries_the_formatted_window(): void
+    {
+        Queue::fake();
+
+        $package = $this->createPackage();
+
+        $notification = app(NotificationQueue::class)->queue(
+            $package,
+            RecipientType::BUYER,
+            $package->buyer_id,
+            'schedule_request'
+        );
+
+        $this->assertSame(
+            DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
+            $notification->refresh()->payload['window']
+        );
+    }
+
+    /** A recheck decision is an outcome too: the buyer has to hear it. */
+    public function test_a_recheck_decision_also_updates_the_buyer(): void
+    {
+        Queue::fake();
+
+        $package = $this->createPackage(['status' => PackageStatus::ISSUE_REPORTED]);
+        $this->createIssueReport($package);
+
+        $this->actingAs($this->admin)
+            ->postJson("/api/admin/exceptions/{$package->tracking_number}/decision", [
+                'decision' => 'RECHECK',
+                'decision_reason' => 'Perlu pemeriksaan ulang kondisi fisik paket.',
+            ])
+            ->assertOk();
+
+        $buyerUpdate = Notification::query()
+            ->where('package_id', $package->id)
+            ->where('recipient_type', RecipientType::BUYER->value)
+            ->where('template', 'issue_decision_update')
+            ->first();
+
+        $this->assertNotNull($buyerUpdate, 'the buyer gets an update for a recheck decision');
+        $this->assertSame('RECHECK', $buyerUpdate->payload['decision']);
+        $this->assertNotEmpty($buyerUpdate->payload['message']);
     }
 
     public function test_job_marks_notification_sent_when_n8n_delivers(): void

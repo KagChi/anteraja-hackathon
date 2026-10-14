@@ -183,6 +183,10 @@ final class NotificationQueue
         $payload['tracking_number'] ??= $package->tracking_number;
         $payload['client_token'] ??= $package->client_token;
         $payload['courier_name'] ??= $package->courier?->name;
+        // Every schedule template renders this line as the delivery window.
+        // Without it they fall back to the raw scheduled_at timestamp, which is
+        // what the buyer would otherwise read.
+        $payload['window'] ??= DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at);
 
         return $payload;
     }
