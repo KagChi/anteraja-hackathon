@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Enums\ConfirmationResponse;
 use App\Enums\IssueCategory;
+use App\Enums\IssueDecision;
 use App\Enums\PackageStatus;
 use App\Enums\StaffRole;
 use App\Models\Buyer;
@@ -161,28 +162,101 @@ final class WhatsappLookupTest extends TestCase
     {
         $package = $this->package(['status' => PackageStatus::ISSUE_REPORTED]);
 
-        $check = ConditionCheck::create([
-            'package_id' => $package->id,
-            'courier_id' => $this->courier->id,
-            'is_normal' => false,
-            'temperature_c' => -18.0,
-            'notes' => 'Kemasan bocor saat transit.',
-        ]);
-
-        IssueReport::create([
-            'check_id' => $check->id,
-            'issue_category' => IssueCategory::KEMASAN_BOCOR,
-            'description' => 'Kemasan bocor saat transit di hub pendingin.',
-            'photo_url' => 'https://anteraja.id/proof.jpg',
-            'decision' => null,
-            'reported_at' => now()->subHour(),
-        ]);
+        $this->issueReport($package);
 
         $this->lookup()
             ->assertOk()
             ->assertJson([
                 'found' => true,
                 'template' => 'issue_options',
+            ]);
+    }
+
+    /** Every status maps to the step that is actually pending, or to none. */
+    public function test_it_maps_every_status_to_the_pending_step(): void
+    {
+        $expected = [
+            PackageStatus::CREATED->value => 'none',
+            PackageStatus::AWAITING_CONFIRMATION->value => 'schedule_request',
+            PackageStatus::RESCHEDULE_REQUESTED->value => 'none',
+            PackageStatus::CONFIRMED->value => 'none',
+            PackageStatus::COURIER_ASSIGNED->value => 'none',
+            PackageStatus::CHECKED->value => 'none',
+            PackageStatus::IN_DELIVERY->value => 'in_delivery',
+            PackageStatus::ISSUE_REPORTED->value => 'none',
+            PackageStatus::RECEIVED->value => 'none',
+            PackageStatus::RETURNED->value => 'none',
+            PackageStatus::CLOSED->value => 'none',
+        ];
+
+        // One package per status: the database guards status transitions, so a
+        // case cannot be reached by updating a single row.
+        $index = 0;
+
+        foreach ($expected as $status => $template) {
+            $index += 1;
+            $resi = 'AJ-FRZ-9'.str_pad((string) $index, 6, '0', STR_PAD_LEFT);
+
+            $this->package(['status' => $status], $resi);
+
+            $this->lookup(['resi' => $resi])
+                ->assertOk()
+                ->assertJson([
+                    'found' => true,
+                    'tracking_number' => $resi,
+                    'template' => $template,
+                ]);
+        }
+    }
+
+    /** A returned parcel the buyer may replace asks them to start that flow. */
+    public function test_it_reports_the_replacement_step_after_a_return_decision(): void
+    {
+        $package = $this->package(['status' => PackageStatus::RETURNED]);
+
+        $this->issueReport($package, IssueDecision::RETURN);
+
+        $this->lookup()
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'template' => 'issue_decision',
+            ]);
+    }
+
+    /** A returned parcel with a non-return decision still offers the menu. */
+    public function test_it_reports_the_issue_menu_when_the_decision_was_not_a_return(): void
+    {
+        $package = $this->package(['status' => PackageStatus::RETURNED]);
+
+        $this->issueReport($package, IssueDecision::RESEND);
+
+        $this->lookup()
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'template' => 'issue_options',
+            ]);
+    }
+
+    /** A confirmation already answered leaves nothing for the buyer to do. */
+    public function test_a_confirmation_that_is_no_longer_pending_has_nothing_to_do(): void
+    {
+        $package = $this->package();
+
+        ScheduleConfirmation::create([
+            'package_id' => $package->id,
+            'response' => ConfirmationResponse::READY,
+            'proposed_scheduled_at' => now()->addDay(),
+            'responded_at' => now(),
+            'requested_at' => now(),
+        ]);
+
+        $this->lookup()
+            ->assertOk()
+            ->assertJson([
+                'found' => true,
+                'template' => 'none',
             ]);
     }
 
@@ -213,13 +287,13 @@ final class WhatsappLookupTest extends TestCase
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function package(array $attributes = []): Package
+    private function package(array $attributes = [], ?string $resi = null): Package
     {
         /** @var Package $package */
         $package = Package::create(array_merge([
             'buyer_id' => $this->buyer->id,
             'created_by' => $this->admin->id,
-            'tracking_number' => self::RESI,
+            'tracking_number' => $resi ?? self::RESI,
             'status' => PackageStatus::AWAITING_CONFIRMATION,
             'scheduled_at' => now()->addDay(),
             'scheduled_end_at' => now()->addDay()->addHours(2),
@@ -233,5 +307,28 @@ final class WhatsappLookupTest extends TestCase
         ]);
 
         return $package;
+    }
+
+    private function issueReport(Package $package, ?IssueDecision $decision = null): IssueReport
+    {
+        $check = ConditionCheck::create([
+            'package_id' => $package->id,
+            'courier_id' => $this->courier->id,
+            'is_normal' => false,
+            'temperature_c' => -18.0,
+            'notes' => 'Kemasan bocor saat transit.',
+        ]);
+
+        return IssueReport::create([
+            'check_id' => $check->id,
+            'issue_category' => IssueCategory::KEMASAN_BOCOR,
+            'description' => 'Kemasan bocor saat transit di hub pendingin.',
+            'photo_url' => 'https://anteraja.id/proof.jpg',
+            'decision' => $decision,
+            'decision_reason' => $decision !== null ? 'Keputusan operasional.' : null,
+            'decided_by' => $decision !== null ? $this->admin->id : null,
+            'decided_at' => $decision !== null ? now() : null,
+            'reported_at' => now()->subHour(),
+        ]);
     }
 }

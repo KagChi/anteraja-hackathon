@@ -134,6 +134,22 @@ Pembeli yang mengetik nomor resi di WhatsApp akan dihubungkan ke paketnya lewat
 workflow tidak menebak sendiri. Baris state hasil resolusi disimpan, sehingga
 pesan berikutnya tidak perlu menyebut resi lagi.
 
+## Uji skenario
+
+Logika kedua workflow diuji oleh suite yang ikut di-commit, bukan oleh n8n:
+skrip membaca JSON workflow, menjalankan node JS aslinya di runtime tiruan, lalu
+memeriksa seluruh matriks balasan — setiap state, setiap balasan yang diterima,
+dan kasus yang seharusnya diam — beserta kabel graph-nya. Jadi pemindahan node
+atau perubahan aturan yang merusak satu skenario akan gagal di sini, bukan di
+WhatsApp pelanggan.
+
+```bash
+node deploy/n8n/tests/inbound-scenarios.mjs
+```
+
+Suite ini juga jalan di CI (`.github/workflows/n8n-scenarios.yaml`) untuk setiap
+push dan pull request, tanpa butuh database atau cluster.
+
 ## Uji manual
 
 ```bash
