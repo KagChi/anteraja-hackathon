@@ -62,6 +62,23 @@ Styling is Tailwind utility classes over the theme tokens in
 (`php artisan native-ui:generate-icons`); use `:ios` / `:android` so each
 platform gets a real symbol rather than a Material name iOS cannot resolve.
 
+## Theme switcher
+
+Both apps end the Profil tab with a `Tema` card — the shared
+`native/partials/appearance.blade.php` — offering **Sistem** (follow the
+device), **Terang** and **Gelap**. The choice is kept in the cache store, which
+the shells build with the file driver, so it survives a launch;
+`AppServiceProvider` re-applies it once every provider has booted, so a pinned
+app opens in its palette instead of the device's.
+
+Pinning cannot work by selecting a theme block: every `*-theme-*` class emits a
+light and a dark companion, and the platform picks one per element from the OS
+colour scheme. `App\Support\Appearance` therefore writes the chosen palette
+into **both** blocks, which keeps the `theme()` helper that colours the tab bar
+in step with what the renderers draw. The OS chrome around the app — status
+bar, keyboards, the platform's own sheets — still follows the device, which is
+pinned only at build time (`NATIVEPHP_APPEARANCE`).
+
 ## Building an APK
 
 `.github/workflows/android-apk.yaml` builds both apps on every push to `main`,

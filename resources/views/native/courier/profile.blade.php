@@ -51,5 +51,8 @@
             </native:row>
         </native:column>
 
+        {{-- Appearance. --}}
+        @include('native.partials.appearance', ['appearance' => $appearance, 'appearanceOptions' => $appearanceOptions])
+
     </native:column>
 </scroll-view>

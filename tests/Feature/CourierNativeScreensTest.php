@@ -10,6 +10,7 @@ use App\NativeComponents\Courier\Issue;
 use App\NativeComponents\Courier\Profile;
 use App\NativeComponents\Courier\Proof;
 use App\NativeComponents\Courier\Tasks;
+use App\Support\Appearance;
 use Native\Mobile\Testing\Native;
 use Tests\TestCase;
 
@@ -63,6 +64,26 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertSee('Profil Kurir')
             ->assertSee('Budi Santoso')
             ->assertSee('Motor Box #04');
+    }
+
+    /** The profile carries the theme switcher, and picking a mode pins it. */
+    public function test_the_profile_switches_the_app_theme(): void {
+        $light = config('native-ui.theme.light');
+
+        Native::test(Profile::class)
+            ->assertSee('Tema')
+            ->assertSee('Sistem')
+            ->assertSee('Terang')
+            ->assertSee('Gelap')
+            ->assertSet('appearance', 0)
+            ->call('setAppearance', 1)
+            ->assertSet('appearance', 1);
+
+        $this->assertSame(Appearance::LIGHT, Appearance::get());
+
+        // Pinned, not merely stored: the dark block carries the light palette
+        // too, because the platform picks per element from the OS scheme.
+        $this->assertSame($light['surface'], config('native-ui.theme.dark.surface'));
     }
 
     public function test_the_delivery_screen_offers_the_route_and_the_handover(): void {
