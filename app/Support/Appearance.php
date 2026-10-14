@@ -69,7 +69,9 @@ final class Appearance {
 
     /** The stored mode, or `system` when nothing valid has been stored. */
     public static function get(): string {
-        $mode = Cache::get(self::CACHE_KEY);
+        // Read on the boot path, where an unreachable store has to degrade to
+        // the default rather than take the whole app down with it.
+        $mode = rescue(fn () => Cache::get(self::CACHE_KEY), null, report: false);
 
         return is_string($mode) && in_array($mode, self::modes(), true) ? $mode : self::SYSTEM;
     }
@@ -88,7 +90,7 @@ final class Appearance {
      */
     public static function select(int $index): string {
         $mode = self::modes()[$index] ?? self::SYSTEM;
-        Cache::forever(self::CACHE_KEY, $mode);
+        rescue(fn () => Cache::forever(self::CACHE_KEY, $mode), report: false);
         self::apply($mode);
 
         return $mode;
