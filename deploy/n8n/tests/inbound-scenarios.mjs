@@ -544,13 +544,51 @@ scenario('a decided issue is described for what was decided', () => {
   }
 });
 
-scenario('informational replies offer the tracking link the notification carried', () => {
-  for (const template of ['on_the_way', 'issue_decision_update:RETURN']) {
-    const context = template.startsWith('issue_decision')
-      ? { decision: 'RETURN', client_url: CONTEXT.client_url }
-      : CONTEXT;
-    const out = decide({ text: 'oke', state: { ...SCHEDULE_STATE, last_template: template, context: context } });
-    contains(out.reply.text, CONTEXT.client_url, 'link for ' + template);
+scenario('informational replies carry the window, never a link', () => {
+  const way = decide({ text: 'oke', state: { ...SCHEDULE_STATE, last_template: 'on_the_way' } });
+  contains(way.reply.text, 'Estimasi penerimaan: Hari ini, 13:00 - 15:00', 'quotes the window');
+  absent(way.reply.text, 'http', 'no URL in the reply');
+
+  const decided = decide({
+    text: 'oke',
+    state: { ...SCHEDULE_STATE, last_template: 'issue_decision_update:RETURN', context: { decision: 'RETURN' } },
+  });
+  absent(decided.reply.text, 'http', 'no URL in the decision reply');
+});
+
+scenario('a parcel with nothing pending answers with its status', () => {
+  const out = decide({
+    text: RESI,
+    state: { ...SCHEDULE_STATE, last_template: null, context: null },
+    lookup: {
+      found: true,
+      tracking_number: RESI,
+      client_token: 'tok',
+      template: 'none',
+      status_label: 'Jadwal Dikonfirmasi',
+      window: 'Besok, 13:00 - 15:00',
+    },
+  });
+  contains(out.reply.text, 'statusnya: Jadwal Dikonfirmasi', 'names the status');
+  contains(out.reply.text, 'Besok, 13:00 - 15:00', 'names the window');
+  absent(out.reply.text, 'http', 'no URL');
+  absent(out.reply.text, 'Kirimkan nomor resi', 'not the help text');
+});
+
+scenario('no reply in the matrix ever carries a URL', () => {
+  const cases = [
+    { text: 'hai', state: NO_STATE },
+    { text: 'siap', state: SCHEDULE_STATE },
+    { text: '2', state: ISSUE_STATE },
+    { text: 'oke', state: { ...SCHEDULE_STATE, last_template: 'on_the_way' } },
+    { text: 'oke', state: { ...SCHEDULE_STATE, last_template: 'delivered' } },
+    { text: RESI, state: NO_STATE, lookup: FOUND_REQUEST },
+  ];
+
+  for (const options of cases) {
+    const out = decide(options);
+    absent(out.reply.text, 'http', 'URL for ' + JSON.stringify(options.text));
+    absent(out.reply.text, 'client/', 'token path for ' + JSON.stringify(options.text));
   }
 });
 

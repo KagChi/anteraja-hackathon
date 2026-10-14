@@ -108,8 +108,15 @@ outbound saat notifikasi dikirim):
 | `schedule_request`, `schedule_rescheduled` | "siap", "ya", "oke" | `POST /schedule/confirm` |
 | `schedule_request`, `schedule_rescheduled` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
 | `issue_options` | `1`-`4` atau "kirim ulang"/"retur"/"lanjut"/"diskusi" | `POST /issue/choice` |
-| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat (sesuai keputusan yang tercatat) + tautan lacak |
+| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat sesuai keputusan yang tercatat, plus jadwal bila diketahui |
+| ada paket tapi tidak ada langkah tertunda | apa pun | status paket apa adanya, plus jadwal pengantaran |
 | tidak ada state | apa pun | balasan bantuan: minta nomor resi, tanpa menu 1-4 |
+
+Pesan tidak pernah memuat URL atau token. Tautan yang bisa dibangun aplikasi
+adalah endpoint API (berisi `client_token`) yang tidak dapat dibuka pelanggan dan
+tidak menjelaskan apa pun, jadi informasinya ditulis di pesan. Kalau nanti ada
+halaman pelacakan publik yang benar-benar menampilkan paket, tautan bisa
+ditambahkan lagi.
 
 Notifikasi `schedule_rescheduled` (admin mengusulkan jadwal baru) memakai
 pertanyaan yang sama dengan permintaan pertama: status paket kembali

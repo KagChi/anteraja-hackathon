@@ -156,6 +156,26 @@ final class WhatsappLookupTest extends TestCase
         $this->assertNotSame('', (string) $response->json('client_token'));
         $this->assertStringStartsWith('http', (string) $response->json('client_url'));
         $this->assertNotSame('', (string) $response->json('status_label'));
+        $this->assertNotSame('', (string) $response->json('window'));
+    }
+
+    /**
+     * n8n calls this app over the in-cluster service name, and a link built
+     * from that host is unreachable from a customer's phone.
+     */
+    public function test_links_never_inherit_the_callers_host(): void
+    {
+        $this->package();
+
+        $response = $this->postJson('http://anteraja-hackathon-service/api/internal/whatsapp/lookup', [
+            'phone' => '6289611122233',
+            'resi' => self::RESI,
+        ], ['X-Anteraja-Token' => self::TOKEN])->assertOk();
+
+        $clientUrl = (string) $response->json('client_url');
+
+        $this->assertStringStartsWith((string) config('app.url'), $clientUrl);
+        $this->assertStringNotContainsString('anteraja-hackathon-service', $clientUrl);
     }
 
     public function test_it_reports_the_issue_menu_for_an_open_issue(): void

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Package;
 use App\Services\Client\ClientLinkService;
 use App\Services\Client\OrderPresenter;
+use App\Support\DisplayTime;
 use App\Support\PhoneFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +55,7 @@ final class WhatsappLookupController extends Controller
             'client_url' => $linkService->entry($package),
             'template' => $this->templateFor($presenter, $package),
             'status_label' => (string) __("client.status.{$package->status->value}", [], 'id'),
+            'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
         ]);
     }
 
