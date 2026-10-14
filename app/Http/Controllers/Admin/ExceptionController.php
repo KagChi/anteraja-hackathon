@@ -110,6 +110,13 @@ final class ExceptionController extends Controller
             'package' => $package,
             'issueReport' => $issueReport,
             'conditionCheck' => $checkWithIssue,
+            // The modal shows the delivery status and the resolution side by
+            // side; both tones come from the enums so the frontend never has to
+            // mirror them.
+            'statusLabel' => $package->statusRef?->label ?? $package->status->value,
+            'tone' => $package->status->tone()->value,
+            'resolutionStatus' => $issueReport->resolutionStatus($package)->value,
+            'resolutionTone' => $issueReport->resolutionStatus($package)->tone()->value,
             'category' => [
                 'key' => $category->value,
                 'label' => $category->label(),

@@ -20,11 +20,14 @@ final class EnsureStaffRole
         $user = $request->user();
 
         if (! $user instanceof Staff) {
-            if ($request->expectsJson() || $request->is('api/*')) {
+            // Only the JSON API answers with a 401. Anything else is a browser
+            // navigation, and Inertia page loads send X-Requested-With too, so
+            // they have to be redirected rather than aborted into an error modal.
+            if ($request->is('api/*')) {
                 abort(401, 'Unauthenticated.');
             }
 
-            return redirect()->guest('/login');
+            return redirect()->guest(route('login'));
         }
 
         $expectedRole = StaffRole::tryFrom($role) ?? StaffRole::ADMIN;

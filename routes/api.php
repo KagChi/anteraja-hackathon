@@ -30,6 +30,7 @@ use App\Http\Controllers\Courier\RejectTaskController;
 use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
+use App\Http\Controllers\Media\MediaPreviewController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -48,6 +49,12 @@ Route::prefix('auth')->name('api.auth.')->group(function () {
     Route::post('logout', [SessionController::class, 'destroy'])->name('logout');
     Route::get('me', [SessionController::class, 'me'])->name('me');
 });
+
+// Proof photos. MediaStorage::temporaryUrl cannot sign a local-disk URL, so it
+// hands out this route instead; only the console renders those photos.
+Route::get('media/preview', MediaPreviewController::class)
+    ->middleware(['staff.role:ADMIN'])
+    ->name('api.media.preview');
 
 // Admin Panel API Routes (Protected by staff.role:ADMIN)
 Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->group(function () {

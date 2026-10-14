@@ -1,35 +1,12 @@
 import { Head, router } from "@inertiajs/react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ShipmentDetailModal } from "@/components/ShipmentDetailModal";
-import {
-    DAILY_FLEET_CAPACITY,
-    ISSUE_CATEGORY_LABEL,
-    ISSUE_DECISIONS,
-    type IssueCategoryKey,
-    type IssueDecisionKey,
-    issueCategoriesOn,
-    RESOLUTION_TONE,
-    type ResolutionStatus,
-    reportDates,
-    reportIssues,
-    reportKpis,
-    STATUS_TONE
-} from "@/data/admin";
+import { ISSUE_CATEGORY_LABEL, type IssueCategoryKey, STATUS_TONE } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
+import { ApiError, api, type ReportResponse } from "@/lib/api";
 import { cx } from "@/lib/cx";
-import { formatLongDate, todayIso } from "@/lib/date";
-import { downloadCsv } from "@/lib/download";
-
-const PAGE_SIZE = 5;
-
-/** Today when it has activity, otherwise the newest delivery day in the data. */
-function defaultReportDate(): string {
-    const today = todayIso();
-    const dates = reportDates();
-    if (dates.includes(today)) return today;
-    return dates[dates.length - 1] ?? today;
-}
+import { todayIso } from "@/lib/date";
 
 interface MetricCardProps {
     label: string;
@@ -83,32 +60,47 @@ function MetricCard({ label, icon, value, unit, footerLabel, footerValue, accent
     );
 }
 
+/**
+ * Daily operations report.
+ *
+ * KPIs, the kendala table and the pagination all come from
+ * GET /api/admin/reports, so the numbers on the cards and the rows underneath
+ * are computed once, on the server.
+ */
 export default function Report() {
-    const [date, setDate] = useState(defaultReportDate);
-    const [category, setCategory] = useState<IssueCategoryKey | "">("");
+    const [date, setDate] = useState(todayIso());
+    const [category, setCategory] = useState("");
     const [page, setPage] = useState(1);
     const [detailResi, setDetailResi] = useState<string | null>(null);
-    const [decisions, setDecisions] = useState<
-        Record<string, { decision: IssueDecisionKey | null; resolution: ResolutionStatus }>
-    >({});
 
-    const kpis = useMemo(() => reportKpis(date), [date]);
-    const categories = useMemo(() => issueCategoriesOn(date), [date]);
-    const rows = useMemo(
-        () =>
-            reportIssues(date, category).map((row) => {
-                const update = decisions[row.tracking];
-                if (!update || !row.issue) return row;
-                return { ...row, issue: { ...row.issue, decision: update.decision, resolution: update.resolution } };
-            }),
-        [date, category, decisions]
-    );
+    const [data, setData] = useState<ReportResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-    const currentPage = Math.min(page, pageCount);
-    const first = (currentPage - 1) * PAGE_SIZE;
-    const pageRows = rows.slice(first, first + PAGE_SIZE);
-    const rangeLabel = rows.length === 0 ? "0" : `${first + 1}-${Math.min(first + PAGE_SIZE, rows.length)}`;
+    const requestId = useRef(0);
+
+    const load = useCallback(async () => {
+        const id = requestId.current + 1;
+        requestId.current = id;
+        setLoading(true);
+
+        try {
+            const response = await api.reports.index({ date, category, page });
+
+            if (requestId.current !== id) return;
+            setData(response);
+            setError(null);
+        } catch (caught) {
+            if (requestId.current !== id) return;
+            setError(caught instanceof ApiError ? caught.message : "Laporan gagal dimuat.");
+        } finally {
+            if (requestId.current === id) setLoading(false);
+        }
+    }, [date, category, page]);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
 
     function openShipments(statusFilter?: string) {
         const params = new URLSearchParams({ date });
@@ -116,19 +108,14 @@ export default function Report() {
         router.visit(`/admin/shipment?${params.toString()}`);
     }
 
-    function exportCsv() {
-        const header = ["RESI", "PEMBELI", "KURIR", "JENIS_KENDALA", "KEPUTUSAN", "STATUS_RESOLUSI", "DILAPORKAN"];
-        const body = rows.map((row) => [
-            row.tracking,
-            row.buyer,
-            row.courier ?? "-",
-            row.issue?.label ?? "-",
-            row.issue?.decision ? ISSUE_DECISIONS[row.issue.decision].label : "Menunggu Keputusan",
-            row.issue?.resolution ?? "-",
-            row.issue?.reportedAt ?? "-"
-        ]);
-        downloadCsv(`laporan-kendala-${date}.csv`, [header, ...body]);
-    }
+    const kpis = data?.kpis;
+    const rows = data?.issues ?? [];
+    const paginator = data?.paginator;
+    const pageCount = paginator?.last_page ?? 1;
+    const currentPage = paginator?.current_page ?? 1;
+    const total = paginator?.total ?? 0;
+    const rangeLabel = total === 0 ? "0" : `${paginator?.from ?? 1}-${paginator?.to ?? 0}`;
+    const categories = data?.categoriesOnDate ?? [];
 
     return (
         <AdminLayout>
@@ -147,9 +134,10 @@ export default function Report() {
                     <input
                         type="date"
                         value={date}
+                        max={todayIso()}
                         aria-label="Tanggal laporan"
                         onChange={(event) => {
-                            setDate(event.target.value);
+                            setDate(event.target.value === "" ? todayIso() : event.target.value);
                             setCategory("");
                             setPage(1);
                         }}
@@ -158,34 +146,50 @@ export default function Report() {
                 </div>
             </div>
 
+            {error ? (
+                <div
+                    role="alert"
+                    className="mb-space-md flex items-center justify-between gap-space-sm rounded-lg bg-error-container p-space-md font-body-sm text-body-sm text-on-error-container"
+                >
+                    <span>{error}</span>
+                    <button
+                        type="button"
+                        onClick={() => void load()}
+                        className="shrink-0 rounded-md border border-on-error-container/30 px-2 py-1 font-label-sm text-label-sm"
+                    >
+                        Coba lagi
+                    </button>
+                </div>
+            ) : null}
+
             <div className="grid grid-cols-1 gap-space-md md:grid-cols-3">
                 <MetricCard
                     label="Total Pengiriman"
                     icon="inventory_2"
-                    value={kpis.total.toLocaleString("id-ID")}
+                    value={(kpis?.total_shipments ?? 0).toLocaleString("id-ID")}
                     unit="resi"
                     footerLabel="Kapasitas Armada Cold-Chain"
-                    footerValue={`${kpis.total} / ${DAILY_FLEET_CAPACITY.toLocaleString("id-ID")}`}
+                    footerValue={`${kpis?.fleet_capacity_pct ?? 0}%`}
                     onOpen={() => openShipments()}
                 />
                 <MetricCard
                     label="Pengiriman Berhasil Diterima"
                     icon="check_circle"
-                    value={kpis.delivered.toLocaleString("id-ID")}
+                    value={(kpis?.delivered_count ?? 0).toLocaleString("id-ID")}
                     unit="resi"
                     footerLabel="Rasio Keberhasilan"
-                    footerValue={`${kpis.successRatePct}%`}
-                    onOpen={() => openShipments("delivered")}
+                    footerValue={`${kpis?.success_rate_pct ?? 0}%`}
+                    onOpen={() => openShipments("RECEIVED")}
                 />
                 <MetricCard
                     label="Total Kasus Kendala Dilaporkan"
                     icon="report_problem"
-                    value={kpis.issues.toLocaleString("id-ID")}
+                    value={(kpis?.issue_count ?? 0).toLocaleString("id-ID")}
                     unit="kasus"
                     footerLabel="Tingkat Insiden"
-                    footerValue={`${kpis.incidentRatePct}%`}
+                    footerValue={`${kpis?.incident_rate_pct ?? 0}%`}
                     accent
-                    onOpen={() => openShipments("issue")}
+                    onOpen={() => openShipments("ISSUE_REPORTED")}
                 />
             </div>
 
@@ -194,7 +198,7 @@ export default function Report() {
                     <div className="flex flex-col gap-space-xs">
                         <h2 className="font-headline-sm text-headline-sm text-on-surface">Daftar Kendala</h2>
                         <p className="font-body-sm text-body-sm text-secondary">
-                            {formatLongDate(date)} · pilih detail untuk membuka penanganan dan keputusan dispatcher
+                            {data?.dateLabel ?? date} · pilih detail untuk membuka penanganan dan keputusan dispatcher
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-space-sm">
@@ -203,7 +207,7 @@ export default function Report() {
                                 value={category}
                                 aria-label="Filter jenis kendala"
                                 onChange={(event) => {
-                                    setCategory(event.target.value as IssueCategoryKey | "");
+                                    setCategory(event.target.value);
                                     setPage(1);
                                 }}
                                 className="h-9 cursor-pointer appearance-none rounded-md border border-outline-variant bg-surface-container-low pr-8 pl-space-md font-body-sm text-body-sm text-on-surface transition-colors hover:border-secondary focus:border-primary focus:bg-surface-container-lowest focus:outline-none"
@@ -211,7 +215,7 @@ export default function Report() {
                                 <option value="">Semua Jenis Kendala</option>
                                 {categories.map((key) => (
                                     <option key={key} value={key}>
-                                        {ISSUE_CATEGORY_LABEL[key]}
+                                        {ISSUE_CATEGORY_LABEL[key as IssueCategoryKey] ?? key}
                                     </option>
                                 ))}
                             </select>
@@ -220,15 +224,17 @@ export default function Report() {
                                 className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-[18px] text-secondary"
                             />
                         </div>
-                        <button
-                            type="button"
-                            onClick={exportCsv}
-                            disabled={rows.length === 0}
-                            className="flex h-9 items-center gap-space-xs rounded-md border border-outline-variant px-space-md font-label-md text-label-md text-on-surface transition-colors hover:border-secondary hover:bg-surface-container disabled:opacity-40"
+                        <a
+                            href={api.reports.exportUrl({ date, category })}
+                            aria-disabled={total === 0}
+                            className={cx(
+                                "flex h-9 items-center gap-space-xs rounded-md border border-outline-variant px-space-md font-label-md text-label-md text-on-surface transition-colors hover:border-secondary hover:bg-surface-container",
+                                total === 0 && "pointer-events-none opacity-40"
+                            )}
                         >
                             <MaterialIcon name="download" className="text-[16px]" />
                             <span>Ekspor CSV</span>
-                        </button>
+                        </a>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">
@@ -248,12 +254,14 @@ export default function Report() {
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-surface-container">
-                            {pageRows.map((row) => (
-                                <tr
-                                    key={row.tracking}
-                                    className="h-10 transition-colors hover:bg-surface-container-low"
-                                >
+                        <tbody
+                            className={cx(
+                                "divide-y divide-surface-container",
+                                loading && "opacity-60 transition-opacity"
+                            )}
+                        >
+                            {rows.map((row) => (
+                                <tr key={row.id} className="h-10 transition-colors hover:bg-surface-container-low">
                                     <td className="whitespace-nowrap px-space-lg">
                                         <span className="font-data-mono font-semibold text-body-sm text-on-surface">
                                             {row.tracking}
@@ -263,44 +271,38 @@ export default function Report() {
                                         {row.buyer}
                                     </td>
                                     <td className="whitespace-nowrap px-space-lg font-body-sm text-body-sm text-secondary">
-                                        {row.courier ?? "-"}
+                                        {row.courier}
                                     </td>
                                     <td className="whitespace-nowrap px-space-lg">
                                         <span
                                             className={cx(
                                                 "font-body-sm text-body-sm",
-                                                row.issue?.resolution === "Menunggu Keputusan"
+                                                row.resolutionStatus === "Menunggu Keputusan"
                                                     ? "font-medium text-primary"
                                                     : "text-on-surface"
                                             )}
                                         >
-                                            {row.issue?.label ?? "-"}
+                                            {row.category}
                                         </span>
                                     </td>
                                     <td className="whitespace-nowrap px-space-lg font-body-sm text-body-sm text-secondary">
-                                        {row.issue?.decision
-                                            ? ISSUE_DECISIONS[row.issue.decision].label
-                                            : "Menunggu Keputusan"}
+                                        {row.decision}
                                     </td>
                                     <td className="whitespace-nowrap px-space-lg">
                                         <div className="flex items-center gap-1.5">
                                             <span
                                                 className={cx(
                                                     "h-2 w-2 shrink-0 rounded-full",
-                                                    STATUS_TONE[
-                                                        row.issue ? RESOLUTION_TONE[row.issue.resolution] : "waiting"
-                                                    ].dot
+                                                    STATUS_TONE[row.resolutionTone].dot
                                                 )}
                                             />
                                             <span
                                                 className={cx(
                                                     "font-body-sm text-body-sm",
-                                                    STATUS_TONE[
-                                                        row.issue ? RESOLUTION_TONE[row.issue.resolution] : "waiting"
-                                                    ].text
+                                                    STATUS_TONE[row.resolutionTone].text
                                                 )}
                                             >
-                                                {row.issue?.resolution ?? "-"}
+                                                {row.resolutionStatus}
                                             </span>
                                         </div>
                                     </td>
@@ -317,7 +319,7 @@ export default function Report() {
                                     </td>
                                 </tr>
                             ))}
-                            {rows.length === 0 ? (
+                            {!loading && rows.length === 0 ? (
                                 <tr>
                                     <td
                                         colSpan={7}
@@ -332,37 +334,24 @@ export default function Report() {
                 </div>
                 <div className="flex h-12 items-center justify-between px-space-lg">
                     <span className="font-body-sm text-body-sm text-secondary">
-                        Menampilkan {rangeLabel} dari {rows.length} kendala
+                        Menampilkan {rangeLabel} dari {total} kendala
                     </span>
                     <div className="flex items-center gap-space-xs">
                         <button
                             type="button"
                             onClick={() => setPage(currentPage - 1)}
-                            disabled={currentPage === 1}
+                            disabled={currentPage <= 1}
                             className="h-8 rounded-sm bg-surface-container-low px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-40"
                         >
                             Sebelumnya
                         </button>
-                        {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
-                            <button
-                                key={pageNumber}
-                                type="button"
-                                onClick={() => setPage(pageNumber)}
-                                aria-current={pageNumber === currentPage ? "page" : undefined}
-                                className={cx(
-                                    "flex h-8 w-8 items-center justify-center rounded-sm font-label-md text-label-md",
-                                    pageNumber === currentPage
-                                        ? "bg-primary text-on-primary"
-                                        : "bg-surface-container-lowest text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                                )}
-                            >
-                                {pageNumber}
-                            </button>
-                        ))}
+                        <span className="flex h-8 items-center px-space-sm font-label-md text-label-md text-secondary">
+                            {currentPage} / {pageCount}
+                        </span>
                         <button
                             type="button"
                             onClick={() => setPage(currentPage + 1)}
-                            disabled={currentPage === pageCount}
+                            disabled={currentPage >= pageCount}
                             className="h-8 rounded-sm bg-surface-container-low px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-40"
                         >
                             Selanjutnya
@@ -375,9 +364,8 @@ export default function Report() {
                 <ShipmentDetailModal
                     key={detailResi}
                     resi={detailResi}
-                    row={rows.find((item) => item.tracking === detailResi)}
                     onClose={() => setDetailResi(null)}
-                    onDecisionChange={(resi, update) => setDecisions((prev) => ({ ...prev, [resi]: { ...update } }))}
+                    onChanged={() => void load()}
                 />
             ) : null}
         </AdminLayout>

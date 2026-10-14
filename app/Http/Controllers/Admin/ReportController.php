@@ -51,6 +51,8 @@ final class ReportController extends Controller
                 $catLabel .= " ({$issue->check->temperature_c}°C)";
             }
 
+            $resolution = $issue->resolutionStatus($pkg);
+
             return [
                 'id' => $issue->id,
                 'tracking' => $pkg?->tracking_number ?? '-',
@@ -58,7 +60,8 @@ final class ReportController extends Controller
                 'courier' => $issue->check?->courier?->name ?? '-',
                 'category' => $catLabel,
                 'decision' => $issue->decision?->label() ?? 'Menunggu Keputusan',
-                'resolutionStatus' => $issue->resolutionStatus($pkg)->value,
+                'resolutionStatus' => $resolution->value,
+                'resolutionTone' => $resolution->tone()->value,
                 'reported_at' => DisplayTime::toDisplay($issue->reported_at)?->format('H:i').' WIB',
             ];
         });

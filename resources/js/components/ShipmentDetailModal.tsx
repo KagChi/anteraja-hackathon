@@ -1,44 +1,34 @@
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import { CourierPickerDialog } from "@/components/CourierPickerDialog";
 import { Dialog } from "@/components/Dialog";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import {
     DECISION_REASON_DEFAULT,
-    detailFromRow,
-    ISSUE_CATEGORY_DECISIONS,
+    DELIVERY_SLOTS,
     ISSUE_DECISIONS,
-    type IssueCategoryKey,
     type IssueDecisionKey,
-    RESOLUTION_TONE,
-    type ResolutionStatus,
-    resolutionFor,
-    resolveShipmentDetail,
-    type ShipmentRow,
-    STATUS_TONE,
-    type StatusTone
+    STATUS_TONE
 } from "@/data/admin";
+import {
+    ApiError,
+    api,
+    type CourierOption,
+    type ExceptionDetailResponse,
+    type ShipmentDetailResponse,
+    type Tone
+} from "@/lib/api";
 import { cx } from "@/lib/cx";
-import { formatLongDate } from "@/lib/date";
+import { todayIso } from "@/lib/date";
 
 interface ShipmentDetailModalProps {
     resi: string;
-    /** Live row from the page list; falls back to the static dataset. */
-    row?: ShipmentRow;
     onClose: () => void;
-    /** Persists a courier change; screens that only display the row can omit it. */
-    onCourierChange?: (resi: string, courier: string) => void;
-    /** Records a dispatcher decision the same way. */
-    onDecisionChange?: (resi: string, update: { decision: IssueDecisionKey; resolution: ResolutionStatus }) => void;
-}
-
-interface Proof {
-    photo: string;
-    caption: string;
-    meta: string;
+    /** Ran after a change the underlying list should reflect. */
+    onChanged?: () => void;
 }
 
 /** Status chip shared by the header and the kendala panel. */
-function Pill({ tone, children }: { tone: StatusTone; children: ReactNode }) {
+function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
     return (
         <span
             className={cx(
@@ -64,23 +54,33 @@ function Fact({ label, value, hint }: { label: string; value: ReactNode; hint?: 
 }
 
 /** Proof thumbnail that opens the full photo. */
-function ProofCard({ proof, onOpen }: { proof: Proof; onOpen: () => void }) {
+function ProofCard({
+    photo,
+    caption,
+    meta,
+    onOpen
+}: {
+    photo: string;
+    caption: string;
+    meta: string;
+    onOpen: () => void;
+}) {
     return (
         <button
             type="button"
             onClick={onOpen}
-            aria-label={`Perbesar ${proof.caption}`}
+            aria-label={`Perbesar ${caption}`}
             className="group overflow-hidden rounded-lg border border-outline-variant transition-colors hover:border-secondary"
         >
             <span className="relative block">
-                <img src={proof.photo} alt={proof.caption} className="h-32 w-full object-cover" />
+                <img src={photo} alt={caption} className="h-32 w-full object-cover" />
                 <span className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-md bg-inverse-surface/70 text-inverse-on-surface">
                     <MaterialIcon name="open_in_full" className="text-[16px]" />
                 </span>
             </span>
             <span className="flex items-center justify-between gap-space-sm border-outline-variant border-t bg-surface-container-lowest px-space-md py-space-xs">
-                <span className="font-label-sm text-label-sm text-on-surface">{proof.caption}</span>
-                <span className="font-label-sm text-label-sm text-secondary">{proof.meta}</span>
+                <span className="font-label-sm text-label-sm text-on-surface">{caption}</span>
+                <span className="font-label-sm text-label-sm text-secondary">{meta}</span>
             </span>
         </button>
     );
@@ -126,27 +126,66 @@ function SecondaryButton({
     );
 }
 
+/** Inline failure notice shared by the modal and its stacked dialogs. */
+function ErrorNotice({ message }: { message: string }) {
+    return (
+        <div
+            role="alert"
+            className="flex items-start gap-space-xs rounded-lg bg-error-container p-space-sm font-body-sm text-body-sm text-on-error-container"
+        >
+            <MaterialIcon name="error" className="text-[18px]" />
+            <span>{message}</span>
+        </div>
+    );
+}
+
+function decisionLabel(value: string | null): string {
+    if (value === null) return "Belum diputuskan";
+    return ISSUE_DECISIONS[value as IssueDecisionKey]?.label ?? value;
+}
+
 interface DecisionDialogProps {
     resi: string;
-    categoryKey: IssueCategoryKey;
-    /** Decision already recorded for this kendala, when there is one. */
-    current: IssueDecisionKey | null;
+    issue: ExceptionDetailResponse;
     onClose: () => void;
-    onSave: (decision: IssueDecisionKey) => void;
+    onSaved: () => Promise<void>;
 }
 
 /** Dispatcher decision form, stacked above the detail modal. */
-function DecisionDialog({ resi, categoryKey, current, onClose, onSave }: DecisionDialogProps) {
-    const allowed = ISSUE_CATEGORY_DECISIONS[categoryKey];
-    const [decision, setDecision] = useState<IssueDecisionKey>(current ?? allowed[0]);
+function DecisionDialog({ resi, issue, onClose, onSaved }: DecisionDialogProps) {
+    const allowed = issue.allowedDecisions;
+    const [decision, setDecision] = useState(allowed[0]?.value ?? "RETURN");
     const [reason, setReason] = useState(DECISION_REASON_DEFAULT);
+    const [note, setNote] = useState(issue.issueReport.quality_inspection_note ?? "");
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        onSave(decision);
-        setSaved(true);
-        window.setTimeout(() => setSaved(false), 3500);
+        if (saving) return;
+
+        if (reason.trim().length < 10) {
+            setError("Alasan keputusan minimal 10 karakter.");
+            return;
+        }
+
+        setSaving(true);
+        setError(null);
+
+        try {
+            await api.exceptions.decide(resi, {
+                decision,
+                decision_reason: reason.trim(),
+                ...(note.trim() === "" ? {} : { quality_inspection_note: note.trim() })
+            });
+            setSaved(true);
+            await onSaved();
+            window.setTimeout(() => onClose(), 900);
+        } catch (caught) {
+            setError(caught instanceof ApiError ? caught.message : "Keputusan gagal disimpan.");
+            setSaving(false);
+        }
     }
 
     return (
@@ -154,19 +193,20 @@ function DecisionDialog({ resi, categoryKey, current, onClose, onSave }: Decisio
             <div className="flex items-start justify-between gap-space-md">
                 <div className="flex flex-col">
                     <h2 className="font-headline-sm text-headline-sm text-on-surface">Keputusan</h2>
-                    <p className="mt-0.5 font-body-sm text-body-sm text-secondary">{resi}</p>
+                    <p className="mt-0.5 font-body-sm text-body-sm text-secondary">
+                        {resi} · {issue.category.label}
+                    </p>
                 </div>
                 <CloseButton onClick={onClose} />
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-space-md">
                 <div className="flex flex-col gap-1.5">
-                    {allowed.map((key) => {
-                        const option = ISSUE_DECISIONS[key];
-                        const active = decision === key;
+                    {allowed.map((option) => {
+                        const active = decision === option.value;
                         return (
                             <label
-                                key={key}
+                                key={option.value}
                                 className={cx(
                                     "flex cursor-pointer items-start gap-space-sm rounded-lg border px-space-md py-space-sm transition-colors",
                                     active
@@ -177,16 +217,16 @@ function DecisionDialog({ resi, categoryKey, current, onClose, onSave }: Decisio
                                 <input
                                     type="radio"
                                     name="decision"
-                                    value={key}
+                                    value={option.value}
                                     checked={active}
-                                    onChange={() => setDecision(key)}
+                                    onChange={() => setDecision(option.value)}
                                     className="mt-1 accent-primary"
                                 />
                                 <span className="flex flex-col">
                                     <span className="font-body-md font-medium text-body-md text-on-surface">
                                         {option.label}
                                     </span>
-                                    <span className="font-body-sm text-body-sm text-secondary">{option.hint}</span>
+                                    <span className="font-body-sm text-body-sm text-secondary">{option.helpText}</span>
                                 </span>
                             </label>
                         );
@@ -203,12 +243,29 @@ function DecisionDialog({ resi, categoryKey, current, onClose, onSave }: Decisio
                         className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-space-md font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
                     />
                 </label>
+                <label className="flex flex-col gap-1" htmlFor="decision-note">
+                    <span className="font-body-sm text-body-sm text-secondary">
+                        Catatan inspeksi kualitas (opsional)
+                    </span>
+                    <textarea
+                        id="decision-note"
+                        rows={2}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                        placeholder="Temuan tim kontrol kualitas..."
+                        className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-space-md font-body-md text-body-md text-on-surface focus:border-primary focus:outline-none"
+                    />
+                </label>
+
+                {error ? <ErrorNotice message={error} /> : null}
+
                 <button
                     type="submit"
-                    className="flex h-10 w-full items-center justify-center gap-space-sm rounded-lg bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                    disabled={saving}
+                    className="flex h-10 w-full items-center justify-center gap-space-sm rounded-lg bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-50"
                 >
-                    <MaterialIcon name="check" className="text-[18px]" />
-                    <span>Simpan Keputusan</span>
+                    <MaterialIcon name={saving ? "refresh" : "check"} className="text-[18px]" />
+                    <span>{saving ? "Menyimpan…" : "Simpan Keputusan"}</span>
                 </button>
                 {saved ? (
                     <div className="rounded-lg bg-tertiary-fixed p-space-sm text-center font-body-sm text-body-sm text-on-tertiary-fixed">
@@ -220,63 +277,185 @@ function DecisionDialog({ resi, categoryKey, current, onClose, onSave }: Decisio
     );
 }
 
-/**
- * Detail for one shipment, opened from the shipment and report tables. The
- * summary and the kendala report sit side by side with the actions along the
- * bottom; moving the courier, the proof photo and the decision each open as a
- * dialog stacked on top of this one.
- */
-export function ShipmentDetailModal({
-    resi,
-    row,
-    onClose,
-    onCourierChange,
-    onDecisionChange
-}: ShipmentDetailModalProps) {
-    const detail = row ? detailFromRow(row) : resolveShipmentDetail(resi);
-    const [courier, setCourier] = useState(detail?.courier ?? null);
-    const [decision, setDecision] = useState<IssueDecisionKey | null>(detail?.issue?.decision ?? null);
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const [proofOpen, setProofOpen] = useState(false);
-    const [decisionOpen, setDecisionOpen] = useState(false);
+interface RescheduleDialogProps {
+    resi: string;
+    defaultDate: string | null;
+    onClose: () => void;
+    onSaved: () => Promise<void>;
+}
 
-    if (!detail) {
-        return (
-            <Dialog onClose={onClose} label="Detail pengiriman">
-                <div className="flex flex-col items-center gap-space-sm py-space-md text-center">
-                    <MaterialIcon name="search_off" className="text-[24px] text-secondary" />
-                    <span className="font-headline-sm text-headline-sm text-on-surface">
-                        Pengiriman tidak ditemukan
-                    </span>
-                    <p className="font-body-sm text-body-sm text-secondary">
-                        Resi {resi} tidak ada di daftar pengiriman.
-                    </p>
+/** Schedules a new delivery window for a shipment waiting on one. */
+function RescheduleDialog({ resi, defaultDate, onClose, onSaved }: RescheduleDialogProps) {
+    const [date, setDate] = useState(defaultDate ?? todayIso());
+    const [slot, setSlot] = useState(DELIVERY_SLOTS[0]);
+    const [error, setError] = useState<string | null>(null);
+    const [saving, setSaving] = useState(false);
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (saving) return;
+
+        setSaving(true);
+        setError(null);
+
+        try {
+            await api.shipments.reschedule(resi, date, slot);
+            await onSaved();
+            onClose();
+        } catch (caught) {
+            setError(caught instanceof ApiError ? caught.message : "Jadwal gagal diperbarui.");
+            setSaving(false);
+        }
+    }
+
+    return (
+        <Dialog onClose={onClose} label={`Jadwal ulang ${resi}`}>
+            <div className="flex items-start justify-between gap-space-md">
+                <div className="flex flex-col">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface">Jadwal Ulang</h2>
+                    <p className="mt-0.5 font-body-sm text-body-sm text-secondary">{resi}</p>
+                </div>
+                <CloseButton onClick={onClose} />
+            </div>
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-space-md">
+                <label className="flex flex-col gap-1" htmlFor="reschedule-date">
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">Tanggal</span>
+                    <input
+                        id="reschedule-date"
+                        type="date"
+                        value={date}
+                        onChange={(event) => setDate(event.target.value)}
+                        required
+                        className="h-9 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                    />
+                </label>
+                <label className="flex flex-col gap-1" htmlFor="reschedule-slot">
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">Jendela Pengantaran</span>
+                    <select
+                        id="reschedule-slot"
+                        value={slot}
+                        onChange={(event) => setSlot(event.target.value)}
+                        className="h-9 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                    >
+                        {DELIVERY_SLOTS.map((option) => (
+                            <option key={option} value={option}>
+                                {option} WIB
+                            </option>
+                        ))}
+                    </select>
+                </label>
+
+                {error ? <ErrorNotice message={error} /> : null}
+
+                <div className="flex items-center justify-end gap-space-sm pt-space-xs">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="mt-space-xs flex h-9 items-center rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                        className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:text-on-surface"
                     >
-                        Tutup
+                        Batal
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-50"
+                    >
+                        <MaterialIcon name={saving ? "refresh" : "event_repeat"} className="text-[16px]" />
+                        <span>{saving ? "Menyimpan…" : "Simpan Jadwal"}</span>
                     </button>
                 </div>
-            </Dialog>
-        );
+            </form>
+        </Dialog>
+    );
+}
+
+/**
+ * Detail for one shipment, opened from the shipment and report tables.
+ *
+ * Both halves come from the API: the shipment endpoint carries the delivery
+ * summary and the proof photo, the exception endpoint the kendala report, its
+ * allowed decisions and the inspection checklist. Moving the courier, the proof
+ * photo, the decision and the reschedule each open as a dialog on top of this
+ * one.
+ */
+export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetailModalProps) {
+    const [detail, setDetail] = useState<ShipmentDetailResponse | null>(null);
+    const [issue, setIssue] = useState<ExceptionDetailResponse | null>(null);
+    const [couriers, setCouriers] = useState<CourierOption[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [actionError, setActionError] = useState<string | null>(null);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [proofOpen, setProofOpen] = useState(false);
+    const [decisionOpen, setDecisionOpen] = useState(false);
+    const [rescheduleOpen, setRescheduleOpen] = useState(false);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            const shipment = await api.shipments.show(resi);
+            setDetail(shipment);
+
+            if (shipment.package.status === "ISSUE_REPORTED") {
+                try {
+                    setIssue(await api.exceptions.show(resi));
+                } catch {
+                    // A package can be flagged without a condition report yet.
+                    setIssue(null);
+                }
+            } else {
+                setIssue(null);
+            }
+        } catch (caught) {
+            setError(caught instanceof ApiError ? caught.message : "Detail pengiriman gagal dimuat.");
+        } finally {
+            setLoading(false);
+        }
+    }, [resi]);
+
+    useEffect(() => {
+        void load();
+    }, [load]);
+
+    // The picker is the only thing that needs the roster, so it is fetched the
+    // first time the dialog is opened rather than on every detail view.
+    useEffect(() => {
+        if (!pickerOpen || couriers.length > 0) return;
+
+        void (async () => {
+            try {
+                const master = await api.shipments.createOptions();
+                setCouriers(master.couriers);
+            } catch {
+                setCouriers([]);
+            }
+        })();
+    }, [pickerOpen, couriers.length]);
+
+    async function afterChange() {
+        await load();
+        onChanged?.();
     }
 
-    const proof = detail.proof;
-    const issue = detail.issue;
-    const resolution = resolutionFor(decision);
+    async function moveCourier(courierId: number) {
+        setActionError(null);
 
-    function moveCourier(name: string) {
-        setCourier(name);
-        setPickerOpen(false);
-        onCourierChange?.(resi, name);
+        try {
+            await api.shipments.assign(resi, courierId);
+            setPickerOpen(false);
+            await afterChange();
+        } catch (caught) {
+            setActionError(caught instanceof ApiError ? caught.message : "Kurir gagal ditugaskan.");
+        }
     }
 
-    function saveDecision(next: IssueDecisionKey) {
-        setDecision(next);
-        onDecisionChange?.(resi, { decision: next, resolution: resolutionFor(next) });
-    }
+    const photoUrl = detail?.issuePhotoUrl ?? detail?.proofPhotoUrl ?? null;
+    const photoCaption = issue ? "Foto pemeriksaan" : "Foto serah terima";
+    const photoMeta = issue ? "Laporan kurir" : "Diterima pembeli";
+    const checklist = issue?.checklist.filter((item) => item.answered) ?? [];
 
     return (
         <>
@@ -286,150 +465,236 @@ export function ShipmentDetailModal({
                 width="4xl"
                 className="max-h-[calc(100dvh-3rem)] overflow-y-auto"
             >
-                <div className="flex items-start gap-space-md">
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="flex flex-wrap items-center gap-space-sm">
-                            <span className="font-data-mono font-semibold text-headline-sm text-on-surface">
-                                {resi}
-                            </span>
-                            <Pill tone={detail.tone}>{detail.status}</Pill>
-                        </div>
-                        <p className="truncate font-body-sm text-body-sm text-secondary">
-                            {detail.buyer} · {detail.address}
-                        </p>
+                {loading ? (
+                    <div className="flex flex-col items-center gap-space-sm py-space-xl text-center">
+                        <MaterialIcon name="progress_activity" className="animate-spin text-[24px] text-secondary" />
+                        <span className="font-body-sm text-body-sm text-secondary">Memuat detail…</span>
                     </div>
-                    <CloseButton onClick={onClose} />
-                </div>
-
-                <div className="grid grid-cols-1 gap-space-lg lg:grid-cols-2">
-                    <section className="flex flex-col gap-space-md">
-                        <h3 className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
-                            Pengiriman
-                        </h3>
-                        <div className="divide-y divide-surface-container rounded-lg border border-outline-variant">
-                            <Fact label="Pembeli" value={detail.buyer} hint={detail.address} />
-                            <Fact
-                                label="Kurir"
-                                value={courier ?? "Belum Ditugaskan"}
-                                hint={courier ? detail.box : "Tugaskan kurir untuk mulai mengantar"}
-                            />
-                            <Fact label="Jadwal" value={detail.schedule} hint={formatLongDate(detail.scheduledDate)} />
-                            <Fact label="Suhu target" value={`${detail.temperature} s.d. -25°C`} />
-                        </div>
-                    </section>
-
-                    <section className="flex flex-col gap-space-md">
-                        <h3 className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
-                            {issue ? "Laporan kendala" : "Bukti pengiriman"}
-                        </h3>
-                        {issue ? (
-                            <div className="flex flex-col gap-space-md rounded-lg border border-outline-variant bg-surface-container-low p-space-lg">
-                                <div className="flex flex-wrap items-center gap-space-xs">
-                                    <MaterialIcon name="report_problem" className="text-[18px] text-primary" />
-                                    <span className="font-label-md font-semibold text-label-md text-on-surface">
-                                        {issue.label}
-                                    </span>
-                                    <span className="ml-auto">
-                                        <Pill tone={RESOLUTION_TONE[resolution]}>{resolution}</Pill>
-                                    </span>
-                                </div>
-                                <span className="font-body-sm text-body-sm text-secondary">
-                                    Dilaporkan {formatLongDate(detail.scheduledDate)}, {issue.reportedAt}
-                                </span>
-                                <p className="border-primary/30 border-l-2 pl-space-md font-body-md text-body-md text-on-surface italic leading-relaxed">
-                                    “{issue.note}”
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {issue.condition.map((item) => (
-                                        <span
-                                            key={item}
-                                            className="rounded-full border border-outline-variant bg-surface-container-lowest px-2 py-0.5 font-label-sm text-label-sm text-secondary"
-                                        >
-                                            {item}
-                                        </span>
-                                    ))}
-                                </div>
-                                {proof ? <ProofCard proof={proof} onOpen={() => setProofOpen(true)} /> : null}
-                                <div className="flex flex-wrap items-center justify-between gap-space-sm border-outline-variant border-t pt-space-md">
-                                    <span className="font-label-sm text-label-sm text-secondary">Keputusan</span>
-                                    <span className="font-body-sm text-body-sm text-on-surface">
-                                        {decision ? ISSUE_DECISIONS[decision].label : "Belum diputuskan"}
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-space-md rounded-lg border border-outline-variant bg-surface-container-low p-space-lg">
-                                <div className="flex items-center gap-space-xs">
-                                    <MaterialIcon name="verified" className="text-[18px] text-tertiary" />
-                                    <span className="font-label-md font-semibold text-label-md text-on-surface">
-                                        Tidak ada kendala dilaporkan
-                                    </span>
-                                </div>
-                                <p className="font-body-sm text-body-sm text-secondary">
-                                    {proof
-                                        ? "Bukti serah terima tersedia untuk paket ini."
-                                        : "Bukti penyerahan muncul setelah kurir mengunggahnya di lokasi."}
-                                </p>
-                                {proof ? <ProofCard proof={proof} onOpen={() => setProofOpen(true)} /> : null}
-                            </div>
-                        )}
-                    </section>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-space-sm border-outline-variant border-t pt-space-md">
-                    <SecondaryButton
-                        icon="swap_horiz"
-                        label={courier ? "Pindahkan kurir" : "Tugaskan kurir"}
-                        onClick={() => setPickerOpen(true)}
-                    />
-                    <SecondaryButton
-                        icon="image"
-                        label="Lihat bukti"
-                        onClick={() => setProofOpen(true)}
-                        disabled={!proof}
-                        title={proof ? undefined : "Belum ada bukti"}
-                    />
-                    <div className="ml-auto flex items-center gap-space-sm">
-                        {issue ? (
+                ) : error !== null || detail === null ? (
+                    <div className="flex flex-col items-center gap-space-sm py-space-md text-center">
+                        <MaterialIcon name="cloud_off" className="text-[24px] text-secondary" />
+                        <span className="font-headline-sm text-headline-sm text-on-surface">
+                            Detail tidak dapat dimuat
+                        </span>
+                        <p className="font-body-sm text-body-sm text-secondary">{error}</p>
+                        <div className="mt-space-xs flex items-center gap-space-sm">
                             <button
                                 type="button"
-                                onClick={() => setDecisionOpen(true)}
-                                className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                                onClick={() => void load()}
+                                className="flex h-9 items-center rounded-md border border-outline-variant px-space-lg font-label-md text-label-md text-on-surface transition-colors hover:border-secondary"
                             >
-                                <MaterialIcon name="gavel" className="text-[16px]" />
-                                <span>Buat keputusan</span>
+                                Coba lagi
                             </button>
-                        ) : null}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
-                        >
-                            Tutup
-                        </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex h-9 items-center rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                            >
+                                Tutup
+                            </button>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="flex items-start gap-space-md">
+                            <div className="flex min-w-0 flex-1 flex-col gap-1">
+                                <div className="flex flex-wrap items-center gap-space-sm">
+                                    <span className="font-data-mono font-semibold text-headline-sm text-on-surface">
+                                        {detail.package.tracking_number}
+                                    </span>
+                                    <Pill tone={detail.tone}>{detail.statusLabel}</Pill>
+                                </div>
+                                <p className="truncate font-body-sm text-body-sm text-secondary">
+                                    {detail.package.buyer?.name ?? "-"} · {detail.package.buyer?.address ?? "-"}
+                                </p>
+                            </div>
+                            <CloseButton onClick={onClose} />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-space-lg lg:grid-cols-2">
+                            <section className="flex flex-col gap-space-md">
+                                <h3 className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+                                    Pengiriman
+                                </h3>
+                                <div className="divide-y divide-surface-container rounded-lg border border-outline-variant">
+                                    <Fact
+                                        label="Pembeli"
+                                        value={detail.package.buyer?.name ?? "-"}
+                                        hint={detail.package.buyer?.address ?? "-"}
+                                    />
+                                    <Fact
+                                        label="Kurir"
+                                        value={detail.package.courier?.name ?? "Belum Ditugaskan"}
+                                        hint={
+                                            detail.package.courier
+                                                ? (detail.package.cooler_box_code ?? "Cooler box belum tercatat")
+                                                : "Tugaskan kurir untuk mulai mengantar"
+                                        }
+                                    />
+                                    <Fact label="Jadwal" value={detail.scheduleLabel} />
+                                    <Fact
+                                        label="Muatan"
+                                        value={`${detail.package.koli_count ?? 1} Koli · ${detail.package.weight_kg ?? "-"} kg`}
+                                    />
+                                    <Fact label="Suhu target" value="-18°C s.d. -25°C" />
+                                </div>
+                            </section>
+
+                            <section className="flex flex-col gap-space-md">
+                                <h3 className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+                                    {issue ? "Laporan kendala" : "Bukti pengiriman"}
+                                </h3>
+                                {issue ? (
+                                    <div className="flex flex-col gap-space-md rounded-lg border border-outline-variant bg-surface-container-low p-space-lg">
+                                        <div className="flex flex-wrap items-center gap-space-xs">
+                                            <MaterialIcon name="report_problem" className="text-[18px] text-primary" />
+                                            <span className="font-label-md font-semibold text-label-md text-on-surface">
+                                                {issue.category.label}
+                                            </span>
+                                            <span className="ml-auto">
+                                                <Pill tone={issue.resolutionTone}>{issue.resolutionStatus}</Pill>
+                                            </span>
+                                        </div>
+                                        <span className="font-body-sm text-body-sm text-secondary">
+                                            Dilaporkan {issue.reportedAtFormatted ?? "-"}
+                                        </span>
+                                        {issue.issueReport.description ? (
+                                            <p className="border-primary/30 border-l-2 pl-space-md font-body-md text-body-md text-on-surface italic leading-relaxed">
+                                                “{issue.issueReport.description}”
+                                            </p>
+                                        ) : null}
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {checklist.length === 0 ? (
+                                                <span className="rounded-full border border-outline-variant bg-surface-container-lowest px-2 py-0.5 font-label-sm text-label-sm text-secondary">
+                                                    Semua item pemeriksaan normal
+                                                </span>
+                                            ) : (
+                                                checklist.map((item) => (
+                                                    <span
+                                                        key={item.key}
+                                                        className="rounded-full border border-outline-variant bg-surface-container-lowest px-2 py-0.5 font-label-sm text-label-sm text-secondary"
+                                                    >
+                                                        {item.label} · {item.detail}
+                                                    </span>
+                                                ))
+                                            )}
+                                        </div>
+                                        {photoUrl ? (
+                                            <ProofCard
+                                                photo={photoUrl}
+                                                caption={photoCaption}
+                                                meta={photoMeta}
+                                                onOpen={() => setProofOpen(true)}
+                                            />
+                                        ) : null}
+                                        <div className="flex flex-wrap items-center justify-between gap-space-sm border-outline-variant border-t pt-space-md">
+                                            <span className="font-label-sm text-label-sm text-secondary">
+                                                Keputusan
+                                            </span>
+                                            <span className="font-body-sm text-body-sm text-on-surface">
+                                                {decisionLabel(issue.issueReport.decision)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-space-md rounded-lg border border-outline-variant bg-surface-container-low p-space-lg">
+                                        <div className="flex items-center gap-space-xs">
+                                            <MaterialIcon name="verified" className="text-[18px] text-tertiary" />
+                                            <span className="font-label-md font-semibold text-label-md text-on-surface">
+                                                Tidak ada kendala dilaporkan
+                                            </span>
+                                        </div>
+                                        <p className="font-body-sm text-body-sm text-secondary">
+                                            {photoUrl
+                                                ? "Bukti serah terima tersedia untuk paket ini."
+                                                : "Bukti penyerahan muncul setelah kurir mengunggahnya di lokasi."}
+                                        </p>
+                                        {photoUrl ? (
+                                            <ProofCard
+                                                photo={photoUrl}
+                                                caption={photoCaption}
+                                                meta={photoMeta}
+                                                onOpen={() => setProofOpen(true)}
+                                            />
+                                        ) : null}
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+
+                        {actionError ? <ErrorNotice message={actionError} /> : null}
+
+                        <div className="flex flex-wrap items-center gap-space-sm border-outline-variant border-t pt-space-md">
+                            <SecondaryButton
+                                icon="swap_horiz"
+                                label={detail.package.courier ? "Pindahkan kurir" : "Tugaskan kurir"}
+                                onClick={() => {
+                                    setActionError(null);
+                                    setPickerOpen(true);
+                                }}
+                            />
+                            <SecondaryButton
+                                icon="image"
+                                label="Lihat bukti"
+                                onClick={() => setProofOpen(true)}
+                                disabled={photoUrl === null}
+                                title={photoUrl === null ? "Belum ada bukti" : undefined}
+                            />
+                            {detail.package.status === "RESCHEDULE_REQUESTED" ? (
+                                <SecondaryButton
+                                    icon="event_repeat"
+                                    label="Jadwal ulang"
+                                    onClick={() => setRescheduleOpen(true)}
+                                />
+                            ) : null}
+                            <div className="ml-auto flex items-center gap-space-sm">
+                                {issue && issue.issueReport.decision === null ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setDecisionOpen(true)}
+                                        className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
+                                    >
+                                        <MaterialIcon name="gavel" className="text-[16px]" />
+                                        <span>Buat keputusan</span>
+                                    </button>
+                                ) : null}
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="h-9 rounded-md px-space-md font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+                                >
+                                    Tutup
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
             </Dialog>
 
             <CourierPickerDialog
                 open={pickerOpen}
-                current={courier}
-                subtitle={`${detail.buyer} (${detail.address})`}
+                couriers={couriers}
+                currentId={detail?.package.courier_id ?? null}
+                subtitle={
+                    detail
+                        ? `${detail.package.buyer?.name ?? "-"} (${detail.package.buyer?.address ?? "-"})`
+                        : undefined
+                }
                 onClose={() => setPickerOpen(false)}
-                onConfirm={moveCourier}
+                onConfirm={(courierId) => void moveCourier(courierId)}
             />
 
-            {proofOpen && proof ? (
+            {proofOpen && photoUrl ? (
                 <Dialog onClose={() => setProofOpen(false)} label={`Bukti pengiriman ${resi}`} width="lg">
                     <div className="flex items-start justify-between gap-space-md">
                         <h2 className="font-headline-sm text-headline-sm text-on-surface">Bukti pengiriman</h2>
                         <CloseButton onClick={() => setProofOpen(false)} />
                     </div>
                     <div className="overflow-hidden rounded-lg border border-outline-variant">
-                        <img src={proof.photo} alt={proof.caption} className="h-72 w-full object-cover" />
+                        <img src={photoUrl} alt={photoCaption} className="h-72 w-full object-cover" />
                         <div className="flex items-center justify-between border-outline-variant border-t bg-surface-container-low px-space-md py-space-sm">
-                            <span className="font-body-sm text-body-sm text-secondary">{proof.caption}</span>
-                            <span className="font-body-sm text-body-sm text-secondary">{proof.meta}</span>
+                            <span className="font-body-sm text-body-sm text-secondary">{photoCaption}</span>
+                            <span className="font-body-sm text-body-sm text-secondary">{photoMeta}</span>
                         </div>
                     </div>
                 </Dialog>
@@ -438,10 +703,18 @@ export function ShipmentDetailModal({
             {decisionOpen && issue ? (
                 <DecisionDialog
                     resi={resi}
-                    categoryKey={issue.categoryKey}
-                    current={decision}
+                    issue={issue}
                     onClose={() => setDecisionOpen(false)}
-                    onSave={saveDecision}
+                    onSaved={afterChange}
+                />
+            ) : null}
+
+            {rescheduleOpen ? (
+                <RescheduleDialog
+                    resi={resi}
+                    defaultDate={detail?.scheduledDate ?? null}
+                    onClose={() => setRescheduleOpen(false)}
+                    onSaved={afterChange}
                 />
             ) : null}
         </>

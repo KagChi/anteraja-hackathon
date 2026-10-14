@@ -2,6 +2,7 @@ import { Link, usePage } from "@inertiajs/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { AnterajaLogo } from "@/components/AnterajaLogo";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { cx } from "@/lib/cx";
 
 interface AdminLayoutProps {
@@ -16,12 +17,26 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { label: "Shipment", icon: "local_shipping", href: "/admin/shipment" },
-    { label: "Laporan", icon: "bar_chart", href: "/admin/report" }
+    { label: "Laporan", icon: "bar_chart", href: "/admin/report" },
+    { label: "Riwayat", icon: "history", href: "/admin/history" }
 ];
 
+/**
+ * Admin chrome: the sidebar, the session header and the outlet. The session is
+ * resolved here so only the console calls the API for it.
+ */
 export function AdminLayout({ children }: AdminLayoutProps) {
+    return (
+        <AuthProvider>
+            <AdminFrame>{children}</AdminFrame>
+        </AuthProvider>
+    );
+}
+
+function AdminFrame({ children }: AdminLayoutProps) {
     const { url } = usePage();
     const pathname = url.split("?")[0];
+    const { user, signOut } = useAuth();
     const [open, setOpen] = useState(false);
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: close the drawer whenever the route changes
@@ -95,13 +110,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     </div>
 
                     <div className="flex items-center gap-margin">
+                        <button
+                            type="button"
+                            onClick={() => void signOut()}
+                            aria-label="Keluar"
+                            title="Keluar"
+                            className="flex h-8 items-center gap-1 rounded-md px-space-sm font-label-md text-label-md text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+                        >
+                            <MaterialIcon name="logout" className="text-[18px]" />
+                            <span className="hidden sm:inline">Keluar</span>
+                        </button>
                         <div className="hidden h-6 w-px bg-outline-variant sm:block" />
                         <div className="flex items-center gap-space-sm">
                             <div className="hidden text-right sm:block">
                                 <div className="font-label-md text-label-md text-on-surface leading-none">
-                                    Dimas Pratama
+                                    {user.name}
                                 </div>
-                                <div className="mt-0.5 font-label-sm text-label-sm text-secondary">Admin Logistics</div>
+                                <div className="mt-0.5 font-label-sm text-label-sm text-secondary">
+                                    {user.role === "ADMIN" ? "Admin Logistics" : user.role}
+                                </div>
                             </div>
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                                 <MaterialIcon name="person" className="text-[18px] text-on-primary" />

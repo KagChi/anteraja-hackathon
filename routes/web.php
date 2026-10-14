@@ -6,12 +6,22 @@ use Inertia\Inertia;
 
 Route::get("/", fn () => Inertia::render("Home"))->name("home");
 
+// The admin console signs in through the JSON API, but the page has to exist on
+// the web side: the API answers with a 401 and cannot render a screen.
+Route::get("login", function (Request $request) {
+    if ($request->user() !== null) {
+        return redirect("/admin/shipment");
+    }
+
+    return Inertia::render("Auth/Login");
+})->name("login");
+
 Route::redirect("/admin", "/admin/shipment");
 Route::redirect("/courier", "/courier/tasks");
 Route::redirect("/client", "/client/orders");
 Route::redirect("/client/tracking", "/client/orders");
 
-Route::prefix("admin")->name("admin.")->group(function () {
+Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(function () {
     // Filters travel in the query string so a Laporan drill-down and a shared
     // link both land on the queue with the same view applied.
     Route::get("shipment", fn (Request $request) => Inertia::render("admin/Shipment", [
@@ -19,9 +29,12 @@ Route::prefix("admin")->name("admin.")->group(function () {
         "status" => $request->query("status")
     ]))->name("shipment");
     Route::get("report", fn () => Inertia::render("admin/Report"))->name("report");
+    Route::get("history", fn (Request $request) => Inertia::render("admin/History", [
+        "q" => $request->query("q"),
+        "status" => $request->query("status")
+    ]))->name("history");
     // The kendala detail lives in the shipment modal, so the old screen is gone.
     Route::redirect("exception", "/admin/shipment");
-    Route::redirect("history", "/admin/shipment");
 });
 
 Route::prefix("courier")->name("courier.")->group(function () {

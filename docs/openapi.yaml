@@ -34,6 +34,8 @@ tags:
 - name: Client Portal
   description: Layanan pelacakan publik pembeli berbasis token, konfirmasi jadwal,
     & klaim penggantian
+- name: Admin - Media
+  description: Penyajian berkas media bukti yang tersimpan di disk lokal
 components:
   securitySchemes:
     sessionAuth:
@@ -388,6 +390,33 @@ paths:
                     $ref: '#/components/schemas/StaffUser'
         '401':
           description: Belum terautentikasi
+  /media/preview:
+    get:
+      tags:
+      - Admin - Media
+      summary: Pratinjau Foto Bukti
+      description: Menyajikan foto bukti penyerahan atau kendala yang tersimpan di
+        disk lokal. Disk lokal tidak mendukung temporary URL, sehingga MediaStorage
+        menyerahkan URL rute ini untuk setiap foto tersimpan.
+      parameters:
+      - name: path
+        in: query
+        required: true
+        description: Path relatif media yang ditulis MediaStorage, mis. proofs/2026/10/01H....jpg
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Berkas gambar
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Belum terautentikasi
+        '404':
+          description: Path tidak dikenal atau berkas tidak ada
   /admin/shipments:
     get:
       tags:
@@ -403,7 +432,8 @@ paths:
           type: string
       - name: status
         in: query
-        description: Filter status paket
+        description: Filter status paket, memakai kode status (mis. CONFIRMED, IN_DELIVERY,
+          ISSUE_REPORTED)
         schema:
           type: string
           enum:
@@ -427,6 +457,13 @@ paths:
           - tomorrow
           - all
           default: today
+      - name: date
+        in: query
+        description: Filter satu hari pengiriman (Y-m-d). Bila diisi, menggantikan
+          filter schedule.
+        schema:
+          type: string
+          format: date
       - name: page
         in: query
         schema:

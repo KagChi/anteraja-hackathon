@@ -24,6 +24,7 @@ final class IndexShipmentRequest extends FormRequest
             'status' => ['nullable', 'string'],
             'courier' => ['nullable', 'string'],
             'schedule' => ['nullable', 'string', 'in:today,tomorrow,upcoming,all'],
+            'date' => ['nullable', 'date', 'date_format:Y-m-d'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50'],
         ];
     }

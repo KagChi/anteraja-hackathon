@@ -26,9 +26,16 @@ final class ShipmentIndexQuery
             ->whereNotIn('packages.status', ['CLOSED', 'RETURNED'])
             ->with(['statusRef', 'buyer', 'courier', 'latestIssue']);
 
-        // 1. Schedule Filter
+        // 1. Schedule Filter — an explicit date names one delivery day and wins
+        // over the relative window, so a Laporan drill-down never gets the
+        // window ANDed on top of it (which would return nothing for any day
+        // other than today).
         $todayJkt = Carbon::now(DisplayTime::DISPLAY_TIMEZONE);
-        if ($filters->schedule === 'today') {
+        if ($filters->date !== null) {
+            [$startUtc, $endUtc] = DisplayTime::dayRange($filters->date);
+            $query->where('packages.scheduled_at', '>=', $startUtc)
+                ->where('packages.scheduled_at', '<', $endUtc);
+        } elseif ($filters->schedule === 'today') {
             [$startUtc, $endUtc] = DisplayTime::dayRange($todayJkt);
             $query->where('packages.scheduled_at', '>=', $startUtc)
                 ->where('packages.scheduled_at', '<', $endUtc);
