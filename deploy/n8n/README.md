@@ -67,6 +67,36 @@ WHATSAPP_HOOK_EVENTS: "message"
 `deploy/k8s/waha/deployment.yaml`, dan node webhook inbound memvalidasinya dengan
 credential `Anteraja WAHA Hook`. Request tanpa header yang cocok ditolak n8n.
 
+## Alamat balasan (LID)
+
+WhatsApp mulai mengalamatkan sebagian chat dengan **LID** (`<angka>@lid`),
+bukan nomor telepon. Balasan ke `<lid>@c.us` ditolak WhatsApp Web — WAHA
+menjawab `500` di `/api/sendText` — dan baris `anteraja_chat_state` yang
+ditulis flow outbound memakai nomor telepon, jadi pencarian state ikut meleset.
+Gejalanya: pembeli mengirim pesan, bot tidak membalas apa pun, dan n8n mencatat
+eksekusi gagal di node `Balas WAHA`.
+
+Karenanya inbound diawali node **Resolusi LID** yang memanggil
+`GET http://waha/api/anteraja/lids/<id>` (kredensial `anterajaWaha`) lalu
+memakai `pn` hasilnya:
+
+- ada `pn` -> balasan dikirim ke `<pn>@c.us` dan state dicari dengan nomor itu;
+- tanpa `pn` (chat `@c.us` biasa, atau lookup gagal) -> perilaku lama dipakai.
+
+Endpoint `GET /api/{session}/lids/{id}` menerima id dengan atau tanpa akhiran
+`@lid`. Bila WAHA mengubah skema LID-nya, cek ulang endpoint ini sebelum
+mengubah node tersebut.
+
+## Troubleshooting
+
+- `GET /api/sessions` bisa menampilkan `webhooks: []` walaupun hook dari env
+  (`WHATSAPP_HOOK_URL`) sedang jalan — sesi menyimpan konfigurasi sendiri dan
+  env dipakai saat runtime. Jangan mendiagnosis dari field itu saja; lihat log
+  WAHA untuk baris `WebhookSender` yang mencatat POST ke n8n beserta status
+  responnya.
+- `Balas WAHA` gagal dengan `500` dari `/api/sendText`: hampir selalu alamat
+  chat yang salah (LID ditulis sebagai `@c.us`), bukan WAHA yang mati.
+
 ## Uji manual
 
 ```bash

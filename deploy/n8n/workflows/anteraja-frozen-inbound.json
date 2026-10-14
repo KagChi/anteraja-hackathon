@@ -27,8 +27,32 @@
     },
     {
       "parameters": {
+        "method": "GET",
+        "url": "=http://waha/api/anteraja/lids/{{ $json.body.payload.from ? $json.body.payload.from.split('@')[0] : '' }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "ib-resolusi-lid",
+      "name": "Resolusi LID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaWaha",
+          "name": "Anteraja WAHA"
+        }
+      }
+    },
+    {
+      "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\n\nconst payload = body.payload || {};\nconst event = body.event || null;\nconst from = String(payload.from || '');\nconst text = String(payload.body || '').trim();\nconst phone = from.replace(/[^0-9]/g, '');\nconst isGroup = from.endsWith('@g.us');\nconst isStatus = from === 'status@broadcast';\nconst shouldProcess = event === 'message'\n  && payload.fromMe !== true\n  && !isGroup\n  && !isStatus\n  && text.length > 0\n  && phone.length >= 8;\n\nreturn [{ json: {\n  should_process: shouldProcess,\n  phone: phone,\n  text: text,\n  push_name: payload.notifyName || null\n} }];"
+        "jsCode": "const item = $('Webhook WAHA').first().json;\nconst lookup = $input.first().json || {};\nconst body = item.body || {};\nconst payload = body.payload || {};\n\nconst event = body.event || null;\nconst rawFrom = String(payload.from || '');\nconst digits = (value) => String(value || '').replace(/[^0-9]/g, '');\n\n// A chat WhatsApp addresses by LID shows up as <lid>@lid, and a reply sent to\n// <lid>@c.us is rejected by WhatsApp Web. The lids lookup turns it into the\n// real <phone>@c.us, which is also the key the outbound flow stores in\n// anteraja_chat_state.\nconst pn = typeof lookup.pn === 'string' && lookup.pn !== '' ? lookup.pn : '';\nconst chatId = pn !== '' ? pn : rawFrom;\n\nconst text = String(payload.body || '').trim();\nconst phone = digits(pn !== '' ? pn : rawFrom);\nconst isGroup = rawFrom.endsWith('@g.us');\nconst isStatus = rawFrom === 'status@broadcast';\nconst shouldProcess = event === 'message'\n  && payload.fromMe !== true\n  && !isGroup\n  && !isStatus\n  && text.length > 0\n  && phone.length >= 8;\n\nreturn [{ json: {\n  should_process: shouldProcess,\n  phone: phone,\n  chat_id: chatId,\n  text: text,\n  push_name: payload.notifyName || null\n} }];"
       },
       "id": "ib-normalisasi",
       "name": "Normalisasi",
@@ -219,7 +243,7 @@
         "url": "http://waha/api/sendText",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $('Siapkan Konteks').item.json.phone + '@c.us', text: $('Putuskan Aksi').item.json.reply_text }) }}",
+        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $('Normalisasi').item.json.chat_id, text: $('Putuskan Aksi').item.json.reply_text }) }}",
         "options": {},
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
@@ -268,7 +292,7 @@
       "main": [
         [
           {
-            "node": "Normalisasi",
+            "node": "Resolusi LID",
             "type": "main",
             "index": 0
           }
@@ -375,6 +399,17 @@
         [
           {
             "node": "Simpan State Pesan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolusi LID": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi",
             "type": "main",
             "index": 0
           }
