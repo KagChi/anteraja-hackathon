@@ -1,0 +1,391 @@
+{
+  "name": "Anteraja Frozen - Inbound WhatsApp (LLM)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "anteraja-frozen/waha-inbound",
+        "responseMode": "onReceived",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "ib-webhook",
+      "name": "Webhook WAHA",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "webhookId": "anteraja-frozen-waha-inbound",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaWahaHook",
+          "name": "Anteraja WAHA Hook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\n\nconst payload = body.payload || {};\nconst event = body.event || null;\nconst from = String(payload.from || '');\nconst text = String(payload.body || '').trim();\nconst phone = from.replace(/[^0-9]/g, '');\nconst isGroup = from.endsWith('@g.us');\nconst isStatus = from === 'status@broadcast';\nconst shouldProcess = event === 'message'\n  && payload.fromMe !== true\n  && !isGroup\n  && !isStatus\n  && text.length > 0\n  && phone.length >= 8;\n\nreturn [{ json: {\n  should_process: shouldProcess,\n  phone: phone,\n  text: text,\n  push_name: payload.notifyName || null\n} }];"
+      },
+      "id": "ib-normalisasi",
+      "name": "Normalisasi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pesan-masuk",
+              "leftValue": "={{ $json.should_process }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ib-filter",
+      "name": "Pesan Masuk?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT s.tracking_number, s.client_token, s.last_template, s.context\nFROM (SELECT $1::text AS phone) q\nLEFT JOIN anteraja_chat_state s ON s.phone = q.phone",
+        "options": {
+          "queryReplacement": "={{ $json.phone }}"
+        }
+      },
+      "id": "ib-ambil-state",
+      "name": "Ambil State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        360,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "anterajaStatePg",
+          "name": "Anteraja State DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const msg = $('Normalisasi').first().json;\nconst state = $input.first().json || {};\nconst slots = ['09:00-11:00', '11:00-13:00', '13:00-15:00', '15:00-17:00', '17:00-19:00'];\nconst today = $now.setZone('Asia/Jakarta').toFormat('yyyy-LL-dd');\n\nconst system = [\n  'Anda asisten operasional Anteraja Frozen yang membaca balasan pembeli di WhatsApp.',\n  'Balas HANYA dengan JSON valid tanpa penjelasan tambahan.',\n  'Skema: {\"intent\":\"confirm_schedule|request_reschedule|choose_option|other\",\"option\":null,\"proposed_date\":null,\"proposed_slot\":null,\"confidence\":0.0}',\n  'Aturan:',\n  '- confirm_schedule: pembeli menyetujui jadwal penerimaan paket.',\n  '- request_reschedule: pembeli meminta jadwal lain; isi proposed_date (YYYY-MM-DD, hari ini ' + today + ') dan proposed_slot dari daftar: ' + slots.join(', ') + '.',\n  '- choose_option: pembeli memilih opsi penyelesaian kendala pada menu; isi option 1-4.',\n  '- other: maksud tidak jelas.',\n  'Konteks: template terakhir = ' + (state.last_template || 'tidak diketahui') + '; resi = ' + (state.tracking_number || 'tidak diketahui') + '.'\n].join('\\n');\n\nreturn [{ json: {\n  phone: msg.phone,\n  text: msg.text,\n  push_name: msg.push_name,\n  tracking_number: state.tracking_number || null,\n  client_token: state.client_token || null,\n  last_template: state.last_template || null,\n  today: today,\n  slots: slots,\n  llm_body: {\n    model: 'gpt-4o-mini',\n    temperature: 0,\n    response_format: { type: 'json_object' },\n    messages: [\n      { role: 'system', content: system },\n      { role: 'user', content: msg.text }\n    ]\n  }\n} }];"
+      },
+      "id": "ib-konteks",
+      "name": "Siapkan Konteks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://nine-router-service:20128/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.llm_body) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "ib-llm",
+      "name": "Klasifikasi LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaLlm",
+          "name": "Anteraja LLM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const llm = $input.first().json || {};\nconst ctx = $('Siapkan Konteks').first().json;\n\nlet intent = null;\nlet option = null;\nlet confidence = 0;\nlet proposedDate = null;\nlet proposedSlot = null;\n\ntry {\n  const content = llm.choices && llm.choices[0] && llm.choices[0].message ? llm.choices[0].message.content : null;\n  if (typeof content === 'string') {\n    const parsed = JSON.parse(content);\n    intent = parsed.intent || null;\n    option = parsed.option === undefined || parsed.option === null ? null : parseInt(parsed.option, 10);\n    confidence = parsed.confidence || 0;\n    proposedDate = parsed.proposed_date || null;\n    proposedSlot = parsed.proposed_slot || null;\n  }\n} catch (error) {\n  intent = null;\n}\n\nconst text = String(ctx.text || '').toLowerCase().trim();\nconst fromIssueMenu = ctx.last_template === 'issue_options';\n\nif (!intent || intent === 'other') {\n  if (fromIssueMenu && /^[1-4]$/.test(text)) {\n    intent = 'choose_option';\n    option = parseInt(text, 10);\n  } else if (/(kirim ulang|dikirim ulang|ulang|ganti barang|resend)/.test(text)) {\n    intent = 'choose_option';\n    option = 2;\n  } else if (/(kembali|retur|batal|tidak jadi)/.test(text)) {\n    intent = 'choose_option';\n    option = 1;\n  } else if (/(lanjut|kompensasi|tetap kirim|tetap antar)/.test(text)) {\n    intent = 'choose_option';\n    option = 3;\n  } else if (/(jadwal|reschedule|tunda|besok|ganti hari|tanggal|jam)/.test(text)) {\n    intent = 'request_reschedule';\n  } else if (/(ya|iya|oke|ok|bisa|siap|setuju|terima|konfirmasi|hadir)/.test(text)) {\n    intent = 'confirm_schedule';\n  } else {\n    intent = 'other';\n  }\n}\n\nconst base = ctx.client_token ? 'http://anteraja-hackathon-service/api/guest/' + ctx.client_token : null;\nconst resi = ctx.tracking_number || '-';\nlet appUrl = null;\nlet appBody = {};\nlet reply = null;\n\nif (intent === 'confirm_schedule' && base) {\n  appUrl = base + '/schedule/confirm';\n  reply = 'Terima kasih, Kak! Jadwal penerimaan paket ' + resi + ' sudah dikonfirmasi dan paket akan kami antar sesuai jadwal. Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'request_reschedule' && base && proposedDate && proposedSlot && ctx.slots.indexOf(proposedSlot) !== -1) {\n  appUrl = base + '/schedule/reschedule';\n  appBody = { date: proposedDate, slot: proposedSlot };\n  reply = 'Terima kasih, Kak! Permintaan jadwal ulang resi ' + resi + ' pada ' + proposedDate + ' (' + proposedSlot + ') sudah kami terima. Admin akan mengusulkan jadwal barunya. Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'choose_option' && base && option >= 1 && option <= 4) {\n  appUrl = base + '/issue/choice';\n  appBody = { choice: option };\n  const opsi = {\n    1: 'Baik Kak, paket akan kami proses untuk pengembalian ke pengirim. Tim kami menindaklanjuti klaim sesuai ketentuan layanan.',\n    2: 'Baik Kak, kami siapkan pengiriman ulang paket. Silakan konfirmasi jadwal penerimaan yang Kakak inginkan.',\n    3: 'Baik Kak, pengiriman tetap dilanjutkan dengan penawaran kompensasi sesuai ketentuan layanan kami.',\n    4: 'Baik Kak, tim operasional kami akan menghubungi Kakak untuk diskusi lebih lanjut.'\n  };\n  reply = opsi[option] + ' Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'request_reschedule') {\n  reply = 'Baik Kak, mohon tuliskan tanggal dan pilihan jam penerimaan: 09:00-11:00, 11:00-13:00, 13:00-15:00, 15:00-17:00, atau 17:00-19:00. Anteraja Frozen \\u2744\\ufe0f';\n} else {\n  reply = 'Mohon balas dengan angka 1, 2, 3, atau 4 sesuai opsi penyelesaian kendala, atau tuliskan jadwal penerimaan yang Kakak inginkan. Anteraja Frozen \\u2744\\ufe0f';\n}\n\nreturn [{ json: {\n  intent: intent,\n  option: option,\n  confidence: confidence,\n  app_url: appUrl,\n  app_body: appBody,\n  reply_text: reply,\n  phone: ctx.phone,\n  tracking_number: ctx.tracking_number,\n  client_token: ctx.client_token\n} }];"
+      },
+      "id": "ib-putuskan",
+      "name": "Putuskan Aksi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ada-aksi",
+              "leftValue": "={{ $json.app_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ib-if-aksi",
+      "name": "Ada Aksi App?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Putuskan Aksi').item.json.app_url }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Putuskan Aksi').item.json.app_body) }}",
+        "options": {}
+      },
+      "id": "ib-panggil-app",
+      "name": "Panggil App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        -140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $('Siapkan Konteks').item.json.phone + '@c.us', text: $('Putuskan Aksi').item.json.reply_text }) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "ib-balas-waha",
+      "name": "Balas WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaWaha",
+          "name": "Anteraja WAHA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO anteraja_chat_state (phone, last_message_at, context, updated_at)\nVALUES ($1, now(), $2::jsonb, now())\nON CONFLICT (phone) DO UPDATE SET\n  last_message_at = now(),\n  context = anteraja_chat_state.context || EXCLUDED.context,\n  updated_at = now()",
+        "options": {
+          "queryReplacement": "={{ $('Siapkan Konteks').item.json.phone }},{{ JSON.stringify({ last_inbound_text: $('Normalisasi').item.json.text, last_intent: $('Putuskan Aksi').item.json.intent, last_inbound_at: $now.toISO() }) }}"
+        }
+      },
+      "id": "ib-simpan-state",
+      "name": "Simpan State Pesan",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2040,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "anterajaStatePg",
+          "name": "Anteraja State DB"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook WAHA": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisasi": {
+      "main": [
+        [
+          {
+            "node": "Pesan Masuk?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pesan Masuk?": {
+      "main": [
+        [
+          {
+            "node": "Ambil State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ambil State": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Konteks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Konteks": {
+      "main": [
+        [
+          {
+            "node": "Klasifikasi LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Klasifikasi LLM": {
+      "main": [
+        [
+          {
+            "node": "Putuskan Aksi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Putuskan Aksi": {
+      "main": [
+        [
+          {
+            "node": "Ada Aksi App?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ada Aksi App?": {
+      "main": [
+        [
+          {
+            "node": "Panggil App",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Balas WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Panggil App": {
+      "main": [
+        [
+          {
+            "node": "Balas WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Balas WAHA": {
+      "main": [
+        [
+          {
+            "node": "Simpan State Pesan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true,
+  "pinData": {},
+  "id": "gltTgcyr50D6r4He"
+}

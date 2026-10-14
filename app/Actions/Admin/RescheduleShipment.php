@@ -60,7 +60,7 @@ final class RescheduleShipment
                 $updated,
                 RecipientType::BUYER,
                 $updated->buyer_id,
-                'schedule_request',
+                'schedule_rescheduled',
                 [
                     'tracking_number' => $updated->tracking_number,
                     'client_url' => $this->linkService->entry($updated),

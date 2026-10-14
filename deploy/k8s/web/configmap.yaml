@@ -11,6 +11,9 @@ data:
   APP_DEBUG: "false"
   APP_TIMEZONE: "Asia/Jakarta"
   APP_URL: "https://hackathon.kagchi.my.id"
+  # Notifikasi WhatsApp dikirim lewat workflow n8n (lihat deploy/n8n/README.md).
+  N8N_WEBHOOK_ENABLED: "true"
+  N8N_WEBHOOK_URL: "http://n8n/webhook/anteraja-frozen/notify"
   APP_LOCALE: "id"
   APP_FALLBACK_LOCALE: "en"
 

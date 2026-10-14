@@ -40,4 +40,13 @@ return [
             '17:00-19:00',
         ],
     ],
+
+    // Notifikasi WhatsApp dikirim lewat workflow n8n; aplikasi hanya
+    // menyerahkan template + payload ke webhook di bawah ini.
+    'n8n' => [
+        'enabled' => (bool) env('N8N_WEBHOOK_ENABLED', false),
+        'webhook_url' => env('N8N_WEBHOOK_URL', 'http://n8n/webhook/anteraja-frozen/notify'),
+        'token' => env('N8N_WEBHOOK_TOKEN', ''),
+        'timeout' => (int) env('N8N_WEBHOOK_TIMEOUT', 10),
+    ],
 ];

@@ -31,6 +31,14 @@ spec:
                 name: waha-config
             - secretRef:
                 name: waha-secrets
+          env:
+            # Token hook berisi rahasia, jadi diambil dari Secret. WAHA
+            # membaca format "Nama:value;Nama2:value2".
+            - name: WHATSAPP_HOOK_CUSTOM_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: waha-secrets
+                  key: WHATSAPP_HOOK_CUSTOM_HEADERS
           volumeMounts:
             # Sesi WhatsApp (supaya tidak perlu scan QR ulang setiap restart).
             - name: data

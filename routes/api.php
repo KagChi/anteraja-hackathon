@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\ShipmentExportController;
 use App\Http\Controllers\Admin\ShipmentRescheduleController;
 use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
+use App\Http\Controllers\Api\Client\IssueChoiceController as ClientApiIssueChoiceController;
 use App\Http\Controllers\Api\Client\IssueController as ClientApiIssueController;
 use App\Http\Controllers\Api\Client\LinkController as ClientLinkController;
 use App\Http\Controllers\Api\Client\OrderController as ClientOrderController;
@@ -154,6 +155,7 @@ Route::prefix('guest/{token}')->where(['token' => '[A-Fa-f0-9]{32,128}'])->name(
         Route::post('schedule/confirm', ClientApiScheduleConfirmationController::class)->name('schedule.confirm');
         Route::post('schedule/reschedule', ClientApiScheduleRescheduleController::class)->name('schedule.reschedule');
         Route::get('issue', [ClientApiIssueController::class, 'show'])->name('issue.show');
+        Route::post('issue/choice', ClientApiIssueChoiceController::class)->name('issue.choice');
     });
 
 // 4) Client Mobile API Legacy Token-Based Routes (Deep-Link compatibility)
@@ -167,6 +169,7 @@ Route::prefix('client/{token}')->where(['token' => '[A-Fa-f0-9]{32,128}'])->name
         Route::post('schedule/confirm', ScheduleConfirmationController::class)->name('schedule.confirm');
         Route::post('schedule/reschedule', ScheduleRescheduleController::class)->name('schedule.reschedule');
         Route::get('issue', [IssueController::class, 'show'])->name('issue.show');
+        Route::post('issue/choice', ClientApiIssueChoiceController::class)->name('issue.choice');
         Route::post('issue/resend', ReplacementController::class)->name('issue.resend');
     });
 

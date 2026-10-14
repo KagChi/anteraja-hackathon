@@ -50,6 +50,19 @@ final class ResendDecisionHandler
             );
         }
 
+        $this->notificationQueue->queue(
+            package: $package,
+            type: RecipientType::BUYER,
+            recipientId: $package->buyer_id,
+            template: 'issue_decision_update',
+            payload: [
+                'tracking_number' => $package->tracking_number,
+                'decision' => $data->decision->value,
+                'message' => "Pengiriman ulang disiapkan. Resi pengganti: {$newPackage->tracking_number}.",
+                'replacement_tracking_number' => $newPackage->tracking_number,
+            ]
+        );
+
         return $newPackage;
     }
 }
