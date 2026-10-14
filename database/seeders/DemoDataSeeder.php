@@ -17,6 +17,12 @@ final class DemoDataSeeder extends Seeder
     {
         $now = Carbon::now('UTC');
 
+        // The catalog is upserted on every run rather than guarded: the
+        // storefront reads price, weight and art, and a database seeded before
+        // those columns existed would otherwise show empty products. The demo
+        // shipment graph below is what the guard actually protects.
+        $this->seedCatalog();
+
         // Demo data uses fixed phones, tracking numbers and client tokens, so a
         // second db:seed run would violate every unique index. Packages are the
         // last records created; once they exist the data is already in place.
@@ -132,22 +138,11 @@ final class DemoDataSeeder extends Seeder
             'area' => 'Cilandak, Jakarta Selatan',
         ])->id;
 
-        // 3. Products
-        $p1 = Product::firstOrCreate(['name' => 'Nugget Ayam 1 kg'], [
-            'handling_notes' => 'Makanan Beku (Frozen Food). Suhu standar -18°C s/d -25°C. Wajib cooler box & ice gel.',
-        ])->id;
-
-        $p2 = Product::firstOrCreate(['name' => 'Daging Sapi Slice 500g'], [
-            'handling_notes' => 'Daging segar beku. Suhu -18°C. Jaga segel kemasan vakum.',
-        ])->id;
-
-        $p3 = Product::firstOrCreate(['name' => 'Salmon Fillet Beku 250g'], [
-            'handling_notes' => 'Ikan beku higienis. Suhu -20°C.',
-        ])->id;
-
-        $p4 = Product::firstOrCreate(['name' => 'Es Krim Premium 1L'], [
-            'handling_notes' => 'Sensitif terhadap suhu. Suhu harus di bawah -20°C.',
-        ])->id;
+        // 3. Products (rows come from the catalog upsert above)
+        $p1 = Product::where('name', 'Nugget Ayam 1 kg')->value('id');
+        $p2 = Product::where('name', 'Daging Sapi Slice 500g')->value('id');
+        $p3 = Product::where('name', 'Salmon Fillet Beku 250g')->value('id');
+        $p4 = Product::where('name', 'Es Krim Premium 1L')->value('id');
 
         // Helper to safely step package statuses through FSM
         $transition = function (int $packageId, string $toStatus, ?int $staffId = null): void {
@@ -700,5 +695,125 @@ final class DemoDataSeeder extends Seeder
                 $this->command->info("Resi: {$pkg->tracking_number} | Token: {$pkg->client_token} | URL: ".url("/api/client/{$pkg->client_token}"));
             }
         }
+    }
+
+    /**
+     * The frozen-goods catalog the customer app shops from. Keyed on the
+     * product name so a re-run refreshes price, weight and art instead of
+     * inserting a second row.
+     */
+    private function seedCatalog(): void
+    {
+        foreach ($this->catalog() as $product) {
+            Product::updateOrCreate(
+                ['name' => $product['name']],
+                $product,
+            );
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function catalog(): array
+    {
+        return [
+            [
+                'name' => 'Nugget Ayam 1 kg',
+                'slug' => 'nugget-ayam-1kg',
+                'category' => 'Frozen Food',
+                'description' => 'Nugget ayam siap goreng, dikemas beku dengan ice gel. Praktis untuk stok lauk keluarga.',
+                'price_idr' => 48000,
+                'unit' => 'pack',
+                'weight_kg' => 1.00,
+                'image_path' => '/images/catalog/nugget-ayam.svg',
+                'sort_order' => 10,
+                'handling_notes' => 'Makanan Beku (Frozen Food). Suhu standar -18°C s/d -25°C. Wajib cooler box & ice gel.',
+            ],
+            [
+                'name' => 'Daging Sapi Slice 500g',
+                'slug' => 'daging-sapi-slice-500g',
+                'category' => 'Daging Beku',
+                'description' => 'Daging sapi slice tipis untuk shabu, yakiniku, atau tumis cepat. Disimpan pada suhu -18°C.',
+                'price_idr' => 132000,
+                'unit' => 'pack',
+                'weight_kg' => 0.50,
+                'image_path' => '/images/catalog/daging-sapi.svg',
+                'sort_order' => 20,
+                'handling_notes' => 'Daging segar beku. Suhu -18°C. Jaga segel kemasan vakum.',
+            ],
+            [
+                'name' => 'Salmon Fillet Beku 250g',
+                'slug' => 'salmon-fillet-250g',
+                'category' => 'Seafood Beku',
+                'description' => 'Fillet salmon tanpa tulang, higienis, siap panggang. Dikirim dalam rantai dingin penuh.',
+                'price_idr' => 89000,
+                'unit' => 'pack',
+                'weight_kg' => 0.25,
+                'image_path' => '/images/catalog/salmon-fillet.svg',
+                'sort_order' => 30,
+                'handling_notes' => 'Ikan beku higienis. Suhu -20°C.',
+            ],
+            [
+                'name' => 'Es Krim Premium 1L',
+                'slug' => 'es-krim-premium-1l',
+                'category' => 'Dessert Beku',
+                'description' => 'Es krim premium satu liter. Paling sensitif terhadap fluktuasi suhu, selalu dikirim paling akhir.',
+                'price_idr' => 65000,
+                'unit' => 'box',
+                'weight_kg' => 1.00,
+                'image_path' => '/images/catalog/es-krim.svg',
+                'sort_order' => 40,
+                'handling_notes' => 'Sensitif terhadap suhu. Suhu harus di bawah -20°C.',
+            ],
+            [
+                'name' => 'Dimsum Ayam Mentah 500g',
+                'slug' => 'dimsum-ayam-500g',
+                'category' => 'Frozen Food',
+                'description' => 'Dimsum ayam mentah siap kukus, 20 butir per kemasan. Tetap beku sampai pintu rumah Anda.',
+                'price_idr' => 42000,
+                'unit' => 'pack',
+                'weight_kg' => 0.50,
+                'image_path' => '/images/catalog/dimsum-ayam.svg',
+                'sort_order' => 50,
+                'handling_notes' => 'Produk olahan ayam beku. Suhu -18°C, jangan dicairkan ulang.',
+            ],
+            [
+                'name' => 'Edamame Beku 500g',
+                'slug' => 'edamame-beku-500g',
+                'category' => 'Sayur Beku',
+                'description' => 'Edamame kupas siap rebus, sumber protein nabati. Dikemas vakum dan dibekukan cepat.',
+                'price_idr' => 28000,
+                'unit' => 'pack',
+                'weight_kg' => 0.50,
+                'image_path' => '/images/catalog/edamame.svg',
+                'sort_order' => 60,
+                'handling_notes' => 'Sayuran beku. Suhu -18°C, jauhkan dari bahan berbau tajam.',
+            ],
+            [
+                'name' => 'Kentang Goreng Shoestring 1kg',
+                'slug' => 'kentang-shoestring-1kg',
+                'category' => 'Frozen Food',
+                'description' => 'Kentang shoestring potongan halus, hasil renyah tanpa perlu dicairkan sebelum digoreng.',
+                'price_idr' => 39000,
+                'unit' => 'pack',
+                'weight_kg' => 1.00,
+                'image_path' => '/images/catalog/kentang-goreng.svg',
+                'sort_order' => 70,
+                'handling_notes' => 'Kentang beku. Suhu -18°C, hindari benturan kemasan.',
+            ],
+            [
+                'name' => 'Bakso Sapi Siap Masak 500g',
+                'slug' => 'bakso-sapi-500g',
+                'category' => 'Frozen Food',
+                'description' => 'Bakso sapi kenyal siap masak, 25 butir per kemasan. Cocok untuk stok kuah mingguan.',
+                'price_idr' => 55000,
+                'unit' => 'pack',
+                'weight_kg' => 0.50,
+                'image_path' => '/images/catalog/bakso-sapi.svg',
+                'sort_order' => 80,
+                'handling_notes' => 'Olahan daging beku. Suhu -18°C, wajib cooler box saat pengiriman.',
+            ],
+        ];
     }
 }

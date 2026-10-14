@@ -65,6 +65,11 @@ final class ShipmentController extends Controller
                 'tone' => $pkg->status->tone()->value,
                 'hasIssue' => $pkg->status->value === 'ISSUE_REPORTED',
                 'availableAction' => $pkg->availableAdminActions(),
+                // Where the order came from: the hub console or the customer
+                // app. The queue shows it as a small badge.
+                'source' => $pkg->source?->value,
+                'sourceLabel' => $pkg->source?->label(),
+                'sourceBadge' => $pkg->source?->badge(),
             ];
         });
 
@@ -84,6 +89,7 @@ final class ShipmentController extends Controller
                 'courier' => $filters->courier,
                 'schedule' => $filters->schedule,
                 'date' => $filters->date,
+                'source' => $filters->source,
                 'per_page' => $filters->perPage,
             ],
             'couriers' => $couriers,

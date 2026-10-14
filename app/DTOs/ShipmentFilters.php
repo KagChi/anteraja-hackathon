@@ -13,6 +13,7 @@ final readonly class ShipmentFilters
         public string $schedule = 'today',
         public int $perPage = 10,
         public ?string $date = null,
+        public ?string $source = null,
     ) {}
 
     /**
@@ -28,6 +29,7 @@ final readonly class ShipmentFilters
         $date = isset($input['date']) && is_string($input['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $input['date']) === 1
             ? (string) $input['date']
             : null;
+        $source = isset($input['source']) && in_array($input['source'], ['ADMIN', 'CLIENT_APP'], true) ? (string) $input['source'] : null;
 
         return new self(
             q: $q,
@@ -36,6 +38,7 @@ final readonly class ShipmentFilters
             schedule: $schedule,
             perPage: $perPage,
             date: $date,
+            source: $source,
         );
     }
 }

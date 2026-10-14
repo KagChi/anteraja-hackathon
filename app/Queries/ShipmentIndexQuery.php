@@ -53,6 +53,12 @@ final class ShipmentIndexQuery
             $query->where('packages.status', $filters->status);
         }
 
+        // 2b. Origin Filter - orders the customer app opened are tagged
+        //     CLIENT_APP so the hub can work the app queue on its own.
+        if ($filters->source !== null) {
+            $query->where('packages.source', $filters->source);
+        }
+
         // 3. Courier Filter
         if ($filters->courier === 'unassigned') {
             $query->whereNull('packages.courier_id');

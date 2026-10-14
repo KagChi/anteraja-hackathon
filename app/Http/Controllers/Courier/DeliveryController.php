@@ -5,9 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Courier;
 
 use App\Enums\DeliveryStage;
+use App\Enums\GpsAction;
+use App\Enums\GpsLevel;
+use App\Enums\GpsLockStatus;
 use App\Enums\PackageStatus;
 use App\Http\Controllers\Controller;
+use App\Models\GpsLockRequest;
+use App\Models\LocationCheck;
 use App\Models\Package;
+use App\Services\Gps\GeofenceEvaluator;
+use App\Services\Gps\GpsValidator;
 use App\Support\PhoneFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +22,12 @@ use Illuminate\Support\Facades\Gate;
 
 final class DeliveryController extends Controller
 {
-    public function show(Request $request, string $trackingNumber): JsonResponse
-    {
+    public function show(
+        Request $request,
+        string $trackingNumber,
+        GpsValidator $gps,
+        GeofenceEvaluator $geofence,
+    ): JsonResponse {
         $package = Package::where('tracking_number', $trackingNumber)
             ->with(['buyer', 'statusRef', 'latestMilestone', 'conditionChecks.issueReport'])
             ->firstOrFail();
@@ -89,7 +100,71 @@ final class DeliveryController extends Controller
                 'canReportIssue' => $canReportIssue,
                 'hasOpenIssue' => $hasOpenIssue,
                 'checklistItems' => config('coldchain.checklist_items', []),
+                'gps' => $this->gpsContext($package, $gps, $geofence),
             ],
         ]);
+    }
+
+    /**
+     * What the courier screen shows about location validation: where the
+     * destination is (the map link already carries these coordinates), the
+     * radius for this service, the last verdict, and any open review request.
+     *
+     * @return array<string, mixed>
+     */
+    private function gpsContext(Package $package, GpsValidator $gps, GeofenceEvaluator $geofence): array
+    {
+        $last = $this->latestCheck($package, $gps);
+        $pending = GpsLockRequest::query()
+            ->where('package_id', $package->id)
+            ->where('status', GpsLockStatus::PENDING)
+            ->orderByDesc('id')
+            ->first();
+        $approved = GpsLockRequest::query()
+            ->where('package_id', $package->id)
+            ->where('status', GpsLockStatus::APPROVED)
+            ->orderByDesc('id')
+            ->first();
+
+        $flagged = $last !== null
+            && ($last->level !== GpsLevel::CLEAN || $last->inside_geofence === false);
+
+        return [
+            'destination' => [
+                'latitude' => $package->buyer?->latitude,
+                'longitude' => $package->buyer?->longitude,
+            ],
+            'radius_m' => $geofence->radiusFor($package->service_type),
+            'distance_m' => $last?->distance_m,
+            'inside' => $last?->inside_geofence,
+            'level' => $last?->level?->value,
+            'level_label' => $last?->level?->label(),
+            'level_tone' => $last?->level?->tone()->value,
+            'accuracy_m' => $last?->accuracy_m,
+            'action' => $last?->action?->value,
+            'action_label' => $last?->action?->label(),
+            'reasons' => $last?->reasons ?? [],
+            'checked_at' => $last?->created_at?->toIso8601String(),
+            'can_request_review' => $flagged && $pending === null && $approved === null,
+            'requested_action' => $pending?->action?->value,
+            'lock' => $pending === null ? null : [
+                'id' => $pending->id,
+                'status' => $pending->status?->value,
+                'status_label' => $pending->status?->label(),
+                'created_at' => $pending->created_at?->toIso8601String(),
+            ],
+        ];
+    }
+
+    private function latestCheck(Package $package, GpsValidator $gps): ?LocationCheck
+    {
+        foreach ([GpsAction::POD, GpsAction::ARRIVE, GpsAction::DEPART] as $action) {
+            $check = $gps->latestCheck($package, $action);
+            if ($check !== null) {
+                return $check;
+            }
+        }
+
+        return null;
     }
 }

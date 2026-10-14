@@ -68,6 +68,10 @@ export interface ShipmentRow {
     tone: Tone;
     hasIssue: boolean;
     availableAction: AvailableAction;
+    /** Which door the shipment came through: the hub console or the app. */
+    source: "ADMIN" | "CLIENT_APP" | null;
+    sourceLabel: string | null;
+    sourceBadge: string | null;
 }
 
 export interface TimelineEntry {
@@ -84,6 +88,7 @@ export interface ShipmentIndexFilters {
     schedule: string;
     date: string | null;
     per_page: number;
+    source: string | null;
 }
 
 export interface ShipmentIndexResponse {
@@ -101,6 +106,7 @@ export interface ShipmentQuery {
     date?: string;
     page?: number;
     per_page?: number;
+    source?: string;
 }
 
 export interface DeliveryRecord {
@@ -238,6 +244,86 @@ export interface HistoryResponse {
     paginator: Paginator;
 }
 
+/** Location validation: one verdict row the hub can inspect. */
+export interface GpsReason {
+    code: string;
+    label: string;
+    detail: string;
+    severity: "strong" | "weak";
+}
+
+export interface GpsCheckRow {
+    id: number;
+    tracking: string;
+    buyer: string;
+    courier: string;
+    action: string | null;
+    action_label: string | null;
+    level: string | null;
+    level_label: string | null;
+    tone: Tone;
+    reasons: GpsReason[];
+    distance_m: number | null;
+    radius_m: number | null;
+    inside: boolean | null;
+    accuracy_m: number | null;
+    applied: boolean;
+    override_status: string | null;
+    checked_at: string | null;
+}
+
+export interface GpsLockRow {
+    id: number;
+    tracking: string;
+    buyer: string;
+    courier: string;
+    action: string | null;
+    action_label: string | null;
+    status: string;
+    status_label: string;
+    tone: Tone;
+    reasons: GpsReason[];
+    decision_reason: string | null;
+    decided_by: string | null;
+    decided_at: string | null;
+    created_at: string | null;
+}
+
+export interface GpsChecksResponse {
+    tab: "pending" | "resolved";
+    checks: GpsCheckRow[];
+    locks: GpsLockRow[];
+    summary: {
+        pending_requests: number;
+        blocked_today: number;
+        suspect_today: number;
+        outside_radius_today: number;
+    };
+    radius: Record<string, number>;
+}
+
+export interface GeofenceSegment {
+    service_type: string;
+    label: string;
+    sla: string;
+    description: string;
+    min: number;
+    max: number;
+    step: number;
+    radius_m: number;
+    default_m: number;
+}
+
+export interface GeofenceResponse {
+    segments: GeofenceSegment[];
+    updated_at: string | null;
+}
+
+export interface GpsDecisionPayload {
+    decision: "APPROVED" | "REJECTED";
+    decision_reason: string;
+}
+
 export interface ShipmentCreateOptions {
     products: ProductOption[];
     buyers: BuyerOption[];
@@ -332,6 +418,15 @@ async function post<T>(url: string, body?: unknown, config?: AxiosRequestConfig)
     }
 }
 
+async function put<T>(url: string, body?: unknown): Promise<T> {
+    try {
+        const response = await http.put<T>(url, body ?? {});
+        return response.data;
+    } catch (error) {
+        throw toApiError(error);
+    }
+}
+
 /** Drop empty filter values so the URL never carries status= or q= noise. */
 export function toQueryString(params: object): string {
     const search = new URLSearchParams();
@@ -377,5 +472,15 @@ export const api = {
     },
     history: {
         index: (query: { q?: string; status?: string; page?: number }) => get<HistoryResponse>("/admin/history", query)
+    },
+    gps: {
+        checks: (query: { status?: string; level?: string } = {}) => get<GpsChecksResponse>("/admin/gps-checks", query),
+        decide: (id: number, payload: GpsDecisionPayload) =>
+            post<{ message: string }>(`/admin/gps-checks/${id}/decision`, payload)
+    },
+    geofence: {
+        show: () => get<GeofenceResponse>("/admin/geofence"),
+        update: (policies: Record<string, number>) =>
+            put<{ message: string } & GeofenceResponse>("/admin/geofence", { policies })
     }
 };

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\DeliveryMilestoneEnum;
 use App\Enums\DeliveryStage;
 use App\Enums\PackageStatus;
+use App\Enums\PackageSource;
 use App\Enums\ServiceType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,6 +45,7 @@ final class Package extends Model
         'koli_count',
         'courier_accepted_at',
         'client_token',
+        'source',
     ];
 
     /**
@@ -67,6 +69,7 @@ final class Package extends Model
             'koli_count' => 'integer',
             'status' => PackageStatus::class,
             'service_type' => ServiceType::class,
+            'source' => PackageSource::class,
             'scheduled_at' => 'immutable_datetime',
             'scheduled_end_at' => 'immutable_datetime',
             'courier_accepted_at' => 'datetime',
@@ -243,6 +246,16 @@ final class Package extends Model
         }
 
         return 'detail';
+    }
+
+    /**
+     * @param  Builder<Package>  $query
+     * @param  PackageSource|string  $source
+     * @return Builder<Package>
+     */
+    public function scopeOfSource(Builder $query, PackageSource|string $source): Builder
+    {
+        return $query->where('source', $source instanceof PackageSource ? $source->value : $source);
     }
 
     /**

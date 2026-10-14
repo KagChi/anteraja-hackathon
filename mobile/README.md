@@ -18,8 +18,11 @@ on "no site to show yet".
 | Anteraja Kurir | `com.anteraja.kurir` | `/courier/start` | Built |
 | Anteraja Frozen | `com.anteraja.frozen` | `/client/start` | Built |
 
-`/courier/start` and `/client/start` are auth gates: they forward a
-signed-in user to the first tab and everyone else to that app's login screen.
+`/courier/start` and `/client/start` are entry gates. The courier gate forwards
+a signed-in courier to the task board and everyone else to the login screen.
+The customer gate forwards a signed-in customer to the Pesanan tab and everyone
+else to the storefront landing screen, where the catalog can be browsed before
+an account exists.
 
 An app whose `start` is `null` is refused by `scripts/build-apk.sh` rather than
 packaged, so a build can never open the wrong flow. Both apps are packaged
@@ -49,13 +52,36 @@ Each screen is a class in `app/NativeComponents/` plus a Blade view in
 | `/courier/login` | `Courier\Login` | `native/courier/login.blade.php` |
 | `/client/start` | `Client\Start` | `native/start.blade.php` |
 | `/client/login` | `Client\Login` | `native/client/login.blade.php` |
+| `/client/landing` | `Client\Landing` | `native/client/landing.blade.php` |
+| `/client/catalog` | `Client\Catalog` | `native/client/catalog.blade.php` |
+| `/client/catalog/{slug}` | `Client\ProductDetail` | `native/client/product-detail.blade.php` |
+| `/client/register` | `Client\Register` | `native/client/register.blade.php` |
+| `/client/checkout` | `Client\Checkout` | `native/client/checkout.blade.php` |
+| `/client/order-success` | `Client\OrderSuccess` | `native/client/order-success.blade.php` |
 
-Each app's three tab destinations share a layout — `Layouts\CourierTabsLayout`
-or `Layouts\ClientTabsLayout` (a `NativeLayout`) for their bottom bar; the
+Each app's tab destinations share a layout — `Layouts\CourierTabsLayout` or
+`Layouts\ClientTabsLayout` (a `NativeLayout`) for their bottom bar; the
+customer bar carries Beranda, Pesanan, Riwayat and Profil, while the
 pushed flow screens sit outside those groups and carry their own
 back-navigable top bar. The three customer flow screens share one partial,
 `native/client/partials/missing-order.blade.php`, for the "resi not on
 this account" card.
+
+## Storefront
+
+The customer app is a shop as well as a tracker. Beranda and the catalog read
+`GET /api/client/catalog`, which is public, so a visitor can look around before
+signing up; the app asks for an account at checkout. Registering calls
+`POST /api/client/auth/register` and stores the bearer token, and checkout posts
+`POST /api/client/orders`: the order is created with source CLIENT_APP and shows
+up in the hub queue tagged APP.
+
+The basket lives in `App\Support\ClientCart` (product ids and quantities in the
+cache store, like `MobileToken` and `Appearance`), because native screens are
+separate components with no shared parent. Names, prices and weights are always
+re-read from the catalog at checkout, so a stale basket can never quote a price
+the server would not charge. `App\Support\ClientReceipt` carries the created
+order to the success screen, and only shows it when the resi matches.
 
 Screen content comes from the backend API. `App\Support\MobileApi` is the one
 door to it: it carries the realm's bearer token, prefixes
@@ -74,6 +100,25 @@ Styling is Tailwind utility classes over the theme tokens in
 `resources/css/app.css`. Icons come from the generated enums in `app/Icons/`
 (`php artisan native-ui:generate-icons`); use `:ios` / `:android` so each
 platform gets a real symbol rather than a Material name iOS cannot resolve.
+
+## Location validation
+
+The courier app ships the device's last fix window with depart, arrive and proof
+of delivery. The Delivery screen keeps a bounded window (60 fixes) from
+`Geolocation::watchPosition(fineAccuracy: true)` — coordinates, accuracy and the
+device clock — and shows what the server made of it: accuracy, distance to the
+destination, the tolerated radius and the reason codes.
+
+The server is authoritative. `App\Services\Gps\FakeGpsDetector` checks the
+window for a simulated location (sub-metre accuracy, a frozen feed, impossible
+travel) and `App\Services\Gps\GeofenceEvaluator` measures the fix against the
+destination with the haversine helper, using the radius in `geofence_policies`
+(Reguler 100 m, Instant Frozen 30 m by default; editable in Radius GPS). A strong
+signal, or a hand-over outside the radius, is refused with a 422 carrying the
+reasons; the attempt is recorded in `location_checks` and a review request opens
+for the hub. Validasi GPS is where the hub approves or rejects it, and an
+approval is what lets the courier's retry through while the incident stays on
+record.
 
 ## Theme switcher
 
@@ -159,6 +204,9 @@ order its resi names, and no screen contains a web view.
 - The native image stack has no SVG decoder, so the customer schedule screen
   draws a themed cold-chain tile where the web dropped in
   `public/images/product-placeholder.svg`.
+- For the same reason the catalog draws a themed tile per product instead of
+  `image_url`; the SVG art in `public/images/catalog/` is used by the landing
+  page, which renders in a browser.
 - `php artisan native:validate` reports `Unknown native element type` for
   plugin-provided elements such as `pressable` and `list-item`, and `Class
   does not extend NativeComponent` for the tab layouts, which extend

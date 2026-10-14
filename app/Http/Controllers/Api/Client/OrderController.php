@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Client;
 
 use App\Http\Controllers\Controller;
+use App\Actions\Client\CreateClientOrder;
 use App\Http\Requests\Api\Client\OrderIndexRequest;
+use App\Http\Requests\Api\Client\StoreOrderRequest;
 use App\Http\Resources\Client\OrderSummaryResource;
+use App\Http\Resources\Client\OrderReceiptResource;
 use App\Models\Buyer;
 use App\Models\Package;
 use App\Queries\ClientOrderListQuery;
@@ -15,6 +18,24 @@ use Illuminate\Http\Request;
 
 final class OrderController extends Controller
 {
+    /**
+     * Checkout: the customer picks frozen goods, a service and a delivery
+     * window, and the order becomes a shipment in the hub queue.
+     */
+    public function store(StoreOrderRequest $request, CreateClientOrder $action): JsonResponse
+    {
+        /** @var Buyer $buyer */
+        $buyer = $request->user();
+
+        $package = $action->execute($buyer, $request->validated());
+        $package->loadMissing(['buyer', 'items.product', 'statusRef']);
+
+        return response()->json([
+            'message' => 'Pesanan berhasil dibuat dengan resi '.$package->tracking_number.'.',
+            'data' => new OrderReceiptResource($package),
+        ], 201);
+    }
+
     public function index(OrderIndexRequest $request, ClientOrderListQuery $listQuery): JsonResponse
     {
         /** @var Buyer $buyer */

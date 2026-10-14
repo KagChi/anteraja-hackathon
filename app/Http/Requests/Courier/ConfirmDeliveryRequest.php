@@ -6,11 +6,14 @@ namespace App\Http\Requests\Courier;
 
 use App\DTOs\Courier\ConfirmDeliveryData;
 use App\Enums\RecipientRelation;
+use App\Http\Requests\Courier\Concerns\ValidatesGpsSignals;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Enum;
 
 final class ConfirmDeliveryRequest extends FormRequest
 {
+    use ValidatesGpsSignals;
+
     public function authorize(): bool
     {
         return true;
@@ -31,12 +34,12 @@ final class ConfirmDeliveryRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'received_by' => ['required', 'string', 'min:2', 'max:120'],
             'recipient_relation' => ['required', new Enum(RecipientRelation::class)],
             'photo' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'receipt_note' => ['nullable', 'string', 'max:300'],
-        ];
+        ], $this->gpsSignalRules());
     }
 
     public function toData(string $photoPath): ConfirmDeliveryData

@@ -12,7 +12,7 @@ use Native\Mobile\Edge\Layouts\NativeLayout;
 use Native\Mobile\Edge\NativeComponent;
 
 /**
- * Bottom tabs shared by the three customer tab screens — Pesanan, Riwayat,
+ * Bottom tabs shared by the customer tab screens — Beranda, Pesanan, Riwayat,
  * Profil.
  *
  * The bar lives in one place because all three screens carry identical
@@ -26,6 +26,7 @@ final class ClientTabsLayout extends NativeLayout {
             ->activeColor(theme('primary'))
             ->backgroundColor(theme('surface'))
             ->textColor(theme('secondary'))
+            ->add(Tab::link('Beranda', '/client/landing', ios: Ios::House, android: Android::Home))
             ->add(Tab::link('Pesanan', '/client/orders', ios: Ios::Receipt, android: Android::ReceiptLong))
             ->add(Tab::link('Riwayat', '/client/history', ios: Ios::ClockArrowCirclepath, android: Android::History))
             ->add(Tab::link('Profil', '/client/profile', ios: Ios::PersonTextRectangle, android: Android::AccountCircle));

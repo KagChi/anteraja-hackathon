@@ -14,6 +14,59 @@ namespace App\Support;
  */
 final class ClientPayload {
     /**
+     * One catalog card (ProductResource).
+     *
+     * @param  array<string, mixed>  $product
+     * @return array<string, mixed>
+     */
+    public static function product(array $product): array {
+        return [
+            'id' => (int) ($product['id'] ?? 0),
+            'name' => (string) ($product['name'] ?? 'Produk Frozen'),
+            'slug' => (string) ($product['slug'] ?? ''),
+            'category' => (string) ($product['category'] ?? 'Frozen Food'),
+            'description' => (string) ($product['description'] ?? ''),
+            'price_label' => (string) ($product['price_label'] ?? 'Rp 0'),
+            'price_idr' => (int) ($product['price_idr'] ?? 0),
+            'unit' => (string) ($product['unit'] ?? 'pack'),
+            'weight_label' => (string) ($product['weight_label'] ?? ''),
+            'handling_notes' => (string) ($product['handling_notes'] ?? ''),
+        ];
+    }
+
+    /**
+     * The checkout receipt (OrderReceiptResource).
+     *
+     * @param  array<string, mixed>  $receipt
+     * @return array<string, mixed>
+     */
+    public static function receipt(array $receipt): array {
+        $items = is_array($receipt['items'] ?? null) ? $receipt['items'] : [];
+        $recipient = is_array($receipt['recipient'] ?? null) ? $receipt['recipient'] : [];
+
+        return [
+            'resi' => (string) ($receipt['tracking_number'] ?? ''),
+            'status' => (string) ($receipt['status_label'] ?? 'Menunggu Konfirmasi'),
+            'service' => (string) ($receipt['service_label'] ?? 'Reguler'),
+            'scheduled_label' => (string) ($receipt['scheduled_label'] ?? '-'),
+            'weight_kg' => (string) ($receipt['weight_kg'] ?? ''),
+            'total_idr' => (int) ($receipt['total_idr'] ?? 0),
+            'total_label' => 'Rp '.number_format((int) ($receipt['total_idr'] ?? 0), 0, ',', '.'),
+            'recipient' => (string) ($recipient['name'] ?? '-'),
+            'address' => (string) ($recipient['address'] ?? ''),
+            'note' => (string) ($receipt['handling_instructions'] ?? ''),
+            'items' => array_values(array_map(
+                static fn (array $item): array => [
+                    'name' => (string) ($item['name'] ?? 'Produk'),
+                    'quantity' => (int) ($item['quantity'] ?? 1),
+                    'line_total_label' => 'Rp '.number_format((int) ($item['line_total_idr'] ?? 0), 0, ',', '.'),
+                ],
+                array_filter($items, 'is_array'),
+            )),
+        ];
+    }
+
+    /**
      * One row of the Pesanan / Riwayat lists (OrderSummaryResource).
      *
      * @param  array<string, mixed>  $order

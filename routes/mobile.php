@@ -51,10 +51,19 @@ Route::native('/courier', Tasks::class);
 // alias because that is the form a route's component is resolved from
 // outside the framework — by the APK build and by native:validate.
 Route::nativeGroup(ClientTabsLayout::class, function () {
+    Route::native('/client/landing', \App\NativeComponents\Client\Landing::class);
     Route::native('/client/orders', \App\NativeComponents\Client\Orders::class);
     Route::native('/client/history', \App\NativeComponents\Client\History::class);
     Route::native('/client/profile', \App\NativeComponents\Client\Profile::class);
 });
+
+// The storefront: browse, pick a product, sign up or sign in, then check out.
+// These sit outside the tab group because each one is a pushed screen.
+Route::native('/client/catalog', \App\NativeComponents\Client\Catalog::class);
+Route::native('/client/catalog/{slug}', \App\NativeComponents\Client\ProductDetail::class);
+Route::native('/client/register', \App\NativeComponents\Client\Register::class);
+Route::native('/client/checkout', \App\NativeComponents\Client\Checkout::class);
+Route::native('/client/order-success', \App\NativeComponents\Client\OrderSuccess::class);
 
 Route::native('/client/tracking/{resi}', \App\NativeComponents\Client\Tracking::class);
 Route::native('/client/schedule/{resi}', \App\NativeComponents\Client\Schedule::class);

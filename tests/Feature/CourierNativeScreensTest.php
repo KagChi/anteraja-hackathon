@@ -14,6 +14,7 @@ use App\NativeComponents\Courier\Start;
 use App\NativeComponents\Courier\Tasks;
 use App\Support\Appearance;
 use App\Support\MobileToken;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
 use Tests\Support\MobileApiFake;
@@ -148,6 +149,110 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertSet('arrived', true);
 
         Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/arrive'));
+    }
+
+    /** The screen says where the server stands on this courier's location. */
+    public function test_the_delivery_screen_shows_the_location_validation(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->assertSee('Validasi Lokasi')
+            ->assertSee('Perlu Ditinjau')
+            ->assertSee('Radius diizinkan 30 m')
+            ->assertSee('Variasi sinyal GPS rendah')
+            ->assertSee('Minta Tinjauan Hub');
+    }
+
+    /** The fix window the device collected travels with the action. */
+    public function test_arriving_ships_the_collected_fix_window(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->call('onLocationUpdated', true, -6.229876, 106.848529, 9.0, 1760000000000)
+            ->assertSet('latitude', -6.229876)
+            ->assertSet('fixWindow', [
+                ['latitude' => -6.229876, 'longitude' => 106.848529, 'accuracy' => 9.0, 'timestamp' => 1760000000000],
+            ])
+            ->call('markArrived');
+
+        Http::assertSent(function ($request): bool {
+            if (! str_ends_with($request->url(), '/arrive')) {
+                return false;
+            }
+
+            $body = $request->data();
+
+            return ($body['latitude'] ?? null) === -6.229876
+                && ($body['device_timestamp'] ?? null) === 1760000000000
+                && ($body['gps_signals'][0]['accuracy'] ?? null) === 9.0;
+        });
+    }
+
+    public function test_departing_from_the_app_posts_the_action_with_the_fix(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->call('onLocationUpdated', true, -6.229746, 106.848529, 12.0, 1760000000000)
+            ->call('markDepart');
+
+        Http::assertSent(function ($request): bool {
+            if (! str_ends_with($request->url(), '/depart')) {
+                return false;
+            }
+
+            $body = $request->data();
+
+            return ($body['checklist'] ?? null) === []
+                && ($body['gps_signals'][0]['latitude'] ?? null) === -6.229746;
+        });
+    }
+
+    /** A refused step explains itself and offers the review that unlocks it. */
+    public function test_a_blocked_hand_over_offers_a_hub_review(): void {
+        MobileApiFake::stub([
+            // Only the hand-over is refused; the form itself still loads.
+            '*api/courier/deliveries/'.self::TASK.'/proof' => fn (Request $request) => $request->method() === 'POST'
+                ? Http::response([
+                    'message' => 'Anda berada di luar radius titik pengantaran.',
+                    'code' => 'OUTSIDE_GEOFENCE',
+                    'distance_m' => 2000,
+                    'radius_m' => 30,
+                    'lock_request_id' => 12,
+                    'reasons' => [
+                        [
+                            'code' => 'outside_geofence',
+                            'label' => 'Di luar radius titik pengantaran',
+                            'detail' => 'Jarak 2000 m dari titik penerima.',
+                            'severity' => 'strong',
+                        ],
+                    ],
+                ], 422)
+                : Http::response(MobileApiFake::proofForm()),
+        ]);
+
+        Native::test(Proof::class, params: ['resi' => self::TASK])
+            ->call('onLocationUpdated', true, -6.211700, 106.848529, 9.0, 1760000000000)
+            ->set('recipientName', 'Rina Putri')
+            ->call('submit')
+            ->assertSet('state', 'idle')
+            ->assertSee('Di luar radius titik pengantaran')
+            ->call('requestReview')
+            ->assertSee('Permintaan tinjauan terkirim ke hub.');
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/gps-review')
+            && ($request->data()['action'] ?? null) === 'POD');
+    }
+
+    /** Asking the hub to look again is available from the delivery screen too. */
+    public function test_asking_the_hub_to_review_from_the_delivery_screen(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->call('requestReview')
+            ->assertSee('Permintaan tinjauan terkirim ke hub.');
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/gps-review')
+            && ($request->data()['action'] ?? null) === 'ARRIVE');
+    }
+
+    /** The hand-over screen shows what the proof will carry. */
+    public function test_the_hand_over_screen_shows_the_device_accuracy(): void {
+        Native::test(Proof::class, params: ['resi' => self::TASK])
+            ->assertSee('Lokasi Serah Terima')
+            ->call('onLocationUpdated', true, -6.229876, 106.848529, 9.4, 1760000000000)
+            ->assertSee('Akurasi sinyal ±9 m');
     }
 
     public function test_proof_will_not_submit_without_a_recipient_name(): void {

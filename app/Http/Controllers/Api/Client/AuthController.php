@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\Client;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Client\ClaimAccountRequest;
 use App\Http\Requests\Api\Client\LoginRequest;
+use App\Http\Requests\Api\Client\RegisterRequest;
 use App\Http\Resources\Client\BuyerResource;
 use App\Models\Buyer;
 use App\Models\Package;
@@ -18,6 +19,39 @@ use Illuminate\Support\Facades\Hash;
 
 final class AuthController extends Controller
 {
+    /**
+     * Self sign-up from the customer app.
+     *
+     * The customer shops before signing in, so registration is the moment the
+     * order can finally be placed: it returns the same bearer token shape the
+     * login endpoint does, and the app continues straight to checkout.
+     */
+    public function register(RegisterRequest $request): JsonResponse
+    {
+        $buyer = Buyer::create([
+            'name' => (string) $request->validated('name'),
+            'phone' => (string) $request->validated('phone'),
+            'password' => (string) $request->validated('password'),
+            'address' => (string) $request->validated('address'),
+            'area' => $request->validated('area'),
+            'address_type' => $request->validated('address_type') ?? 'RESIDENTIAL',
+            'is_active' => true,
+        ]);
+
+        $expiresAt = Carbon::now()->addDays(30);
+        $token = $buyer->createToken('client-mobile', ['client'], $expiresAt)->plainTextToken;
+
+        return response()->json([
+            'message' => 'Akun berhasil dibuat.',
+            'data' => [
+                'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_at' => $expiresAt->toIso8601String(),
+                'buyer' => new BuyerResource($buyer),
+            ],
+        ], 201);
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
         $phoneInput = (string) $request->validated('phone');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Courier;
 
 use App\Actions\Courier\ConfirmDelivery;
+use App\Enums\GpsAction;
 use App\Enums\PackageStatus;
 use App\Enums\RecipientRelation;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,7 @@ use App\Http\Requests\Courier\ConfirmDeliveryRequest;
 use App\Models\Package;
 use App\Models\Staff;
 use App\Support\MediaStorage;
+use App\Services\Gps\GpsValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -50,8 +52,12 @@ final class ProofController extends Controller
         ]);
     }
 
-    public function store(ConfirmDeliveryRequest $request, string $trackingNumber, ConfirmDelivery $action): JsonResponse
-    {
+    public function store(
+        ConfirmDeliveryRequest $request,
+        string $trackingNumber,
+        ConfirmDelivery $action,
+        GpsValidator $gps,
+    ): JsonResponse {
         /** @var Staff $courier */
         $courier = $request->user();
 
@@ -64,6 +70,18 @@ final class ProofController extends Controller
                 'redirect' => "/courier/deliveries/{$package->tracking_number}",
             ], 422);
         }
+
+        // The radius is enforced here: proof of delivery is the moment the
+        // parcel changes hands, so being far from the destination matters.
+        $gps->validate(
+            package: $package,
+            courier: $courier,
+            action: GpsAction::POD,
+            signals: $request->gpsSignals(),
+            latitude: $request->fixLatitude(),
+            longitude: $request->fixLongitude(),
+            enforceGeofence: true,
+        );
 
         $photoFile = $request->file('photo');
         $photoPath = MediaStorage::storeProof($photoFile, 'proofs');

@@ -36,7 +36,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            //
+            // The landing page's Android download cards read this, so an APK
+            // can be repointed from the environment without touching the page.
+            'downloads' => array_values((array) config('mobile.apps', [])),
         ]);
     }
 }

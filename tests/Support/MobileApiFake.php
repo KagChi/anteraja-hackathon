@@ -57,6 +57,20 @@ final class MobileApiFake {
                 'data' => ['replacement_tracking_number' => self::ISSUE],
             ], 201),
             '*api/client/orders/'.self::ISSUE.'/issue' => Http::response(self::issue()),
+            // The storefront. These have to sit above the orders wildcard below
+            // (a POST to orders would otherwise be answered with the list) and
+            // the catalog detail above the list.
+            '*api/client/catalog/tidak-ada' => Http::response(['message' => 'Produk tidak ditemukan.'], 404),
+            '*api/client/catalog/*' => Http::response(self::productDetail()),
+            '*api/client/catalog' => Http::response(self::catalog()),
+            '*api/client/auth/register' => Http::response([
+                'message' => 'Akun berhasil dibuat.',
+                'data' => ['token' => 'client-test-token', 'token_type' => 'Bearer', 'buyer' => ['name' => 'Pelanggan Baru']],
+            ], 201),
+            '*api/client/orders' => Http::response([
+                'message' => 'Pesanan berhasil dibuat dengan resi AJ-FRZ-0012400.',
+                'data' => self::orderReceipt(),
+            ], 201),
             '*api/client/orders*' => function (Request $request) {
                 return str_contains($request->url(), 'tab=completed')
                     ? Http::response(self::completedOrders())
@@ -79,12 +93,114 @@ final class MobileApiFake {
             '*api/courier/deliveries/'.self::COURIER_TASK.'/proof' => Http::response(self::proofForm()),
             '*api/courier/deliveries/'.self::COURIER_TASK.'/issue' => Http::response(self::courierIssueForm()),
             '*api/courier/deliveries/'.self::COURIER_TASK.'/arrive' => Http::response(['message' => 'Status berhasil diperbarui: Tiba di lokasi.']),
+            '*api/courier/deliveries/'.self::COURIER_TASK.'/depart' => Http::response(['message' => 'Pengantaran telah dimulai.']),
+            '*api/courier/deliveries/'.self::COURIER_TASK.'/gps-review' => Http::response([
+                'message' => 'Permintaan tinjauan GPS dikirim ke hub.',
+                'data' => ['id' => 7, 'action' => 'POD', 'status' => 'PENDING', 'status_label' => 'Menunggu Tinjauan'],
+            ], 201),
             '*api/courier/deliveries/'.self::COURIER_TASK => Http::response(self::courierDelivery()),
             '*api/courier/history*' => Http::response(self::courierHistory()),
             '*api/courier/profile' => Http::response(self::courierProfile()),
 
             // Anything that slips through is a mistake worth failing on.
             '*' => Http::response(['message' => 'Endpoint tidak difake.'], 500),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function catalog(): array {
+        return [
+            'data' => [
+                self::product([
+                    'id' => 1,
+                    'name' => 'Nugget Ayam 1 kg',
+                    'slug' => 'nugget-ayam-1kg',
+                    'category' => 'Frozen Food',
+                    'price_idr' => 48000,
+                    'price_label' => 'Rp 48.000',
+                    'weight_kg' => 1.0,
+                    'weight_label' => '1 kg',
+                ]),
+                self::product([
+                    'id' => 6,
+                    'name' => 'Edamame Beku 500g',
+                    'slug' => 'edamame-beku-500g',
+                    'category' => 'Sayur Beku',
+                    'price_idr' => 28000,
+                    'price_label' => 'Rp 28.000',
+                    'weight_kg' => 0.5,
+                    'weight_label' => '0,5 kg',
+                ]),
+            ],
+            'meta' => ['count' => 2, 'standard_temp' => 'Beku -18°C'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function productDetail(): array {
+        return [
+            'data' => self::product([
+                'id' => 1,
+                'name' => 'Nugget Ayam 1 kg',
+                'slug' => 'nugget-ayam-1kg',
+                'category' => 'Frozen Food',
+                'price_idr' => 48000,
+                'price_label' => 'Rp 48.000',
+                'weight_kg' => 1.0,
+                'weight_label' => '1 kg',
+                'description' => 'Nugget ayam siap goreng, dikemas beku dengan ice gel.',
+                'handling_notes' => 'Suhu standar -18°C, wajib cooler box.',
+            ]),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private static function product(array $overrides): array {
+        return $overrides + [
+            'id' => 1,
+            'name' => 'Produk Frozen',
+            'slug' => 'produk-frozen',
+            'category' => 'Frozen Food',
+            'description' => 'Produk beku pilihan.',
+            'price_idr' => 10000,
+            'price_label' => 'Rp 10.000',
+            'unit' => 'pack',
+            'weight_kg' => 1.0,
+            'weight_label' => '1 kg',
+            'image_url' => '/images/catalog/nugget-ayam.svg',
+            'handling_notes' => 'Simpan di freezer.',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function orderReceipt(): array {
+        return [
+            'tracking_number' => 'AJ-FRZ-0012400',
+            'status' => 'AWAITING_CONFIRMATION',
+            'status_label' => 'Menunggu Konfirmasi',
+            'source' => 'CLIENT_APP',
+            'service_type' => 'INSTANT_FROZEN',
+            'service_label' => 'Instant Frozen',
+            'recipient' => [
+                'name' => 'Rina Putri',
+                'phone' => '+6281298765432',
+                'address' => 'Jl. Melati No. 14',
+                'area' => 'Kebayoran Baru',
+            ],
+            'scheduled_label' => 'Besok, 13:00 - 15:00',
+            'scheduled_date' => '2026-10-16',
+            'window_start' => '13:00',
+            'window_end' => '15:00',
+            'weight_kg' => 2.0,
+            'item_count' => 2,
+            'total_idr' => 96000,
+            'handling_instructions' => 'Titip ke sekuriti lobi',
+            'items' => [
+                ['name' => 'Nugget Ayam 1 kg', 'quantity' => 2, 'unit' => 'pack', 'price_idr' => 48000, 'line_total_idr' => 96000],
+            ],
         ];
     }
 
@@ -359,12 +475,35 @@ final class MobileApiFake {
                 'canReportIssue' => true,
                 'hasOpenIssue' => false,
                 'checklistItems' => [],
+                'gps' => [
+                    'destination' => ['latitude' => -6.229746, 'longitude' => 106.848529],
+                    'radius_m' => 30,
+                    'distance_m' => 18,
+                    'inside' => true,
+                    'level' => 'SUSPECTED',
+                    'level_label' => 'Perlu Ditinjau',
+                    'accuracy_m' => 9.0,
+                    'action' => 'ARRIVE',
+                    'action_label' => 'Tiba di lokasi',
+                    'reasons' => [
+                        [
+                            'code' => 'low_diversity',
+                            'label' => 'Variasi sinyal GPS rendah',
+                            'detail' => 'Hanya 2 titik berbeda dalam 50 dtk.',
+                            'severity' => 'weak',
+                        ],
+                    ],
+                    'checked_at' => '2026-10-14T06:00:00+00:00',
+                    'can_request_review' => true,
+                    'requested_action' => null,
+                    'lock' => null,
+                ],
             ],
         ];
     }
 
     /** @return array<string, mixed> */
-    private static function proofForm(): array {
+    public static function proofForm(): array {
         return [
             'proofForm' => [
                 'tracking' => self::COURIER_TASK,

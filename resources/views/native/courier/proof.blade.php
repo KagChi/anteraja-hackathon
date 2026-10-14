@@ -99,6 +99,39 @@
         {{-- Hand it over. --}}
         @include('native.partials.action-error', ['message' => $actionError])
 
+        {{-- The location the proof will carry, and the way out of a refusal. --}}
+        <native:column class="w-full gap-2 rounded-xl bg-theme-surface-container-lowest p-4">
+            <native:row class="w-full items-center justify-between gap-2">
+                <native:row class="items-center gap-2">
+                    <native:icon :ios="Ios::Location" :android="Android::LocationOn" :size="18"
+                        class="text-theme-secondary" />
+                    <native:text class="text-sm text-theme-secondary uppercase">Lokasi Serah Terima</native:text>
+                </native:row>
+                <native:text class="text-sm text-theme-secondary">{{ $fixCount }} titik</native:text>
+            </native:row>
+
+            <native:text class="text-sm text-theme-secondary">
+                {{ $gpsAccuracy ?? 'Menunggu sinyal GPS perangkat.' }}
+            </native:text>
+            <native:text class="text-sm leading-snug text-theme-secondary">
+                Koordinat dan riwayat sinyal dikirim bersama bukti foto; hub memeriksanya terhadap radius
+                titik penerima.
+            </native:text>
+
+            @if ($gpsNotice !== '')
+                <native:row class="w-full items-center gap-2 rounded-lg bg-theme-tertiary-fixed p-3">
+                    <native:icon :ios="Ios::CheckmarkCircle" :android="Android::CheckCircle" :size="16"
+                        class="text-theme-on-tertiary-fixed" />
+                    <native:text class="flex-1 text-sm text-theme-on-tertiary-fixed">{{ $gpsNotice }}</native:text>
+                </native:row>
+            @endif
+
+            @if ($actionError !== null)
+                <native:button class="w-full" variant="secondary" label="Minta Tinjauan Hub" @tap="requestReview"
+                    :ios-icon="Ios::QuestionmarkCircle" :android-icon="Android::HelpOutline" />
+            @endif
+        </native:column>
+
         <native:column class="w-full gap-2">
             @if ($state === 'done')
                 <native:button variant="success" label="Pengiriman Berhasil Selesai" @tap="backToTasks"

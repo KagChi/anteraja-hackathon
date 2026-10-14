@@ -48,4 +48,30 @@ final class ApiResult {
     public function get(string $key, mixed $default = null): mixed {
         return $this->raw[$key] ?? $default;
     }
+
+    /**
+     * The first validation message Laravel sent, when the failure was a 422.
+     *
+     * A form screen shows this instead of the generic "The given data was
+     * invalid." so the customer learns which field to fix.
+     */
+    public function firstError(): ?string {
+        $errors = $this->raw['errors'] ?? null;
+
+        if (! is_array($errors)) {
+            return null;
+        }
+
+        foreach ($errors as $messages) {
+            if (is_array($messages) && isset($messages[0]) && is_string($messages[0])) {
+                return $messages[0];
+            }
+
+            if (is_string($messages)) {
+                return $messages;
+            }
+        }
+
+        return null;
+    }
 }

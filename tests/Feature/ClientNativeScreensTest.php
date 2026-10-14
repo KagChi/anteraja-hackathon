@@ -6,13 +6,22 @@ namespace Tests\Feature;
 
 use App\NativeComponents\Client\History;
 use App\NativeComponents\Client\Issue;
+use App\NativeComponents\Client\Catalog;
+use App\NativeComponents\Client\Checkout;
+use App\NativeComponents\Client\Landing;
 use App\NativeComponents\Client\Login;
+use App\NativeComponents\Client\OrderSuccess;
 use App\NativeComponents\Client\Orders;
+use App\NativeComponents\Client\ProductDetail;
 use App\NativeComponents\Client\Profile;
+use App\NativeComponents\Client\Register;
 use App\NativeComponents\Client\Schedule;
 use App\NativeComponents\Client\Start;
 use App\NativeComponents\Client\Tracking;
 use App\Support\Appearance;
+use App\Support\ClientCart;
+use App\Support\ClientPayload;
+use App\Support\ClientReceipt;
 use App\Support\MobileToken;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
@@ -35,7 +44,173 @@ final class ClientNativeScreensTest extends TestCase {
         parent::setUp();
 
         MobileToken::clear(MobileToken::CLIENT);
+        ClientCart::clear();
+        ClientReceipt::clear();
         MobileApiFake::stub();
+    }
+
+    /** A guest lands on the storefront, not on a login wall. */
+    public function test_a_guest_lands_on_the_landing_screen(): void {
+        Native::visit('/client/start')->assertNavigatedTo('/client/landing');
+    }
+
+    public function test_a_signed_in_customer_goes_straight_to_the_orders_tab(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+
+        Native::visit('/client/start')->assertNavigatedTo('/client/orders');
+    }
+
+    public function test_the_landing_screen_offers_the_catalog_and_the_sign_up_cta(): void {
+        Native::test(Landing::class)
+            ->assertSee('Anteraja Frozen')
+            ->assertSee('Kiriman beku Anda sampai utuh, dingin, dan tercatat')
+            ->assertSee('Lihat Katalog')
+            ->assertSee('Produk Populer')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Rp 48.000')
+            ->assertSee('Daftar')
+            ->assertSee('Masuk');
+    }
+
+    public function test_the_catalog_lists_products_and_fills_the_basket(): void {
+        $screen = Native::test(Catalog::class)
+            ->assertSee('Katalog Frozen')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Edamame Beku 500g')
+            ->assertSet('cartCount', 0);
+
+        $screen->call('addToCart', 1)
+            ->assertSet('cartCount', 1)
+            ->assertSee('Nugget Ayam 1 kg masuk keranjang.');
+
+        $this->assertSame(1, ClientCart::count());
+
+        $screen->call('clearCart')->assertSet('cartCount', 0);
+        $this->assertSame(0, ClientCart::count());
+    }
+
+    /** Checkout with an empty basket points back at the catalog. */
+    public function test_the_catalog_refuses_a_checkout_without_a_basket(): void {
+        Native::test(Catalog::class)
+            ->call('openCheckout')
+            ->assertSet('actionError', 'Pilih minimal satu produk sebelum checkout.');
+
+        Native::test(Catalog::class)
+            ->call('addToCart', 1)
+            ->call('openCheckout')
+            ->assertNavigatedTo('/client/checkout');
+    }
+
+    public function test_the_product_detail_picks_a_quantity_and_adds_it(): void {
+        $screen = Native::test(ProductDetail::class, params: ['slug' => 'nugget-ayam-1kg'])
+            ->assertSee('Detail Produk')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Catatan penanganan')
+            ->assertSet('quantity', 1);
+
+        $screen->call('increment')->call('increment')->assertSet('quantity', 3);
+        $screen->call('decrement')->assertSet('quantity', 2);
+        $screen->call('addToCart')->assertSet('justAdded', true);
+
+        $this->assertSame(2, ClientCart::quantity(1));
+    }
+
+    public function test_an_unknown_product_shows_the_empty_state(): void {
+        Native::test(ProductDetail::class, params: ['slug' => 'tidak-ada'])
+            ->assertSee('Produk tidak ditemukan');
+    }
+
+    public function test_register_stores_the_token_and_continues_to_checkout(): void {
+        $screen = Native::test(Register::class)
+            ->assertSee('Daftar Anteraja Frozen')
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'rahasia123')
+            ->set('passwordConfirmation', 'rahasia123')
+            ->set('address', 'Jl. Cikajang No. 7');
+
+        $screen->call('submit')->assertNavigatedTo('/client/checkout');
+
+        $this->assertSame('client-test-token', MobileToken::get(MobileToken::CLIENT));
+    }
+
+    public function test_register_refuses_a_password_that_is_too_short_or_mismatched(): void {
+        Native::test(Register::class)
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'pendek')
+            ->set('passwordConfirmation', 'pendek')
+            ->set('address', 'Jl. Cikajang No. 7')
+            ->call('submit')
+            ->assertSee('Password minimal 8 karakter.');
+
+        Native::test(Register::class)
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'rahasia123')
+            ->set('passwordConfirmation', 'rahasia456')
+            ->set('address', 'Jl. Cikajang No. 7')
+            ->call('submit')
+            ->assertSee('Konfirmasi password tidak sama.');
+    }
+
+    /** A guest who reaches checkout is sent to the sign-up form. */
+    public function test_checkout_sends_a_guest_to_register(): void {
+        Native::test(Checkout::class)->assertNavigatedTo('/client/register');
+    }
+
+    public function test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+        ClientCart::set(1, 2);
+
+        $screen = Native::test(Checkout::class)
+            ->assertSee('Checkout')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Rp 96.000')
+            ->assertSet('cartCount', 2)
+            // Prefilled from the customer profile the API returns.
+            ->assertSet('recipientName', 'Rina Putri');
+
+        $screen->call('increment', 1)->assertSet('cartCount', 3);
+
+        $screen->call('submit')->assertNavigatedTo('/client/order-success?resi=AJ-FRZ-0012400');
+
+        $this->assertSame(0, ClientCart::count());
+    }
+
+    public function test_the_order_success_screen_shows_the_new_resi(): void {
+        ClientReceipt::put(ClientPayload::receipt([
+            'tracking_number' => 'AJ-FRZ-0012400',
+            'status_label' => 'Menunggu Konfirmasi',
+            'service_label' => 'Instant Frozen',
+            'scheduled_label' => 'Besok, 13:00 - 15:00',
+            'total_idr' => 96000,
+            'recipient' => ['name' => 'Rina Putri', 'address' => 'Jl. Melati No. 14'],
+            'items' => [
+                ['name' => 'Nugget Ayam 1 kg', 'quantity' => 2, 'line_total_idr' => 96000],
+            ],
+        ]));
+
+        Native::test(OrderSuccess::class, params: ['resi' => 'AJ-FRZ-0012400'])
+            ->assertSee('Pesanan berhasil dibuat')
+            ->assertSee('AJ-FRZ-0012400')
+            ->assertSee('Instant Frozen')
+            ->assertSee('Langkah berikutnya')
+            ->call('openOrders')
+            ->assertNavigatedTo('/client/orders');
+    }
+
+    /** A receipt from a different order must not be shown on this resi. */
+    public function test_the_success_screen_ignores_a_stale_receipt(): void {
+        ClientReceipt::put(ClientPayload::receipt([
+            'tracking_number' => 'AJ-FRZ-0009999',
+            'status_label' => 'Diterima',
+            'items' => [],
+        ]));
+
+        Native::test(OrderSuccess::class, params: ['resi' => 'AJ-FRZ-0012400'])
+            ->assertSee('AJ-FRZ-0012400')
+            ->assertDontSee('Diterima');
     }
 
     public function test_the_orders_tab_lists_the_shipments_in_flight(): void {
@@ -251,8 +426,8 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Nomor HP dan password wajib diisi.');
     }
 
-    public function test_the_start_gate_opens_login_without_a_token(): void {
-        Native::test(Start::class)->assertNavigatedTo('/client/login');
+    public function test_the_start_gate_opens_the_landing_screen_without_a_token(): void {
+        Native::test(Start::class)->assertNavigatedTo('/client/landing');
     }
 
     public function test_the_start_gate_skips_login_when_signed_in(): void {
@@ -263,7 +438,7 @@ final class ClientNativeScreensTest extends TestCase {
 
     /** The gate and login are their own routes, outside the tab group. */
     public function test_the_auth_routes_resolve(): void {
-        Native::visit('/client/start')->assertNavigatedTo('/client/login');
+        Native::visit('/client/start')->assertNavigatedTo('/client/landing');
 
         Native::visit('/client/login')
             ->assertSee('Anteraja Frozen')
@@ -322,6 +497,7 @@ final class ClientNativeScreensTest extends TestCase {
     public function test_the_customer_tabs_are_routable(): void {
         Native::visit('/client/orders')
             ->assertHasTabBar()
+            ->assertHasTab('Beranda')
             ->assertHasTab('Pesanan')
             ->assertHasTab('Riwayat')
             ->assertHasTab('Profil');

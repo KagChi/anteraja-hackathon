@@ -59,6 +59,9 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
     const [query, setQuery] = useState("");
     const [status, setStatus] = useState(initialStatus ?? "");
     const [courier, setCourier] = useState("");
+    // "ADMIN" or "CLIENT_APP": orders the customer app opened are tagged, so
+    // the hub can work that queue on its own.
+    const [source, setSource] = useState("");
     const [date, setDate] = useState(initialDate ?? todayIso());
     const [page, setPage] = useState(1);
 
@@ -85,6 +88,7 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                 q: query.trim(),
                 status,
                 courier,
+                source,
                 date,
                 page,
                 per_page: PER_PAGE
@@ -99,7 +103,7 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
         } finally {
             if (requestId.current === id) setLoading(false);
         }
-    }, [query, status, courier, date, page]);
+    }, [query, status, courier, source, date, page]);
 
     // Debounced so typing in the search box does not fire a request per keystroke.
     useEffect(() => {
@@ -114,6 +118,7 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
         setQuery("");
         setStatus("");
         setCourier("");
+        setSource("");
         setDate(todayIso());
         setPage(1);
     }
@@ -139,7 +144,8 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
     const currentPage = paginator?.current_page ?? 1;
     const total = paginator?.total ?? 0;
     const rangeLabel = total === 0 ? "0" : `${paginator?.from ?? 1}-${paginator?.to ?? 0}`;
-    const filtersActive = query.trim() !== "" || status !== "" || courier !== "" || date !== todayIso();
+    const filtersActive =
+        query.trim() !== "" || status !== "" || courier !== "" || source !== "" || date !== todayIso();
 
     return (
         <AdminLayout>
@@ -219,6 +225,18 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                             { value: "unassigned", label: "Belum Ditugaskan" }
                         ]}
                     />
+                    <FilterSelect
+                        value={source}
+                        onChange={(value) => {
+                            setSource(value);
+                            setPage(1);
+                        }}
+                        placeholder="Semua Asal Pesanan"
+                        options={[
+                            { value: "ADMIN", label: "Hub Console" },
+                            { value: "CLIENT_APP", label: "Aplikasi Pelanggan" }
+                        ]}
+                    />
                     <div className="relative">
                         <MaterialIcon
                             name="calendar_today"
@@ -294,9 +312,19 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                                     className="group h-10 transition-colors hover:bg-surface-container-low"
                                 >
                                     <td className="whitespace-nowrap px-space-lg">
-                                        <span className="font-data-mono font-semibold text-body-sm text-on-surface">
-                                            {row.tracking}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-data-mono font-semibold text-body-sm text-on-surface">
+                                                {row.tracking}
+                                            </span>
+                                            {row.source === "CLIENT_APP" ? (
+                                                <span
+                                                    title="Dipesan dari aplikasi pelanggan"
+                                                    className="rounded bg-primary/10 px-1.5 py-0.5 font-label-sm text-label-sm text-primary"
+                                                >
+                                                    APP
+                                                </span>
+                                            ) : null}
+                                        </div>
                                     </td>
                                     <td className="px-space-lg">
                                         <div className="font-body-sm text-body-sm text-on-surface">{row.buyer}</div>

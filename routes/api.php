@@ -10,9 +10,12 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Admin\ShipmentAssignmentController;
 use App\Http\Controllers\Admin\ShipmentController;
+use App\Http\Controllers\Admin\GeofenceController;
+use App\Http\Controllers\Admin\GpsCheckController;
 use App\Http\Controllers\Admin\ShipmentExportController;
 use App\Http\Controllers\Admin\ShipmentRescheduleController;
 use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
+use App\Http\Controllers\Api\Client\CatalogController as ClientCatalogController;
 use App\Http\Controllers\Api\Client\IssueChoiceController as ClientApiIssueChoiceController;
 use App\Http\Controllers\Api\Client\IssueController as ClientApiIssueController;
 use App\Http\Controllers\Api\Client\LinkController as ClientLinkController;
@@ -35,6 +38,7 @@ use App\Http\Controllers\Client\TrackingController;
 use App\Http\Controllers\Courier\AcceptTaskController;
 use App\Http\Controllers\Courier\DeliveryController;
 use App\Http\Controllers\Courier\IssueReportController;
+use App\Http\Controllers\Courier\GpsReviewController;
 use App\Http\Controllers\Courier\MarkArrivedController;
 use App\Http\Controllers\Courier\ProfileController;
 use App\Http\Controllers\Courier\ProofController;
@@ -93,6 +97,12 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     // 4. History / Riwayat
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     Route::get('history/export', HistoryExportController::class)->name('history.export');
+
+    // 5. GPS validation / Validasi GPS
+    Route::get('geofence', [GeofenceController::class, 'index'])->name('geofence.index');
+    Route::put('geofence', [GeofenceController::class, 'update'])->name('geofence.update');
+    Route::get('gps-checks', [GpsCheckController::class, 'index'])->name('gps-checks.index');
+    Route::post('gps-checks/{id}/decision', [GpsCheckController::class, 'decide'])->name('gps-checks.decision');
 });
 
 // Courier Mobile Auth (Staff email + password -> Sanctum token)
@@ -117,6 +127,9 @@ Route::prefix('courier')->name('api.courier.')->middleware([AuthenticateCourier:
     Route::post('deliveries/{package:tracking_number}/depart', StartDeliveryController::class)->name('deliveries.depart');
     Route::post('deliveries/{package:tracking_number}/arrive', MarkArrivedController::class)->name('deliveries.arrive');
 
+    // GPS validation: a courier asking the hub to review a blocked attempt.
+    Route::post('deliveries/{package:tracking_number}/gps-review', GpsReviewController::class)->name('deliveries.gps-review');
+
     // 3. Proof of Delivery
     Route::get('deliveries/{package:tracking_number}/proof', [ProofController::class, 'create'])->name('proof.create');
     Route::post('deliveries/{package:tracking_number}/proof', [ProofController::class, 'store'])->name('proof.store');
@@ -135,6 +148,15 @@ Route::prefix('client/auth')->name('api.client.auth.')
     ->middleware(['force.json', 'client.headers', 'throttle:client-auth'])
     ->group(function () {
         Route::post('login', [ClientAuthController::class, 'login'])->name('login');
+        Route::post('register', [ClientAuthController::class, 'register'])->name('register');
+    });
+
+// 1b) Public Client Catalog (the storefront the app browses before signing in)
+Route::prefix('client/catalog')->name('api.client.catalog.')
+    ->middleware(['force.json', 'client.headers', 'throttle:60,1'])
+    ->group(function () {
+        Route::get('/', [ClientCatalogController::class, 'index'])->name('index');
+        Route::get('{slug}', [ClientCatalogController::class, 'show'])->where('slug', '[a-z0-9-]+')->name('show');
     });
 
 // 2) Authenticated Client Mobile API (Sanctum with ability "client")
@@ -145,6 +167,7 @@ Route::prefix('client')->name('api.client.')
         Route::get('me', [ClientProfileController::class, 'show'])->name('me');
 
         Route::get('orders', [ClientOrderController::class, 'index'])->name('orders.index');
+        Route::post('orders', [ClientOrderController::class, 'store'])->name('orders.store');
         Route::prefix('orders/{tracking_number}')->name('orders.')->middleware('client.owned')->group(function () {
             Route::get('/', [ClientOrderController::class, 'show'])->name('show');
             Route::get('tracking', [ClientApiTrackingController::class, 'show'])->name('tracking.show');

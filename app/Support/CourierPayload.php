@@ -56,6 +56,37 @@ final class CourierPayload {
             'can_arrive' => (bool) ($delivery['canArrive'] ?? false),
             'can_proof' => (bool) ($delivery['canProof'] ?? false),
             'can_report_issue' => (bool) ($delivery['canReportIssue'] ?? false),
+            'gps' => self::gps($delivery['gps'] ?? null),
+        ];
+    }
+
+    /**
+     * The location-validation block a delivery screen shows: where the
+     * destination is, the radius for this service, the last verdict, and any
+     * review request the hub still has to decide.
+     *
+     * @param  mixed  $gps
+     * @return array<string, mixed>
+     */
+    public static function gps(mixed $gps): array {
+        $gps = is_array($gps) ? $gps : [];
+        $destination = is_array($gps['destination'] ?? null) ? $gps['destination'] : [];
+        $lock = is_array($gps['lock'] ?? null) ? $gps['lock'] : null;
+        $reasons = is_array($gps['reasons'] ?? null) ? array_values(array_filter($gps['reasons'], 'is_array')) : [];
+
+        return [
+            'destination_latitude' => is_numeric($destination['latitude'] ?? null) ? (float) $destination['latitude'] : null,
+            'destination_longitude' => is_numeric($destination['longitude'] ?? null) ? (float) $destination['longitude'] : null,
+            'radius_m' => (int) ($gps['radius_m'] ?? 100),
+            'distance_m' => is_numeric($gps['distance_m'] ?? null) ? (int) $gps['distance_m'] : null,
+            'inside' => $gps['inside'] ?? null,
+            'level' => (string) ($gps['level'] ?? 'CLEAN'),
+            'level_label' => (string) ($gps['level_label'] ?? 'Normal'),
+            'accuracy_m' => is_numeric($gps['accuracy_m'] ?? null) ? (float) $gps['accuracy_m'] : null,
+            'action' => $gps['action'] ?? null,
+            'reasons' => $reasons,
+            'can_request_review' => (bool) ($gps['can_request_review'] ?? false),
+            'lock_status' => $lock['status_label'] ?? null,
         ];
     }
 
