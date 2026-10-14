@@ -1,0 +1,16 @@
+# Database n8n pada cluster CloudNativePG bersama ("postgres").
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: n8n
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: n8n
+spec:
+  cluster:
+    name: postgres
+  name: n8n
+  owner: postgres
+  ensure: present
+  databaseReclaimPolicy: retain
+
