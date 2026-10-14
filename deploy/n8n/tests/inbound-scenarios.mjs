@@ -44,7 +44,12 @@ function run(script, options) {
     return { first: () => ({ json: upstream[name] }), item: { json: upstream[name] } };
   };
   const $input = { first: () => ({ json: input }), item: { json: input } };
-  const $now = { setZone: () => ({ toFormat: () => today }) };
+  // Enough of Luxon to cover what the nodes use: a fixed "now" in Jakarta.
+  const nowJakarta = {
+    toFormat: (pattern) => (pattern === 'yyyyLLddHHmm' ? '202610142330' : today),
+    plus: () => ({ toFormat: (pattern) => (pattern === 'yyyyLLddHHmm' ? '202610150130' : today) }),
+  };
+  const $now = { setZone: () => nowJakarta };
 
   return new Function('$', '$input', '$now', script)($, $input, $now)[0].json;
 }
@@ -282,6 +287,38 @@ scenario('a window outside the offered list is asked for again', () => {
   contains(out.reply.text, '09:00-11:00', 'offers the slots');
 });
 
+scenario('a reply that names only a time asks for a date instead of calling the API', () => {
+  const out = decide({
+    text: '17:00-19:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '17:00-19:00' },
+  });
+  eq(out.decision.app_url, null, 'no app call');
+  eq(out.reply.values[3], null, 'state not advanced');
+  contains(out.reply.text, 'kurang dari 2 jam', 'explains why');
+  contains(out.reply.text, '09:00-11:00', 'offers the slots again');
+});
+
+scenario('a window inside the two-hour lead is treated the same way', () => {
+  const out = decide({
+    text: 'ubah jadwal jam 23:59',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '17:00-19:00' },
+  });
+  eq(out.decision.app_url, null, 'no app call');
+  contains(out.reply.text, 'kurang dari 2 jam', 'explains why');
+});
+
+scenario('a window tomorrow still goes through', () => {
+  const out = decide({
+    text: 'besok 13:00-15:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-15', proposed_slot: '13:00-15:00' },
+  });
+  contains(out.decision.app_url, '/schedule/reschedule', 'app call');
+  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+});
+
 scenario('an unrelated message re-asks the confirmation, with no issue menu', () => {
   const out = decide({ text: 'apa kabar', state: SCHEDULE_STATE });
   eq(out.decision.intent, 'info:schedule_request', 'intent');
@@ -301,6 +338,32 @@ scenario('a successful confirmation persists the package and the new step', () =
   eq(out.reply.values[1], RESI, 'tracking');
   eq(out.reply.values[2], 'tok', 'token');
   eq(out.reply.values[3], 'confirmed', 'last_template');
+});
+
+// ------------------------------------------------------ inbound API rejection
+
+console.log('');
+console.log('Inbound — an API rejection is surfaced');
+
+scenario('the API message is relayed however the error is wrapped', () => {
+  const cases = [
+    [{ error: { message: '422 - {"message":"Waktu pengantaran minimal 2 jam dari sekarang.","errors":{"slot":["x"]}}' } }, 'Waktu pengantaran minimal 2 jam dari sekarang.'],
+    [{ error: { message: { message: 'Status paket tidak dapat dijadwalkan ulang.' } } }, 'Status paket tidak dapat dijadwalkan ulang.'],
+    [{ error: { context: { data: '{"message":"Tidak ada jadwal yang menunggu konfirmasi."}' } } }, 'Tidak ada jadwal yang menunggu konfirmasi.'],
+    [{ error: { body: '{"errors":{"slot":["Waktu pengantaran minimal 2 jam dari sekarang."]}}' } }, 'Waktu pengantaran minimal 2 jam dari sekarang.'],
+    [{ error: { message: 'Request failed with status code 422' } }, 'Request failed with status code 422'],
+  ];
+
+  for (const pair of cases) {
+    const out = decide({ text: 'siap', state: SCHEDULE_STATE, app: pair[0] });
+    contains(out.reply.text, pair[1], 'relayed message');
+    eq(out.reply.values[3], null, 'state not advanced after a rejection');
+  }
+});
+
+scenario('a rejection never leaves the customer without an explanation', () => {
+  const out = decide({ text: 'siap', state: SCHEDULE_STATE, app: { error: { message: 'boom' } } });
+  contains(out.reply.text, 'hubungi layanan pelanggan', 'falls back to a next step');
 });
 
 // ------------------------------------------------------------ inbound choice
