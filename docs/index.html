@@ -70,11 +70,8 @@
       <span class="badge" style="background: #10b981;">37 Endpoints</span>
     </h1>
     <div class="links">
-      <a href="./openapi.json" target="_blank" download>⬇️ Download JSON</a>
-      <a href="./openapi.yaml" target="_blank" download>⬇️ Download YAML</a>
-      <a href="./ADMIN_API_INTEGRATION_GUIDE.md" target="_blank">📖 Guide Admin</a>
-      <a href="./COURIER_API_INTEGRATION_GUIDE.md" target="_blank">📖 Guide Kurir</a>
-      <a href="./CLIENT_API_INTEGRATION_GUIDE.md" target="_blank">📖 Guide Client</a>
+      <a href="/api/docs/openapi.json" target="_blank" download="openapi.json">⬇️ Download JSON</a>
+      <a href="/api/docs/openapi.yaml" target="_blank" download="openapi.yaml">⬇️ Download YAML</a>
     </div>
   </div>
 
@@ -85,7 +82,7 @@
   <script>
     window.onload = function() {
       window.ui = SwaggerUIBundle({
-        url: "./openapi.json",
+        url: "/api/docs/openapi.json",
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [

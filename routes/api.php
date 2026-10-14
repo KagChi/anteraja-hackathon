@@ -12,6 +12,16 @@ use App\Http\Controllers\Admin\ShipmentAssignmentController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\ShipmentExportController;
 use App\Http\Controllers\Admin\ShipmentRescheduleController;
+use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
+use App\Http\Controllers\Api\Client\IssueController as ClientApiIssueController;
+use App\Http\Controllers\Api\Client\LinkController as ClientLinkController;
+use App\Http\Controllers\Api\Client\OrderController as ClientOrderController;
+use App\Http\Controllers\Api\Client\ProfileController as ClientProfileController;
+use App\Http\Controllers\Api\Client\ReplacementController as ClientApiReplacementController;
+use App\Http\Controllers\Api\Client\ScheduleConfirmationController as ClientApiScheduleConfirmationController;
+use App\Http\Controllers\Api\Client\ScheduleController as ClientApiScheduleController;
+use App\Http\Controllers\Api\Client\ScheduleRescheduleController as ClientApiScheduleRescheduleController;
+use App\Http\Controllers\Api\Client\TrackingController as ClientApiTrackingController;
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\Client\EntryController;
 use App\Http\Controllers\Client\IssueController;
@@ -107,10 +117,50 @@ Route::prefix('courier')->name('api.courier.')->middleware(['staff.role:COURIER'
     Route::get('profile', [ProfileController::class, 'show'])->name('profile.show');
 });
 
-// Client Mobile API Routes (No Auth, Token-Based)
-Route::prefix('client/{token}')->name('api.client.')
+// 1) Public Client Auth (Phone + Password Login)
+Route::prefix('client/auth')->name('api.client.auth.')
+    ->middleware(['force.json', 'client.headers', 'throttle:client-auth'])
+    ->group(function () {
+        Route::post('login', [ClientAuthController::class, 'login'])->name('login');
+    });
+
+// 2) Authenticated Client Mobile API (Sanctum with ability "client")
+Route::prefix('client')->name('api.client.')
+    ->middleware(['force.json', 'client.headers', 'auth:sanctum', 'abilities:client', 'client.buyer', 'throttle:60,1'])
+    ->group(function () {
+        Route::post('auth/logout', [ClientAuthController::class, 'logout'])->name('auth.logout');
+        Route::get('me', [ClientProfileController::class, 'show'])->name('me');
+
+        Route::get('orders', [ClientOrderController::class, 'index'])->name('orders.index');
+        Route::prefix('orders/{tracking_number}')->middleware('client.owned')->group(function () {
+            Route::get('/', [ClientOrderController::class, 'show'])->name('orders.show');
+            Route::get('tracking', [ClientApiTrackingController::class, 'show'])->name('tracking.show');
+            Route::get('schedule', [ClientApiScheduleController::class, 'show'])->name('schedule.show');
+            Route::post('schedule/confirm', ClientApiScheduleConfirmationController::class)->name('schedule.confirm');
+            Route::post('schedule/reschedule', ClientApiScheduleRescheduleController::class)->name('schedule.reschedule');
+            Route::get('issue', [ClientApiIssueController::class, 'show'])->name('issue.show');
+            Route::post('issue/resend', ClientApiReplacementController::class)->name('issue.resend');
+        });
+    });
+
+// 3) Guest / WhatsApp Deep-Link Routes (Token-Based)
+Route::prefix('guest/{token}')->where(['token' => '[A-Fa-f0-9]{32,128}'])->name('api.guest.')
+    ->middleware(['force.json', 'client.headers', 'throttle:60,1', 'client.package'])
+    ->group(function () {
+        Route::post('claim', [ClientAuthController::class, 'claim'])->name('claim');
+        Route::get('/', [ClientLinkController::class, 'resolve'])->name('resolve');
+        Route::get('tracking', [ClientApiTrackingController::class, 'show'])->name('tracking.show');
+        Route::get('schedule', [ClientApiScheduleController::class, 'show'])->name('schedule.show');
+        Route::post('schedule/confirm', ClientApiScheduleConfirmationController::class)->name('schedule.confirm');
+        Route::post('schedule/reschedule', ClientApiScheduleRescheduleController::class)->name('schedule.reschedule');
+        Route::get('issue', [ClientApiIssueController::class, 'show'])->name('issue.show');
+    });
+
+// 4) Client Mobile API Legacy Token-Based Routes (Deep-Link compatibility)
+Route::prefix('client/{token}')->where(['token' => '[A-Fa-f0-9]{32,128}'])->name('api.client.')
     ->middleware(['client.headers', 'throttle:60,1', 'client.package'])
     ->group(function () {
+        Route::post('claim', [ClientAuthController::class, 'claim'])->name('claim');
         Route::get('/', EntryController::class)->name('entry');
         Route::get('tracking', [TrackingController::class, 'show'])->name('tracking.show');
         Route::get('schedule', [ScheduleController::class, 'show'])->name('schedule.show');
@@ -120,7 +170,17 @@ Route::prefix('client/{token}')->name('api.client.')
         Route::post('issue/resend', ReplacementController::class)->name('issue.resend');
     });
 
-// OpenAPI / Swagger Documentation Spec (Hanya aktif di non-production)
+// OpenAPI / Swagger Documentation
+// 1. Tampilan Visual Swagger UI: http://127.0.0.1:8000/api/docs
+Route::get('docs', function () {
+    abort_if(app()->isProduction(), 404);
+
+    return response()->file(base_path('docs/index.html'), [
+        'Content-Type' => 'text/html; charset=UTF-8',
+    ]);
+})->name('api.docs.ui');
+
+// 2. OpenAPI Spec JSON: http://127.0.0.1:8000/api/docs/openapi.json
 Route::get('docs/openapi.json', function () {
     abort_if(app()->isProduction(), 404);
 
@@ -128,3 +188,12 @@ Route::get('docs/openapi.json', function () {
         'Content-Type' => 'application/json',
     ]);
 })->name('api.docs.json');
+
+// 3. OpenAPI Spec YAML: http://127.0.0.1:8000/api/docs/openapi.yaml
+Route::get('docs/openapi.yaml', function () {
+    abort_if(app()->isProduction(), 404);
+
+    return response()->file(base_path('docs/openapi.yaml'), [
+        'Content-Type' => 'application/yaml',
+    ]);
+})->name('api.docs.yaml');
