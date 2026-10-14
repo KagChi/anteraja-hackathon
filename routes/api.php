@@ -132,8 +132,8 @@ Route::prefix('client')->name('api.client.')
         Route::get('me', [ClientProfileController::class, 'show'])->name('me');
 
         Route::get('orders', [ClientOrderController::class, 'index'])->name('orders.index');
-        Route::prefix('orders/{tracking_number}')->middleware('client.owned')->group(function () {
-            Route::get('/', [ClientOrderController::class, 'show'])->name('orders.show');
+        Route::prefix('orders/{tracking_number}')->name('orders.')->middleware('client.owned')->group(function () {
+            Route::get('/', [ClientOrderController::class, 'show'])->name('show');
             Route::get('tracking', [ClientApiTrackingController::class, 'show'])->name('tracking.show');
             Route::get('schedule', [ClientApiScheduleController::class, 'show'])->name('schedule.show');
             Route::post('schedule/confirm', ClientApiScheduleConfirmationController::class)->name('schedule.confirm');

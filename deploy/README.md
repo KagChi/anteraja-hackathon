@@ -111,6 +111,7 @@ Edit file `.env` dan pastikan:
 - `APP_KEY=...` (Key rahasia Laravel)
 - `DB_PASSWORD=...` (Password aman untuk PostgreSQL)
 - `APP_URL=https://madgo.my.id/anteraja-frozen`
+- `ASSET_URL=https://madgo.my.id/anteraja-frozen` (Wajib agar asset JS/CSS Vite dilayani dari sub-path)
 
 ### Langkah 3: Build & Jalankan Stack
 ```bash
