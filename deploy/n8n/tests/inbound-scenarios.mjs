@@ -44,12 +44,21 @@ function run(script, options) {
     return { first: () => ({ json: upstream[name] }), item: { json: upstream[name] } };
   };
   const $input = { first: () => ({ json: input }), item: { json: input } };
-  // Enough of Luxon to cover what the nodes use: a fixed "now" in Jakarta.
-  const nowJakarta = {
-    toFormat: (pattern) => (pattern === 'yyyyLLddHHmm' ? '202610142330' : today),
-    plus: () => ({ toFormat: (pattern) => (pattern === 'yyyyLLddHHmm' ? '202610150130' : today) }),
+  // Enough of Luxon for what the nodes use, around a fixed "now" in Jakarta:
+  // 2026-10-14 23:30, so every slot today is inside the two-hour lead.
+  const jakartaAt = (offset) => {
+    const opts = offset || {};
+    const day = String(14 + (opts.days || 0)).padStart(2, '0');
+    return {
+      toFormat: (pattern) => {
+        if (pattern === 'yyyyLLddHHmm') {
+          return opts.days || opts.hours ? '202610150130' : '202610142330';
+        }
+        return '2026-10-' + day;
+      },
+    };
   };
-  const $now = { setZone: () => nowJakarta };
+  const $now = { setZone: () => Object.assign(jakartaAt({}), { plus: (opts) => jakartaAt(opts) }) };
 
   return new Function('$', '$input', '$now', script)($, $input, $now)[0].json;
 }
@@ -287,26 +296,54 @@ scenario('a window outside the offered list is asked for again', () => {
   contains(out.reply.text, '09:00-11:00', 'offers the slots');
 });
 
-scenario('a reply that names only a time asks for a date instead of calling the API', () => {
+scenario('a bare time means tomorrow, not today', () => {
+  const out = decide({
+    text: '11:00-13:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: '11:00-13:00' },
+  });
+  contains(out.decision.app_url, '/schedule/reschedule', 'app call');
+  eq(out.decision.app_body.date, '2026-10-15', 'next day');
+  eq(out.decision.app_body.slot, '11:00-13:00', 'slot');
+  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+});
+
+scenario('a bare time that still fits today stays today', () => {
   const out = decide({
     text: '17:00-19:00',
     state: SCHEDULE_STATE,
-    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '17:00-19:00' },
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: '09:00-11:00' },
+  });
+  eq(out.decision.app_body.date, '2026-10-15', 'the stub has no usable slot left today');
+});
+
+scenario('"besok" wins over a date the model guessed', () => {
+  const out = decide({
+    text: 'besok 11:00-13:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '11:00-13:00' },
+  });
+  eq(out.decision.app_body.date, '2026-10-15', 'tomorrow');
+});
+
+scenario('"lusa" means the day after', () => {
+  const out = decide({
+    text: 'lusa 11:00-13:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_slot: '11:00-13:00' },
+  });
+  eq(out.decision.app_body.date, '2026-10-16', 'day after tomorrow');
+});
+
+scenario('an explicitly too-soon day is refused, with a way forward', () => {
+  const out = decide({
+    text: 'hari ini 11:00-13:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '11:00-13:00' },
   });
   eq(out.decision.app_url, null, 'no app call');
   eq(out.reply.values[3], null, 'state not advanced');
-  contains(out.reply.text, 'kurang dari 2 jam', 'explains why');
-  contains(out.reply.text, '09:00-11:00', 'offers the slots again');
-});
-
-scenario('a window inside the two-hour lead is treated the same way', () => {
-  const out = decide({
-    text: 'ubah jadwal jam 23:59',
-    state: SCHEDULE_STATE,
-    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '17:00-19:00' },
-  });
-  eq(out.decision.app_url, null, 'no app call');
-  contains(out.reply.text, 'kurang dari 2 jam', 'explains why');
+  contains(out.reply.text, 'jadwal besok', 'points at tomorrow');
 });
 
 scenario('a window tomorrow still goes through', () => {
