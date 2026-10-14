@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: n8n
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Tidak ada whitelist IP Cloudflare di sini: ServiceLB k3s memakai
+    # externalTrafficPolicy=Cluster, jadi ingress-nginx melihat client sebagai
+    # 10.42.0.1 (node) dan whitelist akan memblokir semua trafik, termasuk
+    # trafik dari Cloudflare. Baca README untuk opsi mengunci origin.
+    nginx.ingress.kubernetes.io/proxy-body-size: 32m
+    # Editor n8n memakai SSE, jadi buffering dimatikan dan timeout dilonggarkan.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: n8n.kagchi.my.id
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: n8n
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - n8n.kagchi.my.id
+      secretName: n8n-tls
+

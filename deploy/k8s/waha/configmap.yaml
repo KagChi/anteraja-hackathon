@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waha-config
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: waha
+data:
+  # WEBJS menjalankan WhatsApp Web lewat Chromium di dalam container.
+  WHATSAPP_DEFAULT_ENGINE: "WEBJS"
+
+  WAHA_DASHBOARD_ENABLED: "true"
+  WAHA_DASHBOARD_USERNAME: "admin"
+  WHATSAPP_SWAGGER_USERNAME: "admin"
+
+  # /health dan /ping tetap publik supaya probe Kubernetes tidak butuh API key.
+  # Image ini membaca WHATSAPP_API_KEY_EXCLUDE_PATH (alias WAHA_* tidak dikenali).
+  WHATSAPP_API_KEY_EXCLUDE_PATH: "health,ping"
+  WAHA_PRINT_QR: "false"
+
+  # Default image adalah /tmp/whatsapp-files dengan lifetime 180 detik, jadi
+  # media hilang saat pod restart. Arahkan ke volume persisten dan matikan
+  # penghapusan otomatis.
+  WHATSAPP_FILES_FOLDER: "/app/.media"
+  WHATSAPP_FILES_LIFETIME: "0"
+
+  TZ: "Asia/Jakarta"
+

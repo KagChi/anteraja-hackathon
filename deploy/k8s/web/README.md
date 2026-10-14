@@ -17,6 +17,19 @@ ke namespace `prod-other` di cluster `innovare-cloud`, dengan host
 | Cache/Session/Queue | Dragonfly (`dragonfly:6379`), Redis DB `2` dan `3` |
 | Image pull secret | `image-pull-secrets` (sudah ada di namespace) |
 
+## Struktur `deploy/k8s`
+
+Setiap aplikasi punya direktori dan kustomization sendiri:
+
+| Path | Isi |
+| --- | --- |
+| `deploy/k8s/web/` | Backend Anteraja Hackathon di `hackathon.kagchi.my.id` (dokumen ini) |
+| `deploy/k8s/n8n/` | n8n di `n8n.kagchi.my.id` |
+| `deploy/k8s/waha/` | WAHA (WhatsApp HTTP API) di `waha.kagchi.my.id` |
+
+Semua perintah di dokumen ini memakai direktori tersebut:
+`kubectl --context innovare-cloud apply -k deploy/k8s/web`.
+
 Arsitektur runtime sama dengan deployment capstone di namespace ini: satu
 container `web` (Octane) dan satu container `worker` (`queue:work`), keduanya
 membaca konfigurasi dari ConfigMap `anteraja-hackathon-config` dan Secret
@@ -65,7 +78,7 @@ Ganti `APP_KEY` dengan hasil `php artisan key:generate --show`.
 ## 4. Deploy Workload
 
 ```bash
-kubectl --context innovare-cloud apply -k deploy/k8s
+kubectl --context innovare-cloud apply -k deploy/k8s/web
 ```
 
 `apply -k` menerapkan ConfigMap, Database, Deployment, Service, dan Ingress.
@@ -79,7 +92,7 @@ hapus Job lama sebelum apply ulang:
 
 ```bash
 kubectl --context innovare-cloud -n prod-other delete job anteraja-hackathon-migrate --ignore-not-found
-kubectl --context innovare-cloud apply -f deploy/k8s/migrate-job.yaml
+kubectl --context innovare-cloud apply -f deploy/k8s/web/migrate-job.yaml
 kubectl --context innovare-cloud -n prod-other logs -f job/anteraja-hackathon-migrate
 ```
 
