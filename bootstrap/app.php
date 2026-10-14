@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
         $middleware->web(append: [HandleInertiaRequests::class]);
         // The admin console drives the JSON API from the browser with a session
         // cookie, so the group needs the same CSRF protection the web group has.
