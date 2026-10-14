@@ -65,6 +65,10 @@ return [
             'driver' => 'eloquent',
             'model' => Staff::class,
         ],
+        'buyers' => [
+            'driver' => 'eloquent',
+            'model' => \App\Models\Buyer::class,
+        ],
 
         // 'users' => [
         //     'driver' => 'database',

@@ -72,9 +72,14 @@ final class DemoDataSeeder extends Seeder
         ]);
 
         // 2. Buyers
+        $buyerPassword = Hash::make('password123');
+
         $rinaId = DB::table('buyers')->insertGetId([
             'name' => 'Rina Putri',
-            'phone' => '081298765432',
+            'phone' => '+6281298765432',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Jl. Melati Indah No. 42, RT 03 / RW 07, Tebet Barat, Jakarta Selatan, DKI Jakarta 12810',
             'area' => 'Tebet Barat, Jakarta Selatan',
             'address_type' => 'RESIDENTIAL',
@@ -86,7 +91,10 @@ final class DemoDataSeeder extends Seeder
 
         $hendraBuyerId = DB::table('buyers')->insertGetId([
             'name' => 'Hendra Wijaya',
-            'phone' => '081222334455',
+            'phone' => '+6281222334455',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Jl. Boulevard Raya No. 12, Kelapa Gading, Jakarta Utara',
             'area' => 'Kelapa Gading, Jakarta Utara',
             'created_at' => $now,
@@ -95,7 +103,10 @@ final class DemoDataSeeder extends Seeder
 
         $sitiId = DB::table('buyers')->insertGetId([
             'name' => 'Siti Rahma',
-            'phone' => '081333445566',
+            'phone' => '+6281333445566',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Jl. Kyai Maja No. 8, Kebayoran Baru, Jakarta Selatan',
             'area' => 'Kebayoran Baru, Jakarta Selatan',
             'created_at' => $now,
@@ -104,7 +115,10 @@ final class DemoDataSeeder extends Seeder
 
         $kevinId = DB::table('buyers')->insertGetId([
             'name' => 'Kevin Tan',
-            'phone' => '081744556677',
+            'phone' => '+6281744556677',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Pluit Kencana No. 5, Pluit, Jakarta Utara',
             'area' => 'Pluit, Jakarta Utara',
             'created_at' => $now,
@@ -113,7 +127,10 @@ final class DemoDataSeeder extends Seeder
 
         $dewiId = DB::table('buyers')->insertGetId([
             'name' => 'Dewi Lestari',
-            'phone' => '081855667788',
+            'phone' => '+6281855667788',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Jl. BSD Grand Boulevard, Serpong, Tangerang Selatan',
             'area' => 'Serpong, Tangerang Selatan',
             'created_at' => $now,
@@ -122,7 +139,10 @@ final class DemoDataSeeder extends Seeder
 
         $rizkyId = DB::table('buyers')->insertGetId([
             'name' => 'Rizky Ramadhan',
-            'phone' => '081966778899',
+            'phone' => '+6281966778899',
+            'password' => $buyerPassword,
+            'phone_verified_at' => $now,
+            'is_active' => true,
             'address' => 'Jl. TB Simatupang No. 20, Cilandak, Jakarta Selatan',
             'area' => 'Cilandak, Jakarta Selatan',
             'created_at' => $now,
