@@ -15,6 +15,8 @@ servers:
 tags:
 - name: Auth
   description: Autentikasi sesi staf internal (Admin & Kurir)
+- name: Courier - Auth
+  description: Login kurir berbasis bearer token Sanctum untuk aplikasi Android Kurir
 - name: Admin - Shipments
   description: Manajemen data pengiriman, alokasi armada, dan penjadwalan
 - name: Admin - Exceptions
@@ -36,6 +38,16 @@ tags:
     & klaim penggantian
 - name: Admin - Media
   description: Penyajian berkas media bukti yang tersimpan di disk lokal
+- name: Client - Storefront
+  description: Katalog produk beku, pendaftaran akun, dan pemesanan dari aplikasi
+    pelanggan
+- name: Courier - Location
+  description: Validasi lokasi kurir, deteksi GPS palsu, dan permintaan tinjauan hub
+- name: Admin - Location
+  description: Radius geofence per jenis layanan dan antrean validasi GPS
+- name: Public - Tracking
+  description: Pelacakan resi publik untuk halaman utama. Hanya status, jadwal,
+    kota tujuan, dan riwayat berlabel tetap, tanpa identitas penerima.
 components:
   securitySchemes:
     sessionAuth:
@@ -202,11 +214,11 @@ components:
     CourierDistanceRequest:
       type: object
       properties:
-        latitude:
+        lat:
           type: number
           format: float
           example: -6.229746
-        longitude:
+        lng:
           type: number
           format: float
           example: 106.848529
@@ -224,6 +236,27 @@ components:
         notes:
           type: string
           example: Berangkat dari Hub Tebet.
+        latitude:
+          type: number
+          format: float
+          example: -6.229746
+        longitude:
+          type: number
+          format: float
+          example: 106.848529
+        device_timestamp:
+          type: integer
+          format: int64
+          description: Jam perangkat saat fix terakhir (epoch milidetik).
+          example: 1760000000000
+        gps_signals:
+          type: array
+          description: Jendela fix terakhir dari perangkat. Server memakainya untuk
+            deteksi GPS palsu (akurasi tidak wajar, koordinat beku, perpindahan
+            mustahil) dan boleh menolak aksi ini dengan 422.
+          maxItems: 60
+          items:
+            $ref: '#/components/schemas/GpsSignal'
     CourierArriveRequest:
       type: object
       properties:
@@ -235,6 +268,15 @@ components:
           type: number
           format: float
           example: 106.8492
+        device_timestamp:
+          type: integer
+          format: int64
+          example: 1760000000000
+        gps_signals:
+          type: array
+          maxItems: 60
+          items:
+            $ref: '#/components/schemas/GpsSignal'
     CourierStoreProofRequest:
       type: object
       required:
@@ -270,6 +312,25 @@ components:
         notes:
           type: string
           example: Paket diterima langsung dalam kondisi beku sempurna.
+        latitude:
+          type: number
+          format: float
+          description: Koordinat saat serah terima; dibandingkan dengan radius titik
+            penerima.
+          example: -6.229876
+        longitude:
+          type: number
+          format: float
+          example: 106.848529
+        device_timestamp:
+          type: integer
+          format: int64
+          example: 1760000000000
+        gps_signals:
+          type: array
+          maxItems: 60
+          items:
+            $ref: '#/components/schemas/GpsSignal'
     CourierStoreIssueRequest:
       type: object
       required:
@@ -331,6 +392,387 @@ components:
         notes:
           type: string
           example: Mohon pastikan tiba sebelum jam 12 siang.
+    GpsSignal:
+      type: object
+      required:
+      - latitude
+      - longitude
+      properties:
+        latitude:
+          type: number
+          format: float
+          example: -6.229746
+        longitude:
+          type: number
+          format: float
+          example: 106.848529
+        accuracy:
+          type: number
+          format: float
+          description: Akurasi yang dilaporkan perangkat (meter).
+          example: 9.5
+        timestamp:
+          type: integer
+          format: int64
+          description: Jam perangkat untuk fix ini (epoch milidetik).
+          example: 1760000000000
+    GpsReason:
+      type: object
+      properties:
+        code:
+          type: string
+          example: frozen_fix
+        label:
+          type: string
+          example: Koordinat beku (tidak ada variasi sinyal)
+        detail:
+          type: string
+          example: 10 titik identik selama 60 dtk tanpa variasi sinyal GPS.
+        severity:
+          type: string
+          enum:
+          - strong
+          - weak
+    StorefrontProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Nugget Ayam 1 kg
+        slug:
+          type: string
+          example: nugget-ayam-1kg
+        category:
+          type: string
+          example: Frozen Food
+        description:
+          type: string
+        price_idr:
+          type: integer
+          example: 48000
+        price_label:
+          type: string
+          example: Rp 48.000
+        unit:
+          type: string
+          example: pack
+        weight_kg:
+          type: number
+          format: float
+          example: 1.0
+        weight_label:
+          type: string
+          example: 1 kg
+        image_url:
+          type: string
+          nullable: true
+          example: /images/catalog/nugget-ayam.svg
+        handling_notes:
+          type: string
+    ClientRegisterRequest:
+      type: object
+      required:
+      - name
+      - phone
+      - password
+      - password_confirmation
+      - address
+      properties:
+        name:
+          type: string
+          example: Rina Pembeli
+        phone:
+          type: string
+          example: '081211100099'
+        password:
+          type: string
+          format: password
+          example: rahasia123
+        password_confirmation:
+          type: string
+          format: password
+          example: rahasia123
+        address:
+          type: string
+          example: Jl. Cikajang No. 7, Kebayoran Baru
+        area:
+          type: string
+          nullable: true
+          example: Kebayoran Baru
+        address_type:
+          type: string
+          enum:
+          - RESIDENTIAL
+          - COMMERCIAL
+          example: RESIDENTIAL
+    ClientOrderRequest:
+      type: object
+      required:
+      - recipient
+      - service_type
+      - scheduled_date
+      - window_start
+      - window_end
+      - items
+      properties:
+        recipient:
+          type: object
+          required:
+          - name
+          - phone
+          - address
+          properties:
+            name:
+              type: string
+              example: Pelanggan Checkout
+            phone:
+              type: string
+              example: '081299900011'
+            address:
+              type: string
+              example: Jl. Tebet Barat Dalam No. 5
+            area:
+              type: string
+              nullable: true
+              example: Tebet, Jakarta Selatan
+            address_type:
+              type: string
+              enum:
+              - RESIDENTIAL
+              - COMMERCIAL
+            latitude:
+              type: number
+              format: float
+              nullable: true
+              description: Koordinat tujuan; inilah yang dipakai validasi radius kurir.
+            longitude:
+              type: number
+              format: float
+              nullable: true
+        service_type:
+          type: string
+          enum:
+          - REGULER
+          - INSTANT_FROZEN
+        scheduled_date:
+          type: string
+          example: '2026-10-16'
+        window_start:
+          type: string
+          example: '13:00'
+        window_end:
+          type: string
+          example: '15:00'
+        handling_instructions:
+          type: string
+          nullable: true
+          example: Titip ke sekuriti lobi
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+            - product_id
+            - quantity
+            properties:
+              product_id:
+                type: integer
+                example: 1
+              quantity:
+                type: integer
+                example: 2
+    ClientOrderReceipt:
+      type: object
+      properties:
+        tracking_number:
+          type: string
+          example: AJ-FRZ-0012400
+        status:
+          type: string
+          example: AWAITING_CONFIRMATION
+        status_label:
+          type: string
+          example: Menunggu Konfirmasi
+        source:
+          type: string
+          example: CLIENT_APP
+        service_label:
+          type: string
+          example: Instant Frozen
+        scheduled_label:
+          type: string
+          example: Besok, 13:00 - 15:00
+        weight_kg:
+          type: number
+          format: float
+        total_idr:
+          type: integer
+          example: 124000
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              quantity:
+                type: integer
+              line_total_idr:
+                type: integer
+    GeofenceSegment:
+      type: object
+      properties:
+        service_type:
+          type: string
+          example: REGULER
+        label:
+          type: string
+          example: Anteraja Reguler
+        sla:
+          type: string
+          example: SLA 1-2 Hari
+        description:
+          type: string
+        min:
+          type: integer
+          example: 25
+        max:
+          type: integer
+          example: 500
+        step:
+          type: integer
+          example: 10
+        radius_m:
+          type: integer
+          example: 100
+        default_m:
+          type: integer
+          example: 100
+    GpsCheckRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        tracking:
+          type: string
+        buyer:
+          type: string
+        courier:
+          type: string
+        action:
+          type: string
+          enum:
+          - DEPART
+          - ARRIVE
+          - POD
+        action_label:
+          type: string
+        level:
+          type: string
+          enum:
+          - CLEAN
+          - SUSPECTED
+          - BLOCKED
+        tone:
+          type: string
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/GpsReason'
+        distance_m:
+          type: integer
+          nullable: true
+        radius_m:
+          type: integer
+          nullable: true
+        inside:
+          type: boolean
+          nullable: true
+        applied:
+          type: boolean
+          description: True bila aksi dilanjutkan, false bila server menahannya.
+    GpsLockRow:
+      type: object
+      properties:
+        id:
+          type: integer
+        tracking:
+          type: string
+        courier:
+          type: string
+        action:
+          type: string
+        status:
+          type: string
+          enum:
+          - PENDING
+          - APPROVED
+          - REJECTED
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/GpsReason'
+        decision_reason:
+          type: string
+          nullable: true
+        decided_by:
+          type: string
+          nullable: true
+    PublicTracking:
+      type: object
+      properties:
+        resi:
+          type: string
+          example: AJ-FRZ-0012345
+        status:
+          type: object
+          properties:
+            code:
+              type: string
+              example: IN_DELIVERY
+            label:
+              type: string
+              example: Sedang Diantar
+            tone:
+              type: string
+              example: dark
+        service:
+          type: string
+          example: Instant Frozen
+        category:
+          type: string
+          example: Frozen Food
+        cold_chain:
+          type: string
+          example: Beku -18°C
+        destination_city:
+          type: string
+          nullable: true
+          description: Kecamatan atau kota saja, diambil dari bagian terakhir area penerima.
+          example: Jakarta Selatan
+        schedule_label:
+          type: string
+          example: Hari ini, 13:00 - 15:00
+        updated_label:
+          type: string
+          example: Hari ini • 13:20 WIB
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              time:
+                type: string
+              detail:
+                type: string
+              is_accent:
+                type: boolean
 paths:
   /auth/login:
     post:
@@ -738,6 +1180,63 @@ paths:
             text/csv:
               schema:
                 type: string
+  /courier/auth/login:
+    post:
+      tags:
+      - Courier - Auth
+      summary: Login Kurir (Token Sanctum)
+      description: Mengautentikasi staf kurir aktif dengan email & password, lalu
+        menerbitkan bearer token Sanctum dengan ability courier untuk aplikasi Android
+        Kurir. Token berlaku 30 hari.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: 12|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        format: date-time
+                      courier:
+                        $ref: '#/components/schemas/StaffUser'
+        '401':
+          description: Email atau password salah
+        '403':
+          description: Bukan akun kurir, atau akun kurir dinonaktifkan
+        '429':
+          description: Terlalu banyak percobaan login
+  /courier/auth/logout:
+    post:
+      tags:
+      - Courier - Auth
+      summary: Logout Kurir
+      description: Menghapus bearer token yang sedang dipakai aplikasi kurir.
+      responses:
+        '200':
+          description: Logout berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSuccess'
+        '401':
+          description: Belum terautentikasi
   /courier/tasks:
     get:
       tags:
@@ -766,13 +1265,13 @@ paths:
         schema:
           type: string
           example: AJ-FRZ-0012351
-      - name: latitude
+      - name: lat
         in: query
         schema:
           type: number
           format: float
           example: -6.229746
-      - name: longitude
+      - name: lng
         in: query
         schema:
           type: number
@@ -1194,3 +1693,340 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseSuccess'
+  /track/{resi}:
+    get:
+      tags:
+      - Public - Tracking
+      summary: Lacak resi publik
+      description: Dipakai panel Lacak Pesananmu di halaman utama. Jawabannya
+        sengaja dibatasi - status, jadwal, kota tujuan, dan riwayat berlabel tetap
+        - sehingga tidak ada nama, nomor telepon, atau alamat penerima yang keluar.
+        Dibatasi 20 permintaan per menit per IP karena nomor resi berurutan.
+      parameters:
+      - name: resi
+        in: path
+        required: true
+        schema:
+          type: string
+          example: AJ-FRZ-0012345
+      responses:
+        '200':
+          description: Paket ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PublicTracking'
+        '404':
+          description: Nomor resi tidak dikenal
+        '429':
+          description: Terlalu banyak pencarian resi dalam satu menit
+  /client/catalog:
+    get:
+      tags:
+      - Client - Storefront
+      summary: Katalog produk beku
+      description: Daftar produk yang bisa dipesan dari aplikasi pelanggan. Publik,
+        jadi pengunjung boleh melihat katalog sebelum membuat akun.
+      responses:
+        '200':
+          description: Daftar produk aktif
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StorefrontProduct'
+                  meta:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                        example: 8
+  /client/catalog/{slug}:
+    get:
+      tags:
+      - Client - Storefront
+      summary: Detail satu produk
+      parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          example: nugget-ayam-1kg
+      responses:
+        '200':
+          description: Produk ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/StorefrontProduct'
+        '404':
+          description: Produk tidak ditemukan atau sudah tidak dijual
+  /client/auth/register:
+    post:
+      tags:
+      - Client - Storefront
+      summary: Daftar akun pelanggan
+      description: Membuat akun pembeli dan langsung mengembalikan bearer token, supaya
+        aplikasi bisa melanjutkan ke checkout tanpa login ulang.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientRegisterRequest'
+      responses:
+        '201':
+          description: Akun dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Akun berhasil dibuat.
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      token_type:
+                        type: string
+                        example: Bearer
+                      expires_at:
+                        type: string
+                        format: date-time
+        '422':
+          description: Validasi gagal (nomor HP sudah terdaftar, password kurang, dsb)
+  /client/orders:
+    post:
+      tags:
+      - Client - Storefront
+      summary: Buat pesanan dari aplikasi pelanggan
+      description: Membuat paket dengan sumber CLIENT_APP, menyimpan data penerima
+        sebagai profil pengantaran pembeli, lalu menaruh paket di antrean hub sebagai
+        Menunggu Konfirmasi.
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientOrderRequest'
+      responses:
+        '201':
+          description: Pesanan dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Pesanan berhasil dibuat dengan resi AJ-FRZ-0012400.
+                  data:
+                    $ref: '#/components/schemas/ClientOrderReceipt'
+        '401':
+          description: Belum masuk
+        '422':
+          description: Validasi gagal atau produk sudah tidak tersedia
+  /courier/deliveries/{tracking_number}/gps-review:
+    post:
+      tags:
+      - Courier - Location
+      summary: Minta tinjauan hub atas penolakan validasi lokasi
+      description: Kurir meminta hub meninjau keputusan GPS yang menahan langkah ini.
+        Insiden tetap tercatat; persetujuan hub yang membuat percobaan ulang bisa
+        lewat.
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: tracking_number
+        in: path
+        required: true
+        schema:
+          type: string
+          example: AJ-FRZ-0012345
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - action
+              properties:
+                action:
+                  type: string
+                  enum:
+                  - DEPART
+                  - ARRIVE
+                  - POD
+                note:
+                  type: string
+                  nullable: true
+      responses:
+        '201':
+          description: Permintaan tinjauan tercatat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GpsLockRow'
+  /admin/geofence:
+    get:
+      tags:
+      - Admin - Location
+      summary: Radius geofence per jenis layanan
+      security:
+      - sessionAuth: []
+      responses:
+        '200':
+          description: Daftar segmen dan radius aktif
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  segments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GeofenceSegment'
+                  updated_at:
+                    type: string
+                    nullable: true
+    put:
+      tags:
+      - Admin - Location
+      summary: Ubah radius geofence
+      description: Nilai di luar batas tiap segmen ditolak. Perubahan langsung berlaku
+        untuk pengiriman berikutnya dan dicatat pada updated_by.
+      security:
+      - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - policies
+              properties:
+                policies:
+                  type: object
+                  properties:
+                    REGULER:
+                      type: integer
+                      example: 250
+                    INSTANT_FROZEN:
+                      type: integer
+                      example: 45
+      responses:
+        '200':
+          description: Radius diperbarui
+        '422':
+          description: Radius di luar batas segmen
+  /admin/gps-checks:
+    get:
+      tags:
+      - Admin - Location
+      summary: Antrean validasi GPS
+      description: Pemeriksaan lokasi yang ditolak atau ditandai, ditambah permintaan
+        tinjauan dari kurir.
+      security:
+      - sessionAuth: []
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - resolved
+      - name: level
+        in: query
+        schema:
+          type: string
+          enum:
+          - BLOCKED
+          - SUSPECTED
+      responses:
+        '200':
+          description: Antrean dan ringkasannya
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tab:
+                    type: string
+                  checks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GpsCheckRow'
+                  locks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GpsLockRow'
+                  summary:
+                    type: object
+                    properties:
+                      pending_requests:
+                        type: integer
+                      blocked_today:
+                        type: integer
+                      suspect_today:
+                        type: integer
+                      outside_radius_today:
+                        type: integer
+  /admin/gps-checks/{id}/decision:
+    post:
+      tags:
+      - Admin - Location
+      summary: Putuskan permintaan tinjauan GPS
+      description: Persetujuan membuat kurir bisa mengulang aksi yang tadi ditahan;
+        penolakan menahannya. Alasan wajib diisi dan tersimpan bersama keputusannya.
+      security:
+      - sessionAuth: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 7
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - decision
+              - decision_reason
+              properties:
+                decision:
+                  type: string
+                  enum:
+                  - APPROVED
+                  - REJECTED
+                decision_reason:
+                  type: string
+                  minLength: 10
+                  example: Kurir terverifikasi berada di lokasi penerima.
+      responses:
+        '200':
+          description: Keputusan tersimpan
+        '422':
+          description: Permintaan sudah diputuskan sebelumnya atau alasan terlalu pendek

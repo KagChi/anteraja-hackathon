@@ -11,6 +11,9 @@ return [
     ],
     'notifications' => [
         'schedule_request' => 'Permintaan jadwal pengiriman untuk resi :tracking_number.',
+        'schedule_rescheduled' => 'Konfirmasi jadwal ulang pengiriman untuk resi :tracking_number.',
+        'issue_options' => 'Menu pilihan penyelesaian kendala untuk resi :tracking_number.',
+        'buyer_issue_choice' => 'Pilihan penyelesaian pembeli untuk resi :tracking_number: :choice_label.',
         'task_assigned' => 'Penugasan pengiriman resi :tracking_number.',
         'issue_decision' => 'Keputusan kendala resi :tracking_number: :decision.',
         'issue_decision_update' => 'Pembaruan kendala resi :tracking_number: :decision.',

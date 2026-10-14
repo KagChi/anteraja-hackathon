@@ -24,5 +24,11 @@ data:
   WHATSAPP_FILES_FOLDER: "/app/.media"
   WHATSAPP_FILES_LIFETIME: "0"
 
+  # Balasan pembeli diteruskan ke workflow inbound n8n lewat jaringan cluster.
+  WHATSAPP_HOOK_URL: "http://n8n/webhook/anteraja-frozen/waha-inbound"
+  WHATSAPP_HOOK_EVENTS: "message"
+  WHATSAPP_HOOK_RETRIES_ATTEMPTS: "3"
+  # WHATSAPP_HOOK_CUSTOM_HEADERS diisi dari secret oleh deployment.yaml.
+
   TZ: "Asia/Jakarta"
 

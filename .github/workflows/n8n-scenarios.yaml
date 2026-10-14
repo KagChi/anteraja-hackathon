@@ -1,0 +1,26 @@
+name: WhatsApp scenarios
+
+# The n8n workflows are data, so their logic is covered by a checked-in scenario
+# suite that runs the real node scripts from the committed JSON. It needs no
+# database and no cluster, so it can gate every push and pull request.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # The runners ship Node already; the suite has no dependencies.
+      - name: Run the workflow scenario suite
+        run: node deploy/n8n/tests/inbound-scenarios.mjs

@@ -1,0 +1,226 @@
+{
+  "name": "Anteraja Frozen - Outbound WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "anteraja-frozen/notify",
+        "responseMode": "responseNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "wf-notify-webhook",
+      "name": "Webhook Notifikasi App",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        0
+      ],
+      "webhookId": "anteraja-frozen-notify",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaAppHook",
+          "name": "Anteraja App Hook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json;\nconst body = item.body || {};\nconst payload = body.payload || {};\n\nconst name = payload.recipient_name || 'Kak';\nconst resi = payload.tracking_number || '-';\nconst alamat = payload.address || '-';\nconst jadwal = payload.window || payload.scheduled_at || '-';\nconst kendala = payload.issue_label || payload.message || payload.issue_category || 'Terjadi kendala operasional pada pengiriman paket.';\nconst catatan = payload.message ? 'Catatan: ' + payload.message : null;\n\nconst pembuka = 'Terima kasih telah memilih Anteraja Frozen \\u2744\\ufe0f';\nconst salam = 'Halo, Kak ' + name + '! \\ud83d\\udc4b';\nconst detail = ['\\ud83d\\udce6 Nomor Resi: ' + resi, '\\ud83d\\udccd Alamat Tujuan: ' + alamat].join('\\n');\n\nconst decision = payload.decision || null;\nconst key = decision ? body.template + ':' + decision : body.template;\nlet text = null;\n\nif (body.template === 'schedule_request') {\n  text = [pembuka, '', salam, '', 'Kami ingin mengkonfirmasi jadwal penerimaan paket dengan detail berikut:', detail, '\\ud83d\\udd52 Estimasi Penerimaan: ' + jadwal, '', 'Mohon konfirmasi apakah Kakak bersedia menerima paket pada jadwal tersebut.', '', 'Balas *SIAP* untuk konfirmasi, atau *JADWAL LAIN* untuk meminta jadwal pengganti.'].join('\\n');\n} else if (body.template === 'schedule_rescheduled') {\n  text = [pembuka, '', salam, '', 'Admin telah mengusulkan jadwal baru untuk penerimaan paket dengan detail berikut:', detail, '\\ud83d\\udd52 Jadwal Baru: ' + jadwal, '', '\\u2744\\ufe0f Penting untuk Diperhatikan \\u26a0\\ufe0f', 'Mohon pastikan paket dapat diterima pada jadwal tersebut agar kualitas dan kondisi produk tetap terjaga.', '', 'Balas *SIAP* untuk konfirmasi, atau *JADWAL LAIN* untuk meminta jadwal pengganti.'].join('\\n');\n} else if (key === 'issue_decision_update:RETURN') {\n  text = [pembuka, '', salam, '', 'Kami ingin menginformasikan bahwa terdapat kendala pada pengiriman paket Kakak dengan detail berikut:', detail, '\\u26a0\\ufe0f Kendala: ' + kendala, '', 'Berdasarkan kendala tersebut, paket Kakak akan dikembalikan kepada pengirim (return to sender).', catatan].filter(Boolean).join('\\n');\n} else if (key === 'issue_decision_update:RESEND') {\n  // Informational: the replacement parcel has its own schedule request, which\n  // is what asks the buyer for a window.\n  text = [pembuka, '', salam, '', 'Kami ingin menginformasikan bahwa terdapat kendala pada pengiriman paket Kakak dengan detail berikut:', detail, '\\u26a0\\ufe0f Kendala: ' + kendala, '', 'Paket Kakak sedang kami proses untuk pengiriman ulang.', catatan].filter(Boolean).join('\\n');\n} else if (key === 'issue_decision_update:PROCEED') {\n  text = [pembuka, '', salam, '', 'Kami ingin menginformasikan bahwa terdapat kendala pada pengiriman paket Kakak dengan detail berikut:', detail, '\\u26a0\\ufe0f Kendala: ' + kendala, '', 'Kami mohon maaf atas kendala yang terjadi. Sebagai bentuk tanggung jawab, kami menawarkan opsi untuk tetap melanjutkan pengiriman paket dan menerima bentuk kompensasi sesuai ketentuan layanan yang berlaku.', catatan].filter(Boolean).join('\\n');\n} else if (key === 'issue_decision_update:RECHECK') {\n  text = [pembuka, '', salam, '', 'Kami ingin menginformasikan bahwa terdapat kendala pada pengiriman paket Kakak dengan detail berikut:', detail, '\\u26a0\\ufe0f Kendala: ' + kendala, '', 'Paket Kakak sedang diperiksa ulang oleh tim operasional. Kami akan mengabari perkembangannya.'].join('\\n');\n} else if (body.template === 'issue_options') {\n  text = [\n    pembuka, '', salam, '',\n    'Kami ingin menginformasikan bahwa terdapat kendala pada pengiriman paket Kakak dengan detail berikut:',\n    detail,\n    '\\u26a0\\ufe0f Kendala: ' + kendala, '',\n    'Kami mohon maaf atas ketidaknyamanan yang terjadi. Silahkan memilih opsi penyelesaian yang dapat dipertimbangkan.', '',\n    'Mohon pilih opsi yang paling sesuai:',\n    '1. Pengembalian Paket ke Pengirim',\n    'Paket akan dikembalikan kepada pengirim dan Penerima dapat mengajukan klaim pengembalian sesuai ketentuan berlaku.', '',\n    '2. Pengiriman Ulang',\n    'Paket akan diproses untuk pengiriman ulang yang menyesuaikan jadwal sesuai ketersediaan penerima.', '',\n    '3. Lanjutkan Pengiriman dengan Kompensasi Parsial',\n    'Paket akan tetap dikirimkan dengan penawaran kompensasi sesuai ketentuan layanan yang berlaku.', '',\n    '4. Diskusi Lebih Lanjut',\n    'Silahkan pilih opsi ini jika masih terdapat pertanyaan dan ingin diskusi lebih lanjut.', '',\n    'Silahkan balas dengan angka 1, 2, 3, atau 4. Kami akan membantu menindaklanjuti sesuai pilihan agar penyelesaian kendala dapat dilakukan dengan sebaik-baiknya.', '',\n    'Anteraja Frozen \\u2014 Paket Pasti #TetapSegarSampaiTujuan \\u2744\\ufe0f'\n  ].join('\\n');\n} else if (body.template === 'on_the_way') {\n  text = [pembuka, '', salam, '', 'Paket ' + resi + ' sedang diantar oleh ' + (payload.courier_name || 'kurir kami') + '.', '\\ud83d\\udd52 Estimasi Penerimaan: ' + jadwal, '', 'Mohon pastikan ada penerima di lokasi ya, Kak. \\u2744\\ufe0f'].join('\\n');\n} else if (body.template === 'courier_arrived') {\n  text = [pembuka, '', salam, '', 'Kurir kami sudah tiba di lokasi untuk paket ' + resi + '.', 'Mohon siapkan penerimaan paket beku agar kualitasnya tetap terjaga. \\u2744\\ufe0f'].join('\\n');\n} else if (body.template === 'delivered') {\n  text = [pembuka, '', salam, '', 'Paket ' + resi + ' sudah diterima' + (payload.received_by ? ' oleh ' + payload.received_by : '') + '.', 'Terima kasih telah menggunakan Anteraja Frozen! \\u2744\\ufe0f'].join('\\n');\n}\n\nlet phone = (payload.recipient_phone || '').replace(/[^0-9]/g, '');\nif (phone.startsWith('0')) {\n  phone = '62' + phone.slice(1);\n}\n\nif (!text) {\n  return [{ json: { should_send: false, response: { delivered: false, reason: 'unmapped' } } }];\n}\n\nif (phone.length < 8) {\n  return [{ json: { should_send: false, response: { delivered: false, reason: 'missing_recipient_phone' } } }];\n}\n\nreturn [{ json: {\n  should_send: true,\n  phone: phone,\n  chat_id: phone + '@c.us',\n  text: text,\n  template: key,\n  tracking_number: payload.tracking_number || null,\n  client_token: payload.client_token || null,\n  context: {\n    recipient_name: payload.recipient_name || null,\n    window: payload.window || null,\n    issue_label: payload.issue_label || null,\n    decision: decision\n  }\n} }];"
+      },
+      "id": "wf-susun-pesan",
+      "name": "Susun Pesan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "perlu-kirim",
+              "leftValue": "={{ $json.should_send }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "wf-if-kirim",
+      "name": "Perlu Kirim?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha/api/sendText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $json.chat_id, text: $json.text }) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "wf-kirim-waha",
+      "name": "Kirim ke WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        -140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaWaha",
+          "name": "Anteraja WAHA"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO anteraja_chat_state (phone, tracking_number, client_token, last_template, last_message_at, context, updated_at)\nVALUES ($1, $2, $3, $4, now(), $5::jsonb, now())\nON CONFLICT (phone) DO UPDATE SET\n  tracking_number = EXCLUDED.tracking_number,\n  client_token = EXCLUDED.client_token,\n  last_template = EXCLUDED.last_template,\n  last_message_at = now(),\n  context = EXCLUDED.context,\n  updated_at = now()",
+        "options": {
+          "queryReplacement": "={{ $('Susun Pesan').item.json.phone }},{{ $('Susun Pesan').item.json.tracking_number }},{{ $('Susun Pesan').item.json.client_token }},{{ $('Susun Pesan').item.json.template }},{{ JSON.stringify($('Susun Pesan').item.json.context) }}"
+        }
+      },
+      "id": "wf-simpan-state",
+      "name": "Simpan State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        -140
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "anterajaStatePg",
+          "name": "Anteraja State DB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ delivered: true, message_id: ($('Kirim ke WAHA').item.json.id && $('Kirim ke WAHA').item.json.id._serialized) ? $('Kirim ke WAHA').item.json.id._serialized : ($('Kirim ke WAHA').item.json.id || null) }) }}",
+        "options": {}
+      },
+      "id": "wf-respond-ok",
+      "name": "Balas Terkirim",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.response) }}",
+        "options": {}
+      },
+      "id": "wf-respond-skip",
+      "name": "Balas Dilewati",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        420,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Notifikasi App": {
+      "main": [
+        [
+          {
+            "node": "Susun Pesan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Susun Pesan": {
+      "main": [
+        [
+          {
+            "node": "Perlu Kirim?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perlu Kirim?": {
+      "main": [
+        [
+          {
+            "node": "Kirim ke WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Balas Dilewati",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kirim ke WAHA": {
+      "main": [
+        [
+          {
+            "node": "Simpan State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simpan State": {
+      "main": [
+        [
+          {
+            "node": "Balas Terkirim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true,
+  "pinData": {},
+  "id": "3Juh12IjWwCH3UlJ"
+}

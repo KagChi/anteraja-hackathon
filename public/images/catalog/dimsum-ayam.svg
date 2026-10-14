@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="dimsum-ayam">
+  <defs>
+    <linearGradient id="g-dimsum-ayam" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fcd34d" />
+      <stop offset="1" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="url(#g-dimsum-ayam)" />
+  <circle cx="92" cy="26" r="26" fill="#ffffff" opacity="0.18" />
+  <circle cx="24" cy="100" r="30" fill="#ffffff" opacity="0.12" />
+  <g fill="#ffffff" opacity="0.96">
+<path d="M40 74c0-12 9-20 20-20s20 8 20 20c0 6-4 10-10 10H50c-6 0-10-4-10-10z" /><path d="M46 60c2-6 8-10 14-10s12 4 14 10" stroke="#92400e" stroke-width="3" fill="none" />
+  </g>
+</svg>

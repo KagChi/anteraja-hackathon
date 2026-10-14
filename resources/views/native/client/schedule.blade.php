@@ -9,7 +9,9 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4 pb-8">
 
-        @if ($schedule === null)
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($schedule === null)
             @include('native.client.partials.missing-order', ['resi' => $resi])
         @else
 
@@ -117,10 +119,15 @@
             </native:row>
 
             {{-- Accept it, or ask for another one. --}}
+            @include('native.partials.action-error', ['message' => $actionError])
+
             <native:column class="w-full gap-3 pt-1">
                 @if ($state === 'confirmed')
                     <native:button variant="success" label="Jadwal Terkonfirmasi" disabled
                         :ios-icon="Ios::CheckmarkCircle" :android-icon="Android::CheckCircle" />
+                @elseif ($state === 'rescheduled')
+                    <native:button variant="success" label="Permintaan Jadwal Terkirim" disabled
+                        :ios-icon="Ios::CalendarBadgeClock" :android-icon="Android::EventAvailable" />
                 @else
                     <native:button variant="primary" label="Siap Menerima" @tap="confirm"
                         :ios-icon="Ios::CheckmarkCircle" :android-icon="Android::CheckCircle" />
@@ -134,3 +141,42 @@
 
     </native:column>
 </scroll-view>
+
+@if ($rescheduleOpen)
+    <native:bottom-sheet @dismiss="closeReschedule">
+        <native:column class="w-full gap-4 p-4">
+            <native:text class="text-xl font-bold text-theme-on-surface">Pilih Jadwal Baru</native:text>
+
+            <native:column class="w-full gap-2">
+                <native:text class="text-sm text-theme-secondary uppercase">Tanggal</native:text>
+                <native:row class="w-full gap-2">
+                    @foreach ($dateOptions as $option)
+                        <native:pressable class="flex-1" @tap="chooseRescheduleDate('{{ $option['value'] }}')"
+                            a11y-label="{{ $option['label'] }}">
+                            <native:column class="w-full items-center justify-center rounded-xl p-3 {{ $rescheduleDate === $option['value'] ? 'bg-theme-primary' : 'bg-theme-surface-container-low' }}">
+                                <native:text class="text-md {{ $rescheduleDate === $option['value'] ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
+                                    {{ $option['label'] }}
+                                </native:text>
+                            </native:column>
+                        </native:pressable>
+                    @endforeach
+                </native:row>
+            </native:column>
+
+            <native:column class="w-full gap-2">
+                <native:text class="text-sm text-theme-secondary uppercase">Waktu</native:text>
+                @foreach ($schedule['available_slots'] as $slot)
+                    <native:pressable class="w-full rounded-lg p-3 {{ $rescheduleSlot === $slot ? 'bg-theme-primary' : 'bg-theme-surface-container-low' }}"
+                        @tap="chooseRescheduleSlot('{{ $slot }}')" a11y-label="{{ $slot }}">
+                        <native:text class="text-md {{ $rescheduleSlot === $slot ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
+                            {{ $slot }} WIB
+                        </native:text>
+                    </native:pressable>
+                @endforeach
+            </native:column>
+
+            <native:button variant="primary" label="Kirim Permintaan" @tap="submitReschedule" />
+            <native:button variant="secondary" label="Batal" @tap="closeReschedule" />
+        </native:column>
+    </native:bottom-sheet>
+@endif

@@ -10,8 +10,8 @@
 | (package id, display name, start route) before the NativePHP build runs.
 |
 | Both apps are native UI — NativeComponent screens rendered as SwiftUI and
-| Jetpack Compose. Nothing is loaded over the network, so there is no site URL
-| to configure and no web view involved.
+| Jetpack Compose, reading the backend API over HTTPS with a bearer token. No
+| web view is involved, so no site URL has to be configured for one.
 |
 | `start` is the native route the app opens on. It is null while an app's
 | screens have not been ported yet; the build script refuses to package an app
@@ -25,12 +25,12 @@ return [
     'kurir' => [
         'app_id' => 'com.anteraja.kurir',
         'name' => 'Anteraja Kurir',
-        'start' => '/courier/tasks',
+        'start' => '/courier/start',
     ],
 
     'client' => [
         'app_id' => 'com.anteraja.frozen',
         'name' => 'Anteraja Frozen',
-        'start' => '/client/orders',
+        'start' => '/client/start',
     ],
 ];

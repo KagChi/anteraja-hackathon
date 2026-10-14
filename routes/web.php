@@ -3,8 +3,29 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Models\Product;
+use App\Http\Resources\Client\ProductResource;
 
-Route::get("/", fn () => Inertia::render("Home"))->name("home");
+// The marketing landing page: the anteraja.id home page rebuilt around the
+// cold-chain fleet, with the three consoles reachable from the footer.
+Route::get("/", function () {
+    $highlights = Product::query()
+        ->where("is_available", true)
+        ->inCatalogOrder()
+        ->limit(4)
+        ->get();
+
+    return Inertia::render("Landing", [
+        "products" => ProductResource::collection($highlights)->resolve(),
+    ]);
+})->name("home");
+
+// The blog is written in resources/js/data/posts.ts: one source of truth for
+// both the index and the detail page, so the route only names the slug.
+Route::get("blog", fn () => Inertia::render("Blog/Index"))->name("blog.index");
+Route::get("blog/{slug}", fn (string $slug) => Inertia::render("Blog/Show", [
+    "slug" => $slug,
+]))->where("slug", "[a-z0-9-]+")->name("blog.show");
 
 // The admin console signs in through the JSON API, but the page has to exist on
 // the web side: the API answers with a 401 and cannot render a screen.
@@ -33,6 +54,11 @@ Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(fu
         "q" => $request->query("q"),
         "status" => $request->query("status")
     ]))->name("history");
+    // Validasi GPS: verdicts the server refused or flagged, plus the review
+    // queue couriers raise from the field.
+    Route::get("gps", fn () => Inertia::render("admin/GpsChecks"))->name("gps");
+    // Pengaturan radius per service segment.
+    Route::get("geofence", fn () => Inertia::render("admin/Geofence"))->name("geofence");
     // The kendala detail lives in the shipment modal, so the old screen is gone.
     Route::redirect("exception", "/admin/shipment");
 });

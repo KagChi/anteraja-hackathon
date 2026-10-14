@@ -51,12 +51,14 @@ final class ColdChainUnitTest extends TestCase
         $this->assertContains(IssueDecision::RETURN, $damageDecisions);
         $this->assertContains(IssueDecision::RESEND, $damageDecisions);
         $this->assertContains(IssueDecision::PROCEED, $damageDecisions);
+        $this->assertContains(IssueDecision::RECHECK, $damageDecisions);
         $this->assertNotContains(IssueDecision::RESCHEDULE, $damageDecisions);
 
         $accessDecisions = IssueCategory::PEMBELI_TIDAK_ADA->allowedDecisions();
         $this->assertContains(IssueDecision::RESCHEDULE, $accessDecisions);
         $this->assertContains(IssueDecision::RETURN, $accessDecisions);
         $this->assertNotContains(IssueDecision::PROCEED, $accessDecisions);
+        $this->assertNotContains(IssueDecision::RECHECK, $accessDecisions);
     }
 
     public function test_package_status_tones(): void

@@ -6,6 +6,18 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4 pb-6">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($delivery === null)
+            <native:column class="w-full items-center gap-3 rounded-xl bg-theme-surface-container-lowest p-5">
+                <native:text class="text-lg font-bold text-theme-on-surface">Paket tidak ditemukan</native:text>
+                <native:text class="text-center text-sm text-theme-secondary">
+                    Paket ini tidak dapat dibuka. Pilih tugas lain dari daftar.
+                </native:text>
+                <native:button variant="primary" label="Kembali ke Tugas" @navigate="'/courier/tasks'" />
+            </native:column>
+        @else
+
         {{-- Resi and service tier. --}}
         <native:row class="w-full items-center justify-between rounded-xl bg-theme-surface-container-lowest p-5">
             <native:column class="gap-0.5">
@@ -40,6 +52,78 @@
                 </native:pressable>
             </native:row>
         </native:column>
+
+        {{-- Location validation: what the server saw and what it decided. It is
+             advisory until an action is refused, and then the reason travels
+             with the failure. --}}
+        <native:column class="w-full gap-3 rounded-xl bg-theme-surface-container-lowest p-4">
+            <native:row class="w-full items-center justify-between gap-2">
+                <native:row class="items-center gap-2">
+                    <native:icon :ios="Ios::Location" :android="Android::LocationOn" :size="18"
+                        class="text-theme-secondary" />
+                    <native:text class="text-sm text-theme-secondary uppercase tracking-wider">
+                        Validasi Lokasi
+                    </native:text>
+                </native:row>
+                <native:badge :label="$delivery['gps']['level_label']" variant="{{ $gpsVariant }}" />
+            </native:row>
+
+            @if ($gpsDistance !== null)
+                <native:text class="text-md font-bold text-theme-on-surface">{{ $gpsDistance }}</native:text>
+            @else
+                <native:text class="text-sm text-theme-secondary">
+                    Menunggu sinyal GPS. Titik terkumpul: {{ $fixCount }}.
+                </native:text>
+            @endif
+
+            <native:row class="w-full items-center justify-between gap-2">
+                <native:text class="text-sm text-theme-secondary">
+                    Radius diizinkan {{ $delivery['gps']['radius_m'] }} m
+                </native:text>
+                @if ($gpsAccuracy !== null)
+                    <native:text class="text-sm text-theme-secondary">{{ $gpsAccuracy }}</native:text>
+                @endif
+            </native:row>
+
+            @foreach ($delivery['gps']['reasons'] as $reason)
+                <native:row class="w-full items-start gap-2" native:key="gps-reason-{{ $loop->index }}">
+                    <native:icon :ios="Ios::ExclamationmarkTriangleFill" :android="Android::ErrorOutline" :size="16"
+                        class="{{ ($reason['severity'] ?? '') === 'strong' ? 'text-theme-error' : 'text-theme-secondary' }}" />
+                    <native:column class="flex-1 gap-0.5">
+                        <native:text class="text-sm font-bold text-theme-on-surface">{{ $reason['label'] }}</native:text>
+                        <native:text class="text-sm leading-snug text-theme-secondary">{{ $reason['detail'] }}</native:text>
+                    </native:column>
+                </native:row>
+            @endforeach
+
+            @if (($delivery['gps']['lock_status'] ?? null) !== null)
+                <native:row class="w-full items-center gap-2 rounded-lg bg-theme-surface-container-low p-3">
+                    <native:icon :ios="Ios::Clock" :android="Android::Schedule" :size="16"
+                        class="text-theme-secondary" />
+                    <native:text class="flex-1 text-sm text-theme-secondary">
+                        Tinjauan hub: {{ $delivery['gps']['lock_status'] }}
+                    </native:text>
+                </native:row>
+            @endif
+
+            @if ($gpsNotice !== '')
+                <native:row class="w-full items-center gap-2 rounded-lg bg-theme-tertiary-fixed p-3">
+                    <native:icon :ios="Ios::CheckmarkCircle" :android="Android::CheckCircle" :size="16"
+                        class="text-theme-on-tertiary-fixed" />
+                    <native:text class="flex-1 text-sm text-theme-on-tertiary-fixed">{{ $gpsNotice }}</native:text>
+                </native:row>
+            @endif
+
+            @if ($gpsCanReview)
+                <native:button class="w-full" variant="secondary" label="Minta Tinjauan Hub" @tap="requestReview"
+                    :ios-icon="Ios::QuestionmarkCircle" :android-icon="Android::HelpOutline" />
+            @endif
+        </native:column>
+
+        @if ($delivery['can_depart'])
+            <native:button class="w-full" variant="primary" label="Mulai Berangkat" @tap="markDepart"
+                :ios-icon="Ios::TruckBox" :android-icon="Android::LocalShipping" />
+        @endif
 
         {{-- Recipient, address, and the cold-chain instruction. --}}
         <native:column class="w-full gap-4 rounded-xl bg-theme-surface-container-lowest p-5">
@@ -82,6 +166,8 @@
                 :ios-icon="Ios::MapFill" :android-icon="Android::Navigation" />
         </native:column>
 
+        @include('native.partials.action-error', ['message' => $actionError])
+
         <native:button variant="primary" label="Serahkan Paket"
             @navigate="'/courier/proof/' . $resi"
             :ios-icon="Ios::Shippingbox" :android-icon="Android::Inventory" />
@@ -90,6 +176,7 @@
             <native:text class="text-md text-theme-secondary underline">Laporkan Kendala</native:text>
         </native:pressable>
 
+        @endif
     </native:column>
 </scroll-view>
 

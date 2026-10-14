@@ -37,6 +37,10 @@ enum IssueCategory: string
                 IssueDecision::RETURN,
                 IssueDecision::RESEND,
                 IssueDecision::PROCEED,
+                // A physical parcel can be inspected again before deciding.
+                // The delivery-failure categories cannot: there is nothing to
+                // re-inspect when nobody was home or the buyer refused COD.
+                IssueDecision::RECHECK,
             ],
             self::PEMBELI_TIDAK_ADA, self::ALAMAT_TIDAK_DITEMUKAN, self::COD_DITOLAK => [
                 IssueDecision::RESCHEDULE,

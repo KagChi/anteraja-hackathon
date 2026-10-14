@@ -10,7 +10,8 @@
 # come from mobile/apps.php.
 #
 # The screens are native UI (NativeComponent + EDGE elements), so the build
-# needs neither a site URL nor the web assets: nothing is fetched at runtime.
+# needs no web assets and no site URL for a web view — the app talks to the
+# backend API host stamped below.
 #
 # Required environment:
 #   ANDROID_KEYSTORE_FILE       keystore (.jks) that signs the release build
@@ -102,6 +103,9 @@ fi
 APP_VERSION="${NATIVEPHP_APP_VERSION:-0.1.${GITHUB_RUN_NUMBER:-0}}"
 APP_VERSION_CODE="${NATIVEPHP_APP_VERSION_CODE:-${GITHUB_RUN_NUMBER:-1}}"
 
+# The backend the screens call. Override per build with MOBILE_API_BASE_URL.
+API_BASE_URL="${MOBILE_API_BASE_URL:-https://hackathon.kagchi.my.id/api}"
+
 # The UI elements are plugin components. An unregistered plugin is skipped from
 # the build without failing it, which leaves a screen that cannot render — so
 # catch it here instead of on a phone.
@@ -125,6 +129,7 @@ sed \
     -e "s|__APP_NAME__|$APP_NAME|g" \
     -e "s|__START_URL__|$APP_START|g" \
     -e "s|__APP_KEY__|$APP_KEY|g" \
+    -e "s|__API_BASE_URL__|$API_BASE_URL|g" \
     -e "s|__APP_VERSION__|$APP_VERSION|g" \
     -e "s|__APP_VERSION_CODE__|$APP_VERSION_CODE|g" \
     .env.mobile.example > "$ENV_FILE"

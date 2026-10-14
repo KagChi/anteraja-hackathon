@@ -6,6 +6,10 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @else
+
         {{-- The day at a glance. --}}
         <native:row class="w-full items-center justify-between rounded-xl bg-theme-surface-container-lowest p-4">
             <native:column class="gap-1">
@@ -30,5 +34,6 @@
             </native:column>
         @endforeach
 
+        @endif
     </native:column>
 </scroll-view>

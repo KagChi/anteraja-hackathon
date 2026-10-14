@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Requests\Courier;
 
 use App\DTOs\Courier\StartDeliveryData;
+use App\Http\Requests\Courier\Concerns\ValidatesGpsSignals;
 use App\Support\ChecklistNormalizer;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class StartDeliveryRequest extends FormRequest
 {
+    use ValidatesGpsSignals;
+
     public function authorize(): bool
     {
         return true;
@@ -20,12 +23,10 @@ final class StartDeliveryRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'checklist' => ['nullable', 'array'],
             'temperature_c' => ['nullable', 'numeric', 'between:-60,40'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
-        ];
+        ], $this->gpsSignalRules());
     }
 
     public function toData(): StartDeliveryData

@@ -3,7 +3,7 @@ name: Android APKs
 # The sideloadable Anteraja shells — Kurir for the courier, Frozen for the
 # customer — built from the Laravel codebase. Their screens are native UI
 # (NativeComponent + EDGE elements) compiled to Jetpack Compose, so an APK
-# needs neither a site URL nor web assets.
+# needs no web assets; it reads the backend API at MOBILE_API_BASE_URL.
 #
 # Each app's package id, launch icon and start route come from mobile/apps.php;
 # the build script refuses an app whose start route is still null, so a build
@@ -34,6 +34,8 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'anteraja' }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'android' }}
+      # Backend the shipped app calls; override with a repo variable.
+      MOBILE_API_BASE_URL: ${{ vars.MOBILE_API_BASE_URL || 'https://hackathon.kagchi.my.id/api' }}
 
     steps:
       - name: Checkout code

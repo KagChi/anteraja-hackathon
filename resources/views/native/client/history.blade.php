@@ -7,6 +7,10 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @else
+
         {{-- Everything that already arrived. --}}
         <native:row class="w-full items-center justify-between gap-2 rounded-xl bg-theme-surface-container-low p-4">
             <native:column class="gap-1">
@@ -52,5 +56,6 @@
             </native:pressable>
         @endforeach
 
+        @endif
     </native:column>
 </scroll-view>

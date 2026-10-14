@@ -62,6 +62,7 @@ final class IssueViewService
 
         return new IssueView(
             trackingNumber: $package->tracking_number,
+            statusLabel: (string) __("client.status.{$package->status->value}", [], 'id'),
             buyerName: $package->buyer->name,
             courierName: $package->courier?->name,
             productNames: $productNames,

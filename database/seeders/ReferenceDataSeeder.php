@@ -57,5 +57,15 @@ final class ReferenceDataSeeder extends Seeder
         // trips the composite primary key on a re-run. insertOrIgnore keeps the
         // reference data safe to seed repeatedly.
         DB::table('package_status_transitions')->insertOrIgnore($transitions);
+
+        // 4. Geofence radius per service type. The customer app can create
+        // INSTANT_FROZEN shipments, so both segments need a row before the
+        // courier app can be validated at the destination.
+        foreach (\App\Models\GeofencePolicy::DEFAULT_RADIUS_M as $serviceType => $radius) {
+            DB::table('geofence_policies')->insertOrIgnore([
+                'service_type' => $serviceType,
+                'radius_m' => $radius,
+            ]);
+        }
     }
 }

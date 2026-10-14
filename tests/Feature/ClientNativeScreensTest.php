@@ -6,26 +6,212 @@ namespace Tests\Feature;
 
 use App\NativeComponents\Client\History;
 use App\NativeComponents\Client\Issue;
+use App\NativeComponents\Client\Catalog;
+use App\NativeComponents\Client\Checkout;
+use App\NativeComponents\Client\Landing;
+use App\NativeComponents\Client\Login;
+use App\NativeComponents\Client\OrderSuccess;
 use App\NativeComponents\Client\Orders;
+use App\NativeComponents\Client\ProductDetail;
 use App\NativeComponents\Client\Profile;
+use App\NativeComponents\Client\Register;
 use App\NativeComponents\Client\Schedule;
+use App\NativeComponents\Client\Start;
 use App\NativeComponents\Client\Tracking;
 use App\Support\Appearance;
+use App\Support\ClientCart;
+use App\Support\ClientPayload;
+use App\Support\ClientReceipt;
+use App\Support\MobileToken;
+use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
+use Tests\Support\MobileApiFake;
 use Tests\TestCase;
 
 /**
- * The customer shell renders native UI: NativeComponent screens built from
- * EDGE elements, compiled to SwiftUI and Jetpack Compose. No screen loads a
- * URL in the interface and none contains a web view — these tests hold that
- * line, and cover the state each screen carries.
+ * The customer shell renders native UI, and reads every screen through the
+ * backend API. Http is faked to stand in for the server; no screen loads a URL
+ * in its interface and none contains a web view.
  */
 final class ClientNativeScreensTest extends TestCase {
-    private const TRANSPORTING = 'AJ-FRZ-0012345';
+    private const TRANSPORTING = MobileApiFake::TRANSPORTING;
 
-    private const WAITING = 'AJ-FRZ-0012347';
+    private const WAITING = MobileApiFake::WAITING;
 
-    private const ISSUE = 'AJ-FRZ-0012349';
+    private const ISSUE = MobileApiFake::ISSUE;
+
+    protected function setUp(): void {
+        parent::setUp();
+
+        MobileToken::clear(MobileToken::CLIENT);
+        ClientCart::clear();
+        ClientReceipt::clear();
+        MobileApiFake::stub();
+    }
+
+    /** A guest lands on the storefront, not on a login wall. */
+    public function test_a_guest_lands_on_the_landing_screen(): void {
+        Native::visit('/client/start')->assertNavigatedTo('/client/landing');
+    }
+
+    public function test_a_signed_in_customer_goes_straight_to_the_orders_tab(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+
+        Native::visit('/client/start')->assertNavigatedTo('/client/orders');
+    }
+
+    public function test_the_landing_screen_offers_the_catalog_and_the_sign_up_cta(): void {
+        Native::test(Landing::class)
+            ->assertSee('Anteraja Frozen')
+            ->assertSee('Kiriman beku Anda sampai utuh, dingin, dan tercatat')
+            ->assertSee('Lihat Katalog')
+            ->assertSee('Produk Populer')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Rp 48.000')
+            ->assertSee('Daftar')
+            ->assertSee('Masuk');
+    }
+
+    public function test_the_catalog_lists_products_and_fills_the_basket(): void {
+        $screen = Native::test(Catalog::class)
+            ->assertSee('Katalog Frozen')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Edamame Beku 500g')
+            ->assertSet('cartCount', 0);
+
+        $screen->call('addToCart', 1)
+            ->assertSet('cartCount', 1)
+            ->assertSee('Nugget Ayam 1 kg masuk keranjang.');
+
+        $this->assertSame(1, ClientCart::count());
+
+        $screen->call('clearCart')->assertSet('cartCount', 0);
+        $this->assertSame(0, ClientCart::count());
+    }
+
+    /** Checkout with an empty basket points back at the catalog. */
+    public function test_the_catalog_refuses_a_checkout_without_a_basket(): void {
+        Native::test(Catalog::class)
+            ->call('openCheckout')
+            ->assertSet('actionError', 'Pilih minimal satu produk sebelum checkout.');
+
+        Native::test(Catalog::class)
+            ->call('addToCart', 1)
+            ->call('openCheckout')
+            ->assertNavigatedTo('/client/checkout');
+    }
+
+    public function test_the_product_detail_picks_a_quantity_and_adds_it(): void {
+        $screen = Native::test(ProductDetail::class, params: ['slug' => 'nugget-ayam-1kg'])
+            ->assertSee('Detail Produk')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Catatan penanganan')
+            ->assertSet('quantity', 1);
+
+        $screen->call('increment')->call('increment')->assertSet('quantity', 3);
+        $screen->call('decrement')->assertSet('quantity', 2);
+        $screen->call('addToCart')->assertSet('justAdded', true);
+
+        $this->assertSame(2, ClientCart::quantity(1));
+    }
+
+    public function test_an_unknown_product_shows_the_empty_state(): void {
+        Native::test(ProductDetail::class, params: ['slug' => 'tidak-ada'])
+            ->assertSee('Produk tidak ditemukan');
+    }
+
+    public function test_register_stores_the_token_and_continues_to_checkout(): void {
+        $screen = Native::test(Register::class)
+            ->assertSee('Daftar Anteraja Frozen')
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'rahasia123')
+            ->set('passwordConfirmation', 'rahasia123')
+            ->set('address', 'Jl. Cikajang No. 7');
+
+        $screen->call('submit')->assertNavigatedTo('/client/checkout');
+
+        $this->assertSame('client-test-token', MobileToken::get(MobileToken::CLIENT));
+    }
+
+    public function test_register_refuses_a_password_that_is_too_short_or_mismatched(): void {
+        Native::test(Register::class)
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'pendek')
+            ->set('passwordConfirmation', 'pendek')
+            ->set('address', 'Jl. Cikajang No. 7')
+            ->call('submit')
+            ->assertSee('Password minimal 8 karakter.');
+
+        Native::test(Register::class)
+            ->set('name', 'Pelanggan Baru')
+            ->set('phone', '081211100099')
+            ->set('password', 'rahasia123')
+            ->set('passwordConfirmation', 'rahasia456')
+            ->set('address', 'Jl. Cikajang No. 7')
+            ->call('submit')
+            ->assertSee('Konfirmasi password tidak sama.');
+    }
+
+    /** A guest who reaches checkout is sent to the sign-up form. */
+    public function test_checkout_sends_a_guest_to_register(): void {
+        Native::test(Checkout::class)->assertNavigatedTo('/client/register');
+    }
+
+    public function test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+        ClientCart::set(1, 2);
+
+        $screen = Native::test(Checkout::class)
+            ->assertSee('Checkout')
+            ->assertSee('Nugget Ayam 1 kg')
+            ->assertSee('Rp 96.000')
+            ->assertSet('cartCount', 2)
+            // Prefilled from the customer profile the API returns.
+            ->assertSet('recipientName', 'Rina Putri');
+
+        $screen->call('increment', 1)->assertSet('cartCount', 3);
+
+        $screen->call('submit')->assertNavigatedTo('/client/order-success?resi=AJ-FRZ-0012400');
+
+        $this->assertSame(0, ClientCart::count());
+    }
+
+    public function test_the_order_success_screen_shows_the_new_resi(): void {
+        ClientReceipt::put(ClientPayload::receipt([
+            'tracking_number' => 'AJ-FRZ-0012400',
+            'status_label' => 'Menunggu Konfirmasi',
+            'service_label' => 'Instant Frozen',
+            'scheduled_label' => 'Besok, 13:00 - 15:00',
+            'total_idr' => 96000,
+            'recipient' => ['name' => 'Rina Putri', 'address' => 'Jl. Melati No. 14'],
+            'items' => [
+                ['name' => 'Nugget Ayam 1 kg', 'quantity' => 2, 'line_total_idr' => 96000],
+            ],
+        ]));
+
+        Native::test(OrderSuccess::class, params: ['resi' => 'AJ-FRZ-0012400'])
+            ->assertSee('Pesanan berhasil dibuat')
+            ->assertSee('AJ-FRZ-0012400')
+            ->assertSee('Instant Frozen')
+            ->assertSee('Langkah berikutnya')
+            ->call('openOrders')
+            ->assertNavigatedTo('/client/orders');
+    }
+
+    /** A receipt from a different order must not be shown on this resi. */
+    public function test_the_success_screen_ignores_a_stale_receipt(): void {
+        ClientReceipt::put(ClientPayload::receipt([
+            'tracking_number' => 'AJ-FRZ-0009999',
+            'status_label' => 'Diterima',
+            'items' => [],
+        ]));
+
+        Native::test(OrderSuccess::class, params: ['resi' => 'AJ-FRZ-0012400'])
+            ->assertSee('AJ-FRZ-0012400')
+            ->assertDontSee('Diterima');
+    }
 
     public function test_the_orders_tab_lists_the_shipments_in_flight(): void {
         Native::test(Orders::class)
@@ -177,13 +363,38 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSet('state', 'confirmed')
             ->assertSee('Jadwal Terkonfirmasi')
             ->assertDontSee('Siap Menerima');
+
+        Http::assertSent(fn ($request): bool => str_starts_with($request->url(), config('mobile.api_base_url'))
+            && str_ends_with($request->url(), '/schedule/confirm'));
     }
 
-    public function test_asking_for_another_window_leaves_through_whatsapp(): void {
+    /** Asking for another window now posts the chosen slot, it does not leave the app. */
+    public function test_requesting_another_window_posts_the_chosen_slot(): void {
         Native::test(Schedule::class, params: ['resi' => self::WAITING])
+            ->assertDontSee('Pilih Jadwal Baru')
             ->call('requestOtherWindow')
-            ->assertNativeCalled('Browser.Open', fn (array $params): bool => str_contains($params['url'], 'wa.me')
-                && str_contains($params['url'], self::WAITING));
+            ->assertSet('rescheduleOpen', true)
+            ->assertSee('Pilih Jadwal Baru')
+            ->call('chooseRescheduleSlot', '13:00-15:00')
+            ->call('submitReschedule')
+            ->assertSet('state', 'rescheduled')
+            ->assertSee('Permintaan Jadwal Terkirim');
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/schedule/reschedule')
+            && $request['slot'] === '13:00-15:00');
+    }
+
+    /** A rejected action stays on the screen with the reason beside it. */
+    public function test_a_failed_action_shows_its_reason_without_losing_the_screen(): void {
+        MobileApiFake::stub([
+            '*api/client/orders/'.self::WAITING.'/schedule/confirm' => Http::response(['message' => 'Jadwal tidak dapat dikonfirmasi.'], 422),
+        ]);
+
+        Native::test(Schedule::class, params: ['resi' => self::WAITING])
+            ->call('confirm')
+            ->assertSet('state', 'idle')
+            ->assertSee('Jadwal tidak dapat dikonfirmasi.')
+            ->assertSee('Siap Menerima');
     }
 
     public function test_the_issue_screen_shows_the_decision_and_offers_a_resend(): void {
@@ -194,6 +405,65 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Riwayat Penanganan Hub')
             ->call('requestResend')
             ->assertNavigatedTo('/client/schedule/'.self::ISSUE);
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/issue/resend'));
+    }
+
+    public function test_the_login_screen_stores_the_token_and_enters_the_app(): void {
+        Native::test(Login::class)
+            ->assertSee('Anteraja Frozen')
+            ->set('phone', '081298765432')
+            ->set('password', 'password123')
+            ->call('submit')
+            ->assertNavigatedTo('/client/orders');
+
+        $this->assertSame('client-test-token', MobileToken::get(MobileToken::CLIENT));
+    }
+
+    public function test_the_login_screen_refuses_empty_credentials(): void {
+        Native::test(Login::class)
+            ->call('submit')
+            ->assertSee('Nomor HP dan password wajib diisi.');
+    }
+
+    public function test_the_start_gate_opens_the_landing_screen_without_a_token(): void {
+        Native::test(Start::class)->assertNavigatedTo('/client/landing');
+    }
+
+    public function test_the_start_gate_skips_login_when_signed_in(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+
+        Native::test(Start::class)->assertNavigatedTo('/client/orders');
+    }
+
+    /** The gate and login are their own routes, outside the tab group. */
+    public function test_the_auth_routes_resolve(): void {
+        Native::visit('/client/start')->assertNavigatedTo('/client/landing');
+
+        Native::visit('/client/login')
+            ->assertSee('Anteraja Frozen')
+            ->assertMissingElement('tab-bar');
+    }
+
+    public function test_a_failed_call_renders_the_retry_state(): void {
+        MobileApiFake::stub(['*' => Http::response(['message' => 'Server sedang gangguan.'], 500)]);
+
+        Native::test(Orders::class)
+            ->assertSee('Gagal memuat data')
+            ->assertSee('Server sedang gangguan.')
+            ->assertSee('Coba Lagi');
+    }
+
+    public function test_retry_reloads_after_a_failure(): void {
+        MobileApiFake::stub(['*' => Http::response(['message' => 'Server sedang gangguan.'], 500)]);
+
+        $screen = Native::test(Orders::class)->assertSee('Gagal memuat data');
+
+        MobileApiFake::stub();
+
+        $screen->call('retry')
+            ->assertDontSee('Gagal memuat data')
+            ->assertSee('3 pengiriman berjalan');
     }
 
     /** An unknown resi cannot render an empty screen. */
@@ -214,6 +484,8 @@ final class ClientNativeScreensTest extends TestCase {
             Tracking::class,
             Schedule::class,
             Issue::class,
+            Login::class,
+            Start::class,
         ];
 
         foreach ($screens as $screen) {
@@ -225,6 +497,7 @@ final class ClientNativeScreensTest extends TestCase {
     public function test_the_customer_tabs_are_routable(): void {
         Native::visit('/client/orders')
             ->assertHasTabBar()
+            ->assertHasTab('Beranda')
             ->assertHasTab('Pesanan')
             ->assertHasTab('Riwayat')
             ->assertHasTab('Profil');

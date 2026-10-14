@@ -397,7 +397,7 @@ final class ClientFlowTest extends TestCase
         // Buyer notification queued
         $buyerNotif = Notification::where('package_id', $pkg->id)
             ->where('recipient_type', RecipientType::BUYER)
-            ->where('template', 'schedule_request')
+            ->where('template', 'schedule_rescheduled')
             ->first();
 
         $this->assertNotNull($buyerNotif);

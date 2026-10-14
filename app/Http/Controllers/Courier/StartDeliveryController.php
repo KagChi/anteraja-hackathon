@@ -7,15 +7,21 @@ namespace App\Http\Controllers\Courier;
 use App\Actions\Courier\StartDelivery;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StartDeliveryRequest;
+use App\Enums\GpsAction;
 use App\Models\Package;
 use App\Models\Staff;
+use App\Services\Gps\GpsValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
 
 final class StartDeliveryController extends Controller
 {
-    public function __invoke(StartDeliveryRequest $request, string $trackingNumber, StartDelivery $action): JsonResponse
-    {
+    public function __invoke(
+        StartDeliveryRequest $request,
+        string $trackingNumber,
+        StartDelivery $action,
+        GpsValidator $gps,
+    ): JsonResponse {
         /** @var Staff $courier */
         $courier = $request->user();
 
@@ -33,6 +39,18 @@ final class StartDeliveryController extends Controller
                 ], 422);
             }
         }
+
+        // Departing is judged on the fix window alone: the courier is at the
+        // hub, not at the destination, so the radius does not apply yet.
+        $gps->validate(
+            package: $package,
+            courier: $courier,
+            action: GpsAction::DEPART,
+            signals: $request->gpsSignals(),
+            latitude: $data->latitude,
+            longitude: $data->longitude,
+            enforceGeofence: false,
+        );
 
         $delivered = $action->execute($package, $courier, $data);
 

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="edamame">
+  <defs>
+    <linearGradient id="g-edamame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#86efac" />
+      <stop offset="1" stop-color="#15803d" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="url(#g-edamame)" />
+  <circle cx="92" cy="26" r="26" fill="#ffffff" opacity="0.18" />
+  <circle cx="24" cy="100" r="30" fill="#ffffff" opacity="0.12" />
+  <g fill="#ffffff" opacity="0.96">
+<path d="M38 78c0-20 12-34 26-36 4 16-6 34-26 36z" /><circle cx="50" cy="66" r="4" fill="#65a30d" /><circle cx="58" cy="58" r="4" fill="#65a30d" /><circle cx="66" cy="52" r="4" fill="#65a30d" />
+  </g>
+</svg>

@@ -6,6 +6,17 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($task === null)
+            <native:column class="w-full items-center gap-2 rounded-xl bg-theme-surface-container-lowest p-5">
+                <native:text class="text-lg font-bold text-theme-on-surface">Tidak ada tugas</native:text>
+                <native:text class="text-center text-sm text-theme-secondary">
+                    Belum ada paket yang ditugaskan kepada Anda saat ini.
+                </native:text>
+            </native:column>
+        @else
+
         {{-- Board state: how fresh the task is, and its id. --}}
         <native:row class="w-full items-center justify-between rounded-xl bg-theme-surface-container-high p-4">
             <native:row class="items-center gap-2">
@@ -86,8 +97,10 @@
         </native:row>
 
         {{-- The decision. --}}
-        @if ($state === 'accepted')
-            <native:button variant="primary" label="Tugas Diterima" disabled
+        @include('native.partials.action-error', ['message' => $actionError])
+
+        @if ($state === 'accepted' || $state === 'active')
+            <native:button variant="primary" :label="$state === 'active' ? 'Tugas Sedang Berjalan' : 'Tugas Diterima'" disabled
                 :ios-icon="Ios::CheckmarkCircle" :android-icon="Android::DoneAll" />
         @else
             <native:row class="w-full items-center gap-4 pt-1">
@@ -106,5 +119,6 @@
             </native:row>
         @endif
 
+        @endif
     </native:column>
 </scroll-view>

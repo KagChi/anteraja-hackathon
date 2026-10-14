@@ -10,7 +10,9 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4 pb-6">
 
-        @if ($order === null)
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($order === null)
             @include('native.client.partials.missing-order', ['resi' => $resi])
         @else
 

@@ -6,6 +6,10 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-4 p-4">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @else
+
         {{-- Identity. --}}
         <native:column class="w-full items-center gap-2 rounded-xl bg-theme-surface-container-lowest p-5">
             <native:icon :ios="Ios::PersonFill" :android="Android::Person" :size="56" class="text-theme-primary" />
@@ -54,5 +58,9 @@
         {{-- Appearance. --}}
         @include('native.partials.appearance', ['appearance' => $appearance, 'appearanceOptions' => $appearanceOptions])
 
+        <native:button variant="secondary" label="Keluar" @tap="logout"
+            :ios-icon="Ios::ArrowRightToLine" :android-icon="Android::Logout" />
+
+        @endif
     </native:column>
 </scroll-view>

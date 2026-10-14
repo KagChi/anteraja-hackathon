@@ -7,6 +7,7 @@ use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveClientPackage;
 use App\Http\Middleware\ResolveOwnedPackage;
+use App\Http\Middleware\VerifyInternalToken;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -44,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/client/*',
             'api/guest/*',
+            'api/internal/*',
         ]);
         $middleware->alias([
             'staff.role' => EnsureStaffRole::class,
@@ -51,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'client.package' => ResolveClientPackage::class,
             'client.buyer' => EnsureBuyer::class,
             'client.owned' => ResolveOwnedPackage::class,
+            'internal.token' => VerifyInternalToken::class,
             'force.json' => ForceJsonResponse::class,
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,

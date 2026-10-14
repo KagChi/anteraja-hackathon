@@ -6,6 +6,18 @@
 <scroll-view axis="vertical" class="w-full h-full bg-theme-background">
     <native:column class="w-full gap-5 p-4 pb-8">
 
+        @if ($error !== null)
+            @include('native.partials.state', ['message' => $error])
+        @elseif ($form === null)
+            <native:column class="w-full items-center gap-3 rounded-xl bg-theme-surface-container-lowest p-5">
+                <native:text class="text-lg font-bold text-theme-on-surface">Kendala tidak dapat dilaporkan</native:text>
+                <native:text class="text-center text-sm text-theme-secondary">
+                    Paket ini tidak berada pada status yang dapat dilaporkan kendalanya.
+                </native:text>
+                <native:button variant="primary" label="Kembali ke Tugas" @navigate="'/courier/tasks'" />
+            </native:column>
+        @else
+
         {{-- Which shipment, and who is reporting. --}}
         <native:column class="w-full gap-2 rounded-xl bg-theme-surface-container-lowest p-4">
             <native:row class="w-full items-center justify-between">
@@ -83,6 +95,8 @@
             </native:row>
 
             {{-- Send it. --}}
+            @include('native.partials.action-error', ['message' => $actionError])
+
             @if ($state === 'done')
                 <native:button variant="success" label="Laporan Terkirim" @tap="backToTasks"
                     :ios-icon="Ios::CheckmarkCircle" :android-icon="Android::CheckCircle" />
@@ -92,5 +106,6 @@
             @endif
 
         </native:column>
+        @endif
     </native:column>
 </scroll-view>
