@@ -123,14 +123,89 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const msg = $('Normalisasi').first().json;\nconst state = $input.first().json || {};\nconst slots = ['09:00-11:00', '11:00-13:00', '13:00-15:00', '15:00-17:00', '17:00-19:00'];\nconst today = $now.setZone('Asia/Jakarta').toFormat('yyyy-LL-dd');\n\nconst system = [\n  'Anda asisten operasional Anteraja Frozen yang membaca balasan pembeli di WhatsApp.',\n  'Balas HANYA dengan JSON valid tanpa penjelasan tambahan.',\n  'Skema: {\"intent\":\"confirm_schedule|request_reschedule|choose_option|other\",\"option\":null,\"proposed_date\":null,\"proposed_slot\":null,\"confidence\":0.0}',\n  'Aturan:',\n  '- confirm_schedule: pembeli menyetujui jadwal penerimaan paket.',\n  '- request_reschedule: pembeli meminta jadwal lain; isi proposed_date (YYYY-MM-DD, hari ini ' + today + ') dan proposed_slot dari daftar: ' + slots.join(', ') + '.',\n  '- choose_option: pembeli memilih opsi penyelesaian kendala pada menu; isi option 1-4.',\n  '- Frasa \"kirim ulang\" atau \"ganti barang\" berarti choose_option dengan option 2; \"kembalikan\", \"retur\", atau \"batalkan\" berarti option 1; \"lanjutkan\" atau \"kompensasi\" berarti option 3; \"mau diskusi\" atau \"mau tanya\" berarti option 4.',\n  '- other: maksud tidak jelas.',\n  'Konteks: template terakhir = ' + (state.last_template || 'tidak diketahui') + '; resi = ' + (state.tracking_number || 'tidak diketahui') + '.'\n].join('\\n');\n\nreturn [{ json: {\n  phone: msg.phone,\n  text: msg.text,\n  push_name: msg.push_name,\n  tracking_number: state.tracking_number || null,\n  client_token: state.client_token || null,\n  last_template: state.last_template || null,\n  today: today,\n  slots: slots,\n  llm_body: {\n    model: 'deepseek-v4-flash',\n    temperature: 0,\n    response_format: { type: 'json_object' },\n    messages: [\n      { role: 'system', content: system },\n      { role: 'user', content: msg.text }\n    ]\n  }\n} }];"
+        "jsCode": "const msg = $('Normalisasi').first().json;\nconst match = String(msg.text || '').toUpperCase().match(/AJ-FRZ-\\d{4,}/);\n\nreturn [{ json: { resi: match ? match[0] : null } }];"
+      },
+      "id": "ib-deteksi-resi",
+      "name": "Deteksi Resi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ada-resi",
+              "leftValue": "={{ $json.resi }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ib-ada-resi",
+      "name": "Ada Resi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://anteraja-hackathon-service/api/internal/whatsapp/lookup",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Normalisasi').item.json.phone, resi: $('Deteksi Resi').item.json.resi }) }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "ib-cari-paket",
+      "name": "Cari Paket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -140
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anterajaAppHook",
+          "name": "Anteraja App Hook"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const msg = $('Normalisasi').first().json;\nconst state = $('Ambil State').first().json || {};\nconst lookup = $input.first().json || {};\nconst detected = $('Deteksi Resi').first().json || {};\n\nconst slots = ['09:00-11:00', '11:00-13:00', '13:00-15:00', '15:00-17:00', '17:00-19:00'];\nconst today = $now.setZone('Asia/Jakarta').toFormat('yyyy-LL-dd');\n\n// A resi the customer typed wins over the stored state only when it names a\n// different package; otherwise whatever the app last notified them about stands.\nconst found = lookup.found === true;\nconst attached = found && (!state.tracking_number || state.tracking_number !== lookup.tracking_number);\n\nconst tracking = attached ? lookup.tracking_number : (state.tracking_number || null);\nconst token = attached ? lookup.client_token : (state.client_token || null);\nconst template = attached ? (lookup.template || 'none') : (state.last_template || 'none');\nconst statusLabel = attached ? (lookup.status_label || null) : null;\nconst clientUrl = attached ? (lookup.client_url || null) : null;\n\nconst system = [\n  'Anda asisten operasional Anteraja Frozen yang membaca balasan pembeli di WhatsApp.',\n  'Balas HANYA dengan JSON valid tanpa penjelasan tambahan.',\n  'Skema: {\"intent\":\"confirm_schedule|request_reschedule|choose_option|other\",\"option\":null,\"proposed_date\":null,\"proposed_slot\":null,\"confidence\":0.0}',\n  'Aturan:',\n  '- confirm_schedule: pembeli menyetujui jadwal penerimaan paket.',\n  '- request_reschedule: pembeli meminta jadwal lain; isi proposed_date (YYYY-MM-DD, hari ini ' + today + ') dan proposed_slot dari daftar: ' + slots.join(', ') + '.',\n  '- choose_option: pembeli memilih opsi penyelesaian kendala pada menu; isi option 1-4.',\n  '- Frasa \"kirim ulang\" atau \"ganti barang\" berarti choose_option dengan option 2; \"kembalikan\", \"retur\", atau \"batalkan\" berarti option 1; \"lanjutkan\" atau \"kompensasi\" berarti option 3; \"mau diskusi\" atau \"mau tanya\" berarti option 4.',\n  '- other: maksud tidak jelas.',\n  'Konteks: pesan terakhir dari sistem = ' + template + '; resi = ' + (tracking || 'tidak diketahui') + '.'\n].join('\\n');\n\nreturn [{ json: {\n  phone: msg.phone,\n  chat_id: msg.chat_id,\n  text: msg.text,\n  push_name: msg.push_name,\n  tracking_number: tracking,\n  client_token: token,\n  last_template: template,\n  status_label: statusLabel,\n  client_url: clientUrl,\n  resi_attempt: detected.resi || null,\n  lookup_found: found,\n  today: today,\n  slots: slots,\n  llm_body: {\n    model: 'deepseek-v4-flash',\n    temperature: 0,\n    response_format: { type: 'json_object' },\n    messages: [\n      { role: 'system', content: system },\n      { role: 'user', content: msg.text }\n    ]\n  }\n} }];"
       },
       "id": "ib-konteks",
       "name": "Siapkan Konteks",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        600,
+        960,
         0
       ]
     },
@@ -159,7 +234,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        840,
+        1200,
         0
       ],
       "onError": "continueRegularOutput",
@@ -173,14 +248,14 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const llm = $input.first().json || {};\nconst ctx = $('Siapkan Konteks').first().json;\n\nlet intent = null;\nlet option = null;\nlet confidence = 0;\nlet proposedDate = null;\nlet proposedSlot = null;\n\ntry {\n  const content = llm.choices && llm.choices[0] && llm.choices[0].message ? llm.choices[0].message.content : null;\n  if (typeof content === 'string') {\n    const parsed = JSON.parse(content);\n    intent = parsed.intent || null;\n    option = parsed.option === undefined || parsed.option === null ? null : parseInt(parsed.option, 10);\n    confidence = parsed.confidence || 0;\n    proposedDate = parsed.proposed_date || null;\n    proposedSlot = parsed.proposed_slot || null;\n  }\n} catch (error) {\n  intent = null;\n}\n\nconst text = String(ctx.text || '').toLowerCase().trim();\nconst fromIssueMenu = ctx.last_template === 'issue_options';\n\nif (!intent || intent === 'other') {\n  if (fromIssueMenu && /^[1-4]$/.test(text)) {\n    intent = 'choose_option';\n    option = parseInt(text, 10);\n  } else if (/(kirim ulang|dikirim ulang|ulang|ganti barang|resend)/.test(text)) {\n    intent = 'choose_option';\n    option = 2;\n  } else if (/(kembali|retur|batal|tidak jadi)/.test(text)) {\n    intent = 'choose_option';\n    option = 1;\n  } else if (/(lanjut|kompensasi|tetap kirim|tetap antar)/.test(text)) {\n    intent = 'choose_option';\n    option = 3;\n  } else if (/(jadwal|reschedule|tunda|besok|ganti hari|tanggal|jam)/.test(text)) {\n    intent = 'request_reschedule';\n  } else if (/(ya|iya|oke|ok|bisa|siap|setuju|terima|konfirmasi|hadir)/.test(text)) {\n    intent = 'confirm_schedule';\n  } else {\n    intent = 'other';\n  }\n}\n\nconst base = ctx.client_token ? 'http://anteraja-hackathon-service/api/guest/' + ctx.client_token : null;\nconst resi = ctx.tracking_number || '-';\nlet appUrl = null;\nlet appBody = {};\nlet reply = null;\n\nif (intent === 'confirm_schedule' && base) {\n  appUrl = base + '/schedule/confirm';\n  reply = 'Terima kasih, Kak! Jadwal penerimaan paket ' + resi + ' sudah dikonfirmasi dan paket akan kami antar sesuai jadwal. Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'request_reschedule' && base && proposedDate && proposedSlot && ctx.slots.indexOf(proposedSlot) !== -1) {\n  appUrl = base + '/schedule/reschedule';\n  appBody = { date: proposedDate, slot: proposedSlot };\n  reply = 'Terima kasih, Kak! Permintaan jadwal ulang resi ' + resi + ' pada ' + proposedDate + ' (' + proposedSlot + ') sudah kami terima. Admin akan mengusulkan jadwal barunya. Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'choose_option' && base && option >= 1 && option <= 4) {\n  appUrl = base + '/issue/choice';\n  appBody = { choice: option };\n  const opsi = {\n    1: 'Baik Kak, paket akan kami proses untuk pengembalian ke pengirim. Tim kami menindaklanjuti klaim sesuai ketentuan layanan.',\n    2: 'Baik Kak, kami siapkan pengiriman ulang paket. Silakan konfirmasi jadwal penerimaan yang Kakak inginkan.',\n    3: 'Baik Kak, pengiriman tetap dilanjutkan dengan penawaran kompensasi sesuai ketentuan layanan kami.',\n    4: 'Baik Kak, tim operasional kami akan menghubungi Kakak untuk diskusi lebih lanjut.'\n  };\n  reply = opsi[option] + ' Anteraja Frozen \\u2744\\ufe0f';\n} else if (intent === 'request_reschedule') {\n  reply = 'Baik Kak, mohon tuliskan tanggal dan pilihan jam penerimaan: 09:00-11:00, 11:00-13:00, 13:00-15:00, 15:00-17:00, atau 17:00-19:00. Anteraja Frozen \\u2744\\ufe0f';\n} else {\n  reply = 'Mohon balas dengan angka 1, 2, 3, atau 4 sesuai opsi penyelesaian kendala, atau tuliskan jadwal penerimaan yang Kakak inginkan. Anteraja Frozen \\u2744\\ufe0f';\n}\n\nreturn [{ json: {\n  intent: intent,\n  option: option,\n  confidence: confidence,\n  app_url: appUrl,\n  app_body: appBody,\n  reply_text: reply,\n  phone: ctx.phone,\n  tracking_number: ctx.tracking_number,\n  client_token: ctx.client_token\n} }];"
+        "jsCode": "const ctx = $('Siapkan Konteks').first().json;\nconst llm = $input.first().json || {};\n\nlet llmIntent = null;\nlet llmOption = null;\nlet llmDate = null;\nlet llmSlot = null;\nlet confidence = 0;\n\ntry {\n  const content = llm.choices && llm.choices[0] && llm.choices[0].message ? llm.choices[0].message.content : null;\n  if (typeof content === 'string') {\n    const parsed = JSON.parse(content);\n    llmIntent = parsed.intent || null;\n    llmOption = parsed.option === undefined || parsed.option === null ? null : parseInt(parsed.option, 10);\n    confidence = parsed.confidence || 0;\n    llmDate = parsed.proposed_date || null;\n    llmSlot = parsed.proposed_slot || null;\n  }\n} catch (error) {\n  llmIntent = null;\n}\n\nconst text = String(ctx.text || '').toLowerCase().trim();\nconst template = ctx.last_template || 'none';\nconst slots = ctx.slots || [];\nconst resi = ctx.tracking_number || '-';\nconst link = ctx.client_url || null;\nconst base = ctx.client_token ? 'http://anteraja-hackathon-service/api/guest/' + ctx.client_token : null;\nconst has = (pattern) => pattern.test(text);\n\n// What was this conversation waiting for? Only that step can be acted on.\nlet action = null;\nlet option = null;\nlet proposedDate = null;\nlet proposedSlot = null;\n\nif (template === 'schedule_request') {\n  // Whole words only: \"besok\" must not read as the \"ok\" confirmation.\n  const wantsReschedule = has(/\\b(jadwal lain|minta jadwal|ubah|ganti|tunda|reschedule|besok|tanggal|jam|pukul)\\b/) || llmIntent === 'request_reschedule';\n  const wantsConfirm = has(/\\b(siap|ya|iya|oke|ok|bisa|setuju|terima|konfirmasi|hadir)\\b/) || llmIntent === 'confirm_schedule';\n\n  if (wantsReschedule && !wantsConfirm) {\n    action = 'reschedule';\n  } else if (wantsConfirm && !wantsReschedule) {\n    action = 'confirm';\n  } else if (llmIntent === 'request_reschedule') {\n    action = 'reschedule';\n  } else if (llmIntent === 'confirm_schedule') {\n    action = 'confirm';\n  } else if (wantsReschedule) {\n    action = 'reschedule';\n  } else if (wantsConfirm) {\n    action = 'confirm';\n  }\n\n  if (action === 'reschedule') {\n    proposedDate = llmDate;\n    proposedSlot = llmSlot;\n  }\n} else if (template === 'issue_options') {\n  if (/^[1-4]$/.test(text)) {\n    action = 'choice';\n    option = parseInt(text, 10);\n  } else if (has(/(kirim ulang|dikirim ulang|pengiriman ulang|ganti barang|resend)/)) {\n    action = 'choice';\n    option = 2;\n  } else if (has(/(kembali|retur|batal|tidak jadi)/)) {\n    action = 'choice';\n    option = 1;\n  } else if (has(/(lanjut|kompensasi)/)) {\n    action = 'choice';\n    option = 3;\n  } else if (has(/(diskusi|tanya|bicara)/)) {\n    action = 'choice';\n    option = 4;\n  } else if (llmIntent === 'choose_option' && llmOption >= 1 && llmOption <= 4) {\n    action = 'choice';\n    option = llmOption;\n  }\n}\n\nif (action && !base) {\n  // The app never told us which package this is, so nothing can be applied.\n  action = null;\n}\n\nlet appUrl = null;\nlet appBody = {};\nlet reply = null;\nlet nextTemplate = null;\n\nif (action === 'confirm') {\n  appUrl = base + '/schedule/confirm';\n  reply = 'Terima kasih, Kak! Jadwal penerimaan paket ' + resi + ' sudah dikonfirmasi dan paket akan kami antar sesuai jadwal. Anteraja Frozen \\u2744\\ufe0f';\n  nextTemplate = 'confirmed';\n} else if (action === 'reschedule' && proposedDate && proposedSlot && slots.indexOf(proposedSlot) !== -1) {\n  appUrl = base + '/schedule/reschedule';\n  appBody = { date: proposedDate, slot: proposedSlot };\n  reply = 'Terima kasih, Kak! Permintaan jadwal ulang resi ' + resi + ' pada ' + proposedDate + ' (' + proposedSlot + ') sudah kami terima. Admin akan mengusulkan jadwal barunya. Anteraja Frozen \\u2744\\ufe0f';\n  nextTemplate = 'reschedule_requested';\n} else if (action === 'choice' && option >= 1 && option <= 4) {\n  appUrl = base + '/issue/choice';\n  appBody = { choice: option };\n  const opsi = {\n    1: 'Baik Kak, paket akan kami proses untuk pengembalian ke pengirim. Tim kami menindaklanjuti klaim sesuai ketentuan layanan.',\n    2: 'Baik Kak, kami siapkan pengiriman ulang paket. Silakan konfirmasi jadwal penerimaan yang Kakak inginkan.',\n    3: 'Baik Kak, pengiriman tetap dilanjutkan dengan penawaran kompensasi sesuai ketentuan layanan kami.',\n    4: 'Baik Kak, tim operasional kami akan menghubungi Kakak untuk diskusi lebih lanjut.'\n  };\n  reply = opsi[option] + ' Anteraja Frozen \\u2744\\ufe0f';\n  nextTemplate = 'issue_choice_recorded';\n} else if (action === 'reschedule') {\n  reply = 'Baik Kak, mohon tuliskan tanggal dan pilihan jam penerimaan: ' + slots.join(', ') + '. Anteraja Frozen \\u2744\\ufe0f';\n} else if (template === 'schedule_request') {\n  reply = 'Paket ' + resi + ' masih menunggu konfirmasi jadwal. Balas *SIAP* untuk konfirmasi, atau *JADWAL LAIN* untuk meminta jadwal pengganti. Anteraja Frozen \\u2744\\ufe0f';\n} else if (template === 'issue_options') {\n  reply = 'Paket ' + resi + ' terkendala. Mohon balas angka 1, 2, 3, atau 4 sesuai opsi penyelesaian kendala. Anteraja Frozen \\u2744\\ufe0f';\n} else if (template === 'delivered') {\n  reply = 'Paket ' + resi + ' sudah diterima. Terima kasih telah menggunakan Anteraja Frozen! \\u2744\\ufe0f';\n} else if (template === 'courier_arrived') {\n  reply = 'Kurir kami sudah tiba di lokasi untuk paket ' + resi + '. Mohon siapkan penerimaan paket beku ya, Kak. \\u2744\\ufe0f';\n} else if (template === 'on_the_way' || template === 'in_delivery') {\n  reply = 'Paket ' + resi + ' sedang dalam pengiriman.' + (link ? ' Lacak di sini: ' + link : '') + ' Anteraja Frozen \\u2744\\ufe0f';\n} else if (template === 'issue_decision' || template.indexOf('issue_decision_update') === 0) {\n  reply = 'Paket ' + resi + ' sedang ditangani tim operasional kami.' + (link ? ' Pembaruan: ' + link : '') + ' Anteraja Frozen \\u2744\\ufe0f';\n} else if (ctx.resi_attempt && !ctx.lookup_found) {\n  reply = 'Nomor resi ' + ctx.resi_attempt + ' tidak kami temukan untuk nomor WhatsApp ini. Mohon periksa kembali resinya, atau hubungi layanan pelanggan Anteraja Frozen. \\u2744\\ufe0f';\n} else if (link) {\n  reply = 'Info paket ' + resi + ': ' + link + ' Anteraja Frozen \\u2744\\ufe0f';\n} else {\n  reply = 'Halo! \\ud83d\\udc4b Kirimkan nomor resi (contoh: AJ-FRZ-0012345) agar kami bisa membantu, atau hubungi layanan pelanggan Anteraja Frozen. \\u2744\\ufe0f';\n}\n\nreturn [{ json: {\n  intent: action || 'info:' + template,\n  option: option,\n  confidence: confidence,\n  app_url: appUrl,\n  app_body: appBody,\n  reply_text: reply,\n  next_template: nextTemplate,\n  phone: ctx.phone,\n  tracking_number: ctx.tracking_number,\n  client_token: ctx.client_token\n} }];"
       },
       "id": "ib-putuskan",
       "name": "Putuskan Aksi",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1080,
+        1440,
         0
       ]
     },
@@ -214,7 +289,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1320,
+        1680,
         0
       ]
     },
@@ -232,10 +307,24 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1560,
+        1920,
         -140
       ],
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const decision = $('Putuskan Aksi').first().json;\nconst msg = $('Normalisasi').first().json;\n\nfunction appMessage(raw) {\n  const brace = String(raw || '').indexOf('{');\n  if (brace >= 0) {\n    try {\n      const parsed = JSON.parse(String(raw).slice(brace));\n      if (parsed && parsed.message) return parsed.message;\n    } catch (error) {\n      // Not a JSON body; fall back to the generic line below.\n    }\n  }\n  return null;\n}\n\nlet text = decision.reply_text;\nlet ok = true;\n\ntry {\n  const app = $('Panggil App').first().json;\n  if (app && app.error) {\n    ok = false;\n    text = appMessage(app.error.message) || 'Mohon maaf, permintaan ini belum dapat kami proses.';\n  } else if (app && app.success === false) {\n    ok = false;\n    text = app.message || 'Mohon maaf, permintaan ini belum dapat kami proses.';\n  }\n} catch (error) {\n  // No app call on this path: the decided reply stands.\n}\n\n// The state row keeps whatever we already knew; a failed action must not\n// advance last_template, so the pending step can still be answered.\nreturn [{ json: {\n  text: text,\n  chat_id: msg.chat_id,\n  phone: msg.phone,\n  values: [\n    msg.phone,\n    decision.tracking_number || null,\n    decision.client_token || null,\n    ok ? (decision.next_template || null) : null,\n    JSON.stringify({\n      last_inbound_text: msg.text,\n      last_intent: decision.intent,\n      last_inbound_at: new Date().toISOString()\n    })\n  ]\n} }];"
+      },
+      "id": "ib-susun-balasan",
+      "name": "Susun Balasan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        0
+      ]
     },
     {
       "parameters": {
@@ -243,7 +332,7 @@
         "url": "http://waha/api/sendText",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $('Normalisasi').item.json.chat_id, text: $('Putuskan Aksi').item.json.reply_text }) }}",
+        "jsonBody": "={{ JSON.stringify({ session: 'anteraja', chatId: $('Susun Balasan').item.json.chat_id, text: $('Susun Balasan').item.json.text }) }}",
         "options": {},
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
@@ -253,7 +342,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1800,
+        2400,
         0
       ],
       "credentials": {
@@ -266,9 +355,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO anteraja_chat_state (phone, last_message_at, context, updated_at)\nVALUES ($1, now(), $2::jsonb, now())\nON CONFLICT (phone) DO UPDATE SET\n  last_message_at = now(),\n  context = anteraja_chat_state.context || EXCLUDED.context,\n  updated_at = now()",
+        "query": "INSERT INTO anteraja_chat_state (phone, tracking_number, client_token, last_template, last_message_at, context, updated_at)\nVALUES ($1, $2, $3, $4, now(), $5::jsonb, now())\nON CONFLICT (phone) DO UPDATE SET\n  tracking_number = COALESCE(EXCLUDED.tracking_number, anteraja_chat_state.tracking_number),\n  client_token = COALESCE(EXCLUDED.client_token, anteraja_chat_state.client_token),\n  last_template = COALESCE(EXCLUDED.last_template, anteraja_chat_state.last_template),\n  last_message_at = now(),\n  context = anteraja_chat_state.context || EXCLUDED.context,\n  updated_at = now()",
         "options": {
-          "queryReplacement": "={{ $('Siapkan Konteks').item.json.phone }},{{ JSON.stringify({ last_inbound_text: $('Normalisasi').item.json.text, last_intent: $('Putuskan Aksi').item.json.intent, last_inbound_at: $now.toISO() }) }}"
+          "queryReplacement": "={{ $('Susun Balasan').item.json.values }}"
         }
       },
       "id": "ib-simpan-state",
@@ -276,7 +365,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2040,
+        2640,
         0
       ],
       "credentials": {
@@ -325,7 +414,7 @@
       "main": [
         [
           {
-            "node": "Siapkan Konteks",
+            "node": "Deteksi Resi",
             "type": "main",
             "index": 0
           }
@@ -376,7 +465,7 @@
         ],
         [
           {
-            "node": "Balas WAHA",
+            "node": "Susun Balasan",
             "type": "main",
             "index": 0
           }
@@ -387,7 +476,7 @@
       "main": [
         [
           {
-            "node": "Balas WAHA",
+            "node": "Susun Balasan",
             "type": "main",
             "index": 0
           }
@@ -410,6 +499,57 @@
         [
           {
             "node": "Normalisasi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deteksi Resi": {
+      "main": [
+        [
+          {
+            "node": "Ada Resi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ada Resi?": {
+      "main": [
+        [
+          {
+            "node": "Cari Paket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Siapkan Konteks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cari Paket": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Konteks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Susun Balasan": {
+      "main": [
+        [
+          {
+            "node": "Balas WAHA",
             "type": "main",
             "index": 0
           }

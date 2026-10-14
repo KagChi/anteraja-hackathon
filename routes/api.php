@@ -42,6 +42,7 @@ use App\Http\Controllers\Courier\RejectTaskController;
 use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
+use App\Http\Controllers\Api\Internal\WhatsappLookupController;
 use App\Http\Controllers\Media\MediaPreviewController;
 use App\Http\Middleware\AuthenticateCourier;
 use Illuminate\Support\Facades\Route;
@@ -182,6 +183,15 @@ Route::prefix('client/{token}')->where(['token' => '[A-Fa-f0-9]{32,128}'])->name
         Route::get('issue', [IssueController::class, 'show'])->name('issue.show');
         Route::post('issue/choice', ClientApiIssueChoiceController::class)->name('issue.choice');
         Route::post('issue/resend', ReplacementController::class)->name('issue.resend');
+    });
+
+// Internal automation hook. n8n calls this to resolve a tracking number a
+// customer typed on WhatsApp, so the inbound flow can attach the conversation
+// to that package. Guarded by the shared X-Anteraja-Token secret.
+Route::prefix('internal')->name('api.internal.')
+    ->middleware(['force.json', 'internal.token', 'throttle:60,1'])
+    ->group(function () {
+        Route::post('whatsapp/lookup', WhatsappLookupController::class)->name('whatsapp.lookup');
     });
 
 // OpenAPI / Swagger Documentation

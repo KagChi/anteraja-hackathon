@@ -97,6 +97,43 @@ mengubah node tersebut.
 - `Balas WAHA` gagal dengan `500` dari `/api/sendText`: hampir selalu alamat
   chat yang salah (LID ditulis sebagai `@c.us`), bukan WAHA yang mati.
 
+## Balasan sebagai aksi (state)
+
+Balasan pembeli hanya dianggap aksi kalau cocok dengan langkah yang sedang
+menunggu di baris `anteraja_chat_state` (kolom `last_template`, ditulis flow
+outbound saat notifikasi dikirim):
+
+| `last_template` | Balasan yang diterima | Aksi ke API guest |
+| --- | --- | --- |
+| `schedule_request` | "siap", "ya", "oke" | `POST /schedule/confirm` |
+| `schedule_request` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
+| `issue_options` | `1`-`4` atau "kirim ulang"/"retur"/"lanjut"/"diskusi" | `POST /issue/choice` |
+| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat + tautan lacak |
+| tidak ada state | apa pun | balasan bantuan: minta nomor resi, tanpa menu 1-4 |
+
+Setelah aksi berhasil, `last_template` dimajukan (`confirmed`,
+`reschedule_requested`, `issue_choice_recorded`) supaya bot tidak menagih
+langkah yang sama. Kalau API menolak (mis. jadwal sudah dikonfirmasi), pesan
+penolakan aplikasi diteruskan apa adanya dan state tidak dimajukan.
+
+## Resolusi resi (endpoint internal)
+
+Pembeli yang mengetik nomor resi di WhatsApp akan dihubungkan ke paketnya lewat
+`POST /api/internal/whatsapp/lookup` di aplikasi:
+
+- header `X-Anteraja-Token` harus sama dengan `N8N_WEBHOOK_TOKEN`
+  (`ANTERAJA_WEBHOOK_TOKEN` di cluster); tanpa itu 401, dan 503 bila token belum
+  disetel;
+- body `{ phone, resi }`; nomor dinormalkan ke E.164 dan resi harus milik
+  pembeli dengan nomor itu, sehingga satu pelanggan tidak bisa membuka paket
+  orang lain;
+- balasan `{ found: true, tracking_number, client_token, client_url, template,
+  status_label }`, atau `{ found: false }` bila tidak ada yang cocok.
+
+`template` dihitung aplikasi dari aksi yang tertunda pada paket itu, jadi
+workflow tidak menebak sendiri. Baris state hasil resolusi disimpan, sehingga
+pesan berikutnya tidak perlu menyebut resi lagi.
+
 ## Uji manual
 
 ```bash
