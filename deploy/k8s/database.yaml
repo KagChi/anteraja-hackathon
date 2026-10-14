@@ -1,0 +1,16 @@
+# Database khusus aplikasi ini pada cluster CloudNativePG bersama ("postgres").
+# Owner memakai role yang sudah ada; tidak ada role baru yang dibuat.
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: anteraja-hackathon
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: anteraja-hackathon
+spec:
+  cluster:
+    name: postgres
+  name: anteraja_hackathon
+  owner: anteraja
+  ensure: present
+  databaseReclaimPolicy: retain

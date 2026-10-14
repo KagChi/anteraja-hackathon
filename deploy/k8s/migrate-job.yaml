@@ -1,0 +1,45 @@
+# Job sekali-jalan: migrate + seeder (idempoten).
+# Hapus Job lama sebelum apply ulang:
+#   kubectl -n prod-other delete job anteraja-hackathon-migrate --ignore-not-found
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: anteraja-hackathon-migrate
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: anteraja-hackathon
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: anteraja-hackathon
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: image-pull-secrets
+      containers:
+        - name: migrate
+          image: ghcr.io/kagchi/anteraja-hackathon:main
+          imagePullPolicy: Always
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              php artisan migrate --force --no-interaction
+              php artisan db:seed --class='Database\Seeders\DatabaseSeeder' --force --no-interaction
+          envFrom:
+            - configMapRef:
+                name: anteraja-hackathon-config
+            - secretRef:
+                name: anteraja-hackathon-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
