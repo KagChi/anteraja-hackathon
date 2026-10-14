@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Namespace bersama untuk seluruh app "other" di cluster innovare-cloud.
+namespace: prod-other
+
+# migrate-job.yaml sengaja tidak disertakan: Job bersifat sekali-jalan, jadi
+# harus dihapus dulu sebelum apply ulang. Lihat README langkah 5.
+resources:
+  - configmap.yaml
+  - database.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml

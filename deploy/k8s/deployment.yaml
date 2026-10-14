@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anteraja-hackathon
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: anteraja-hackathon
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: anteraja-hackathon
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: anteraja-hackathon
+    spec:
+      imagePullSecrets:
+        - name: image-pull-secrets
+      containers:
+        - name: web
+          image: ghcr.io/kagchi/anteraja-hackathon:main
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: anteraja-hackathon-config
+            - secretRef:
+                name: anteraja-hackathon-secrets
+          readinessProbe:
+            httpGet:
+              path: /up
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 4
+          livenessProbe:
+            httpGet:
+              path: /up
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+        - name: worker
+          image: ghcr.io/kagchi/anteraja-hackathon:main
+          imagePullPolicy: Always
+          command:
+            - php
+            - artisan
+            - queue:work
+            - --tries=1
+            - --sleep=2
+            - --timeout=60
+          envFrom:
+            - configMapRef:
+                name: anteraja-hackathon-config
+            - secretRef:
+                name: anteraja-hackathon-secrets
+          resources:
+            requests:
+              cpu: 20m
+              memory: 128Mi
+            limits:
+              memory: 512Mi

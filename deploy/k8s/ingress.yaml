@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anteraja-hackathon-ingress
+  namespace: prod-other
+  labels:
+    app.kubernetes.io/name: anteraja-hackathon
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Unggahan foto bukti pengiriman.
+    nginx.ingress.kubernetes.io/proxy-body-size: 64m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: hackathon.kagchi.my.id
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: anteraja-hackathon-service
+                port:
+                  name: http
+  tls:
+    - hosts:
+        - hackathon.kagchi.my.id
+      secretName: anteraja-hackathon-tls
