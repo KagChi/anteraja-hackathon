@@ -247,6 +247,19 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Layanan Pelanggan Anteraja Frozen');
     }
 
+    /** Keluar revokes the token server-side, drops it locally, and gates back. */
+    public function test_logout_revokes_the_token_and_returns_to_login(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+
+        Native::test(Profile::class)
+            ->assertSee('Keluar')
+            ->tap('Keluar')
+            ->assertNavigatedTo('/client/login');
+
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/auth/logout'));
+        $this->assertNull(MobileToken::get(MobileToken::CLIENT));
+    }
+
     /**
      * The customer shell is light only: there is no theme card and no toggle,
      * and the build pins the platform chrome to light so a device set to dark
