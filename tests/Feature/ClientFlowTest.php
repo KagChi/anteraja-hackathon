@@ -331,7 +331,13 @@ final class ClientFlowTest extends TestCase
                 'message' => 'Permintaan perubahan jadwal berhasil dikirim.',
             ]);
 
-        $this->assertSame(PackageStatus::RESCHEDULE_REQUESTED, $pkg->fresh()->status);
+        $fresh = $pkg->fresh();
+        $this->assertSame(PackageStatus::CONFIRMED, $fresh->status);
+        $this->assertSame(
+            $targetDate,
+            $fresh->scheduled_at?->setTimezone('Asia/Jakarta')->format('Y-m-d'),
+            'the buyer-requested day is applied to the parcel',
+        );
 
         // Notification queued for active admins
         $notif = Notification::where('package_id', $pkg->id)

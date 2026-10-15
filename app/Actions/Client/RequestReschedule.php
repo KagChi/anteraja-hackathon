@@ -30,8 +30,8 @@ final class RequestReschedule
             /** @var Package $locked */
             $locked = Package::where('id', $package->id)->lockForUpdate()->firstOrFail();
 
-            // Idempotent double-tap
-            if ($locked->status === PackageStatus::RESCHEDULE_REQUESTED) {
+            // Idempotent double-tap: the buyer's window is already applied.
+            if ($locked->status === PackageStatus::CONFIRMED) {
                 return $locked;
             }
 
@@ -49,15 +49,23 @@ final class RequestReschedule
                 throw new ScheduleNotActionable('Tidak ada jadwal yang menunggu konfirmasi.');
             }
 
+            $previousScheduledAt = $locked->scheduled_at;
+
             $pending->update([
                 'response' => 'RESCHEDULE_REQUESTED',
                 'proposed_scheduled_at' => $data->proposedScheduledAt,
                 'responded_at' => now(),
             ]);
 
-            $updated = $this->transitioner->transition($locked, PackageStatus::RESCHEDULE_REQUESTED, null);
+            // The buyer picked the window themselves, so it is applied right
+            // away: the parcel moves to the new date without waiting on an
+            // admin to re-propose it. CONFIRMED means "scheduled and agreed".
+            $updated = $this->transitioner->transition($locked, PackageStatus::CONFIRMED, null, [
+                'scheduled_at' => $data->proposedScheduledAt,
+                'scheduled_end_at' => $data->proposedScheduledEndAt,
+            ]);
 
-            // Notify active admins
+            // Admins stay in the loop; the change is already live.
             $admins = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->get();
             foreach ($admins as $admin) {
                 $this->notificationQueue->queue(
@@ -68,11 +76,11 @@ final class RequestReschedule
                     [
                         'tracking_number' => $updated->tracking_number,
                         'proposed_scheduled_at' => $data->proposedScheduledAt->toIso8601String(),
-                        // The admin reads the requested window on WhatsApp, so
-                        // the label travels with the ISO timestamp the console
+                        // The admin reads the new window on WhatsApp, so the
+                        // label travels with the ISO timestamp the console
                         // keeps using.
                         'proposed_window' => DisplayTime::dateTimeIndo($data->proposedScheduledAt),
-                        'current_scheduled_at' => $updated->scheduled_at?->toIso8601String(),
+                        'current_scheduled_at' => $previousScheduledAt?->toIso8601String(),
                     ]
                 );
             }

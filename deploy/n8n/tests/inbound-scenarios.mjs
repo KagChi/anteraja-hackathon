@@ -310,7 +310,7 @@ scenario('"besok 13:00-15:00" reschedules through the API', () => {
   contains(out.decision.app_url, '/schedule/reschedule', 'app url');
   eq(out.decision.app_body.date, '2026-10-15', 'date');
   eq(out.decision.app_body.slot, '13:00-15:00', 'slot');
-  eq(out.decision.next_template, 'reschedule_requested', 'next template');
+  eq(out.decision.next_template, 'confirmed', 'next template');
 });
 
 scenario('a window outside the offered list is asked for again', () => {
@@ -332,7 +332,7 @@ scenario('a bare time means tomorrow, not today', () => {
   contains(out.decision.app_url, '/schedule/reschedule', 'app call');
   eq(out.decision.app_body.date, '2026-10-15', 'next day');
   eq(out.decision.app_body.slot, '11:00-13:00', 'slot');
-  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+  eq(out.decision.next_template, 'confirmed', 'state advanced');
 });
 
 scenario('a bare time with no date is never read as today', () => {
@@ -380,7 +380,7 @@ scenario('a window tomorrow still goes through', () => {
     llm: { intent: 'request_reschedule', proposed_date: '2026-10-15', proposed_slot: '13:00-15:00' },
   });
   contains(out.decision.app_url, '/schedule/reschedule', 'app call');
-  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+  eq(out.decision.next_template, 'confirmed', 'state advanced');
 });
 
 scenario('an explicit day and time the model resolved reschedules through the API', () => {
@@ -392,7 +392,7 @@ scenario('an explicit day and time the model resolved reschedules through the AP
   contains(out.decision.app_url, '/schedule/reschedule', 'app url');
   eq(out.decision.app_body.date, '2026-10-23', 'date from the model');
   eq(out.decision.app_body.slot, '13:00-15:00', 'slot from the model');
-  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+  eq(out.decision.next_template, 'confirmed', 'state advanced');
 });
 
 scenario('"tanggal 22 jam 17.00" is not rejected for a two-hour lead it never had', () => {
@@ -446,7 +446,7 @@ scenario('a bare day with a time reschedules even when the model left it null', 
   contains(out.decision.app_url, '/schedule/reschedule', 'app url');
   eq(out.decision.app_body.date, '2026-10-30', 'the day the customer named');
   eq(out.decision.app_body.slot, '09:00-11:00', 'the window the customer named');
-  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+  eq(out.decision.next_template, 'confirmed', 'state advanced');
 });
 
 scenario('a bare day overrides a model that guessed today', () => {
@@ -456,7 +456,7 @@ scenario('a bare day overrides a model that guessed today', () => {
     llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '09:00-11:00' },
   });
   eq(out.decision.app_body.date, '2026-10-30', 'not the model\'s today');
-  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+  eq(out.decision.next_template, 'confirmed', 'state advanced');
 });
 
 scenario('a bare day that already passed this month rolls to next month', () => {
@@ -1065,8 +1065,8 @@ scenario('admin steps reach the admin dashboard owner', () => {
     proposed_window: 'Besok, 13:00 - 15:00 WIB'
   });
   eq(reschedule.should_send, true, 'should_send for reschedule_requested');
-  contains(reschedule.text, 'meminta jadwal penerimaan lain', 'says what happened');
-  contains(reschedule.text, 'Jadwal yang diminta: Besok, 13:00 - 15:00 WIB', 'names the requested window');
+  contains(reschedule.text, 'mengubah jadwal penerimaan', 'says what happened');
+  contains(reschedule.text, 'Jadwal baru: Besok, 13:00 - 15:00 WIB', 'names the new window');
 
   const overdue = render('confirmation_overdue', { recipient_name: 'Dimas', age_minutes: 135 });
   eq(overdue.should_send, true, 'should_send for confirmation_overdue');

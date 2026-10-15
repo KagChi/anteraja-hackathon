@@ -12,5 +12,6 @@ final readonly class RescheduleRequestData
         public string $date,
         public string $slot,
         public CarbonImmutable $proposedScheduledAt,
+        public CarbonImmutable $proposedScheduledEndAt,
     ) {}
 }

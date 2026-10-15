@@ -72,14 +72,16 @@ final class RescheduleRequest extends FormRequest
     {
         $date = (string) $this->input('date');
         $slot = (string) $this->input('slot');
-        $slotStart = explode('-', $slot)[0];
+        [$slotStart, $slotEnd] = explode('-', $slot);
 
         $proposed = CarbonImmutable::parse("{$date} {$slotStart}", 'Asia/Jakarta')->setTimezone('UTC');
+        $proposedEnd = CarbonImmutable::parse("{$date} {$slotEnd}", 'Asia/Jakarta')->setTimezone('UTC');
 
         return new RescheduleRequestData(
             date: $date,
             slot: $slot,
             proposedScheduledAt: $proposed,
+            proposedScheduledEndAt: $proposedEnd,
         );
     }
 }
