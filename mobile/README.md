@@ -77,7 +77,7 @@ signing up; the app asks for an account at checkout. Registering calls
 up in the hub queue tagged APP.
 
 The basket lives in `App\Support\ClientCart` (product ids and quantities in the
-cache store, like `MobileToken` and `Appearance`), because native screens are
+cache store, like `MobileToken`), because native screens are
 separate components with no shared parent. Names, prices and weights are always
 re-read from the catalog at checkout, so a stale basket can never quote a price
 the server would not charge. `App\Support\ClientReceipt` carries the created
@@ -120,22 +120,15 @@ for the hub. Validasi GPS is where the hub approves or rejects it, and an
 approval is what lets the courier's retry through while the incident stays on
 record.
 
-## Theme switcher
+## Theme
 
-Both apps end the Profil tab with a `Tema` card — the shared
-`native/partials/appearance.blade.php` — offering **Sistem** (follow the
-device), **Terang** and **Gelap**. The choice is kept in the cache store, which
-the shells build with the file driver, so it survives a launch;
-`AppServiceProvider` re-applies it once every provider has booted, so a pinned
-app opens in its palette instead of the device's.
-
-Pinning cannot work by selecting a theme block: every `*-theme-*` class emits a
-light and a dark companion, and the platform picks one per element from the OS
-colour scheme. `App\Support\Appearance` therefore writes the chosen palette
-into **both** blocks, which keeps the `theme()` helper that colours the tab bar
-in step with what the renderers draw. The OS chrome around the app — status
-bar, keyboards, the platform's own sheets — still follows the device, which is
-pinned only at build time (`NATIVEPHP_APPEARANCE`).
+Both apps are light only, and neither has a theme toggle. The light palette in
+`config/native-ui.php` (white surfaces, dark type, Anteraja magenta for
+actions) is the only one the screens draw, and the build pins the platform
+chrome to match: `NATIVEPHP_APPEARANCE` defaults to `light`, the status bar
+icons are dark (`status_bar_style`), and the Android theme colours are the
+same magenta in both the day and the `values-night` resource, so a device set
+to dark gets the light chrome rather than a dark frame around light screens.
 
 ## Building an APK
 

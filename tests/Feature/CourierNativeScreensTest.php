@@ -12,7 +12,6 @@ use App\NativeComponents\Courier\Profile;
 use App\NativeComponents\Courier\Proof;
 use App\NativeComponents\Courier\Start;
 use App\NativeComponents\Courier\Tasks;
-use App\Support\Appearance;
 use App\Support\MobileToken;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -105,24 +104,18 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertSee('Motor Box #04');
     }
 
-    /** The profile carries the theme switcher, and picking a mode pins it. */
-    public function test_the_profile_switches_the_app_theme(): void {
-        $light = config('native-ui.theme.light');
-
+    /**
+     * The courier shell is light only: there is no theme card and no toggle,
+     * and the build pins the platform chrome to light so a device set to dark
+     * cannot put a dark frame around the light screens.
+     */
+    public function test_the_profile_offers_no_theme_switcher(): void {
         Native::test(Profile::class)
-            ->assertSee('Tema')
-            ->assertSee('Sistem')
-            ->assertSee('Terang')
-            ->assertSee('Gelap')
-            ->assertSet('appearance', 0)
-            ->call('setAppearance', 1)
-            ->assertSet('appearance', 1);
+            ->assertDontSee('Tema')
+            ->assertDontSee('Gelap')
+            ->assertDontSee('Sistem');
 
-        $this->assertSame(Appearance::LIGHT, Appearance::get());
-
-        // Pinned, not merely stored: the dark block carries the light palette
-        // too, because the platform picks per element from the OS scheme.
-        $this->assertSame($light['surface'], config('native-ui.theme.dark.surface'));
+        $this->assertSame('light', config('nativephp.appearance'));
     }
 
     public function test_the_delivery_screen_offers_the_route_and_the_handover(): void {

@@ -5,27 +5,22 @@ declare(strict_types=1);
 namespace App\NativeComponents\Courier;
 
 use App\Support\Concerns\LoadsFromApi;
-use App\Support\Appearance;
 use App\Support\MobileApi;
 use App\Support\MobileToken;
 use Native\Mobile\Edge\Element;
 use Native\Mobile\Edge\NativeComponent;
 
 /**
- * Courier identity, today's numbers, the day's assignment, and the app-wide
- * theme switcher — GET /api/courier/profile.
+ * Courier identity, today's numbers and the day's assignment —
+ * GET /api/courier/profile.
  */
 final class Profile extends NativeComponent {
     use LoadsFromApi;
-
-    /** Selected index into Appearance::modes() — the switcher's bound value. */
-    public int $appearance = 0;
 
     /** @var array<string, mixed> */
     public array $profile = [];
 
     public function mount(): void {
-        $this->appearance = Appearance::index();
         $this->load();
     }
 
@@ -43,12 +38,6 @@ final class Profile extends NativeComponent {
         $this->profile = is_array($profile) ? $profile : self::emptyProfile();
     }
 
-    /** Pin the app palette; the next frame draws in it. */
-    public function setAppearance(int $index): void {
-        Appearance::select($index);
-        $this->appearance = Appearance::index();
-    }
-
     public function logout(): void {
         MobileApi::courier()->post('/courier/auth/logout');
         MobileToken::clear(MobileToken::COURIER);
@@ -59,8 +48,6 @@ final class Profile extends NativeComponent {
     public function render(): Element {
         return $this->view('courier.profile', [
             'profile' => $this->profile,
-            'appearance' => $this->appearance,
-            'appearanceOptions' => Appearance::labels(),
             'error' => $this->error,
         ]);
     }

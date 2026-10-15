@@ -126,14 +126,38 @@
 }
 
 @layer base {
+  /* One theme, always light.
+
+     Pinning color-scheme is what stops a device or an OS set to dark from
+     repainting the built-in widgets — text inputs, selects, scrollbars, the
+     date picker — in dark style. It covers the landing page, both consoles
+     and everything the native shells render through EDGE. */
+  :root {
+    color-scheme: light;
+  }
+
   html,
   body {
     margin: 0;
     padding: 0;
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
   }
 
   body {
     overscroll-behavior: none;
+  }
+
+  /* Platform widgets that follow the OS accent colour take the Anteraja
+     magenta, and stay light wherever they are drawn. */
+  input,
+  select,
+  textarea,
+  button,
+  progress,
+  meter {
+    accent-color: var(--color-primary);
+    color-scheme: light;
   }
 
   /* Keep the console chrome clean, matching the source design. */

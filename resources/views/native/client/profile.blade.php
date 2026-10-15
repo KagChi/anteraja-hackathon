@@ -67,9 +67,6 @@
             </native:row>
         </native:column>
 
-        {{-- Appearance. --}}
-        @include('native.partials.appearance', ['appearance' => $appearance, 'appearanceOptions' => $appearanceOptions])
-
         <native:button variant="secondary" label="Keluar" @tap="logout"
             :ios-icon="Ios::ArrowRightToLine" :android-icon="Android::Logout" />
 

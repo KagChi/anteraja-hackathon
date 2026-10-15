@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Cache;
  *
  * Screens are separate native components with no shared parent state, so the
  * basket lives in the cache store the shells build with the file driver — the
- * same place MobileToken and Appearance keep their values. It holds product ids
+ * same place MobileToken keeps its value. It holds product ids
  * and quantities only; names and prices are always read back from the catalog,
  * so a stale basket can never quote a price the server would not honour.
  */
