@@ -38,8 +38,9 @@ spec:
             - secretRef:
                 name: anteraja-hackathon-secrets
           resources:
+            # The cluster runs near its CPU request ceiling, so the one-shot
+            # job only reserves memory (which still has headroom).
             requests:
-              cpu: 50m
               memory: 256Mi
             limits:
               memory: 512Mi
