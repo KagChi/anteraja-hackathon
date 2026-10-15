@@ -32,6 +32,9 @@ final class IssueReportController extends Controller
 
         $allowedStatuses = [
             PackageStatus::COURIER_ASSIGNED,
+            // The recipient confirms the window before the courier inspects,
+            // so CONFIRMED is the normal state when a problem is found.
+            PackageStatus::CONFIRMED,
             PackageStatus::CHECKED,
             PackageStatus::IN_DELIVERY,
         ];

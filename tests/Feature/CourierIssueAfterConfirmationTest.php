@@ -95,4 +95,14 @@ final class CourierIssueAfterConfirmationTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'Paket tidak dalam proses pengantaran.');
     }
+
+    public function test_the_issue_form_is_offered_after_the_recipient_confirmed(): void
+    {
+        $package = $this->confirmedPackageHeldByCourier();
+
+        $this->actingAs($this->courier)
+            ->getJson("/api/courier/deliveries/{$package->tracking_number}/issue")
+            ->assertOk()
+            ->assertJsonStructure(['issueForm' => ['tracking', 'recipient', 'reporter', 'options']]);
+    }
 }
