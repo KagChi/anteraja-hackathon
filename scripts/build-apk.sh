@@ -164,6 +164,11 @@ echo "    version:   $APP_VERSION ($APP_VERSION_CODE)"
 
 php artisan native:install android --no-interaction
 
+# native:install regenerates nativephp/android from the vendor template, whose
+# theme is DayNight; pin it to light so a device set to dark still renders the
+# light-only design (NATIVEPHP_APPEARANCE only covers iOS).
+scripts/force-light-appearance.sh
+
 # The packager runs Gradle with a hard 10-minute ceiling, and a cold run spends
 # a chunk of that downloading the wrapper and resolving the AGP/Kotlin plugin
 # classpath. Pay that here instead; if this fails the real build reports why.

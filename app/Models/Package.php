@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DeliveryMilestoneEnum;
+use App\Enums\AddressType;
 use App\Enums\DeliveryStage;
 use App\Enums\PackageStatus;
 use App\Enums\PackageSource;
 use App\Enums\ServiceType;
+use App\Support\PhoneFormatter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +49,13 @@ final class Package extends Model
         'courier_accepted_at',
         'client_token',
         'source',
+        'recipient_name',
+        'recipient_phone',
+        'recipient_address',
+        'recipient_area',
+        'recipient_address_type',
+        'recipient_latitude',
+        'recipient_longitude',
     ];
 
     /**
@@ -74,7 +84,41 @@ final class Package extends Model
             'scheduled_end_at' => 'immutable_datetime',
             'courier_accepted_at' => 'datetime',
             'closed_at' => 'immutable_datetime',
+            'recipient_address_type' => AddressType::class,
+            'recipient_latitude' => 'float',
+            'recipient_longitude' => 'float',
         ];
+    }
+
+    /**
+     * The parcel's destination: the person at the door, who is not the buyer.
+     *
+     * The buyer is the customer who sends the parcel, so the recipient block is
+     * stored per shipment — a different family member can be at the door next
+     * time. Screens read this shape instead of the columns, and the courier's
+     * geofence measures against these coordinates.
+     *
+     * @return Attribute<array{name: ?string, phone: ?string, address: ?string, area: ?string, address_type: ?AddressType, latitude: ?float, longitude: ?float}>
+     */
+    protected function recipient(): Attribute
+    {
+        return Attribute::make(get: fn (): array => [
+            'name' => $this->recipient_name,
+            'phone' => $this->recipient_phone,
+            'address' => $this->recipient_address,
+            'area' => $this->recipient_area,
+            'address_type' => $this->recipient_address_type,
+            'latitude' => $this->recipient_latitude,
+            'longitude' => $this->recipient_longitude,
+        ]);
+    }
+
+    /** Recipient numbers are stored the way buyer numbers are: E.164. */
+    protected function recipientPhone(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => ($value !== null && trim($value) !== '') ? PhoneFormatter::toE164Id($value) : $value,
+        );
     }
 
     /**

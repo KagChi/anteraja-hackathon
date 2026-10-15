@@ -8,7 +8,7 @@
             <native:icon :ios="Ios::TruckBox" :android="Android::LocalShipping" :size="30" class="text-theme-on-primary" />
         </native:column>
         <native:text class="text-2xl font-bold text-theme-on-surface">Anteraja Kurir</native:text>
-        <native:text class="text-md text-theme-secondary">Masuk dengan akun kurir Anda.</native:text>
+        <native:text class="text-base text-theme-secondary">Masuk dengan akun kurir Anda.</native:text>
     </native:column>
 
     <native:column class="w-full gap-4">
@@ -16,7 +16,7 @@
             label="Email"
             placeholder="nama@anteraja.id"
             keyboard="email"
-            native:model.blur="email" />
+            native:model="email" />
 
         <native:outlined-text-input
             label="Password"
@@ -24,7 +24,7 @@
             keyboard="password"
             secure
             revealable
-            native:model.blur="password" />
+            native:model="password" />
 
         @if ($error !== null)
             <native:row class="w-full items-start gap-2 rounded-lg bg-theme-error-container p-3">

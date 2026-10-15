@@ -124,25 +124,15 @@ export const COVERAGE: CoverageArea[] = [
     { region: "Bogor", areas: ["Bogor Barat", "Cibinong", "Sentul"], eta: "Same day" }
 ];
 
-/** The three interfaces a visitor can walk into from the landing page. */
+/** The interfaces a visitor can walk into from the landing page. The courier
+ *  and customer apps are native (installed from the APKs in DownloadSection),
+ *  so the admin console is the only web entry point left. */
 export const CONSOLE_LINKS = [
     {
         title: "Admin Console",
         description: "Pantau pengiriman, tangani kendala, tinjau laporan dan riwayat.",
         icon: "monitoring",
         href: "/admin/shipment"
-    },
-    {
-        title: "Aplikasi Kurir",
-        description: "Terima tugas, validasi lokasi, unggah bukti penyerahan.",
-        icon: "local_shipping",
-        href: "/courier/tasks"
-    },
-    {
-        title: "Aplikasi Pelanggan",
-        description: "Pesan produk beku, pilih jadwal, lacak status kiriman.",
-        icon: "receipt_long",
-        href: "/client/orders"
     }
 ];
 

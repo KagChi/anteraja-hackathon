@@ -33,9 +33,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [HandleInertiaRequests::class]);
         // The admin console drives the JSON API from the browser with a session
         // cookie, so the group needs the same CSRF protection the web group has.
-        // A future bearer-token consumer (the courier/client mobile apps) is not
+        // A bearer-token consumer (the courier/client mobile apps) is not
         // cookie-authenticated and must be added to ValidateCsrfToken's except
-        // list rather than being sent through this.
+        // list rather than being sent through this. Both mobile apps post
+        // without a session, so an unlisted prefix answers 419 to every login
+        // and task action.
         $middleware->api(prepend: [
             EncryptCookies::class,
             AddQueuedCookiesToResponse::class,
@@ -44,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'api/client/*',
+            'api/courier/*',
             'api/guest/*',
             'api/internal/*',
         ]);

@@ -12,6 +12,7 @@ use App\Exceptions\ScheduleNotActionable;
 use App\Models\Package;
 use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
+use App\Support\DisplayTime;
 use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,10 @@ final class RequestReschedule
                     [
                         'tracking_number' => $updated->tracking_number,
                         'proposed_scheduled_at' => $data->proposedScheduledAt->toIso8601String(),
+                        // The admin reads the requested window on WhatsApp, so
+                        // the label travels with the ISO timestamp the console
+                        // keeps using.
+                        'proposed_window' => DisplayTime::dateTimeIndo($data->proposedScheduledAt),
                         'current_scheduled_at' => $updated->scheduled_at?->toIso8601String(),
                     ]
                 );

@@ -28,11 +28,11 @@
             <native:row class="w-full gap-4 pt-1">
                 <native:column class="flex-1 gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Penerima</native:text>
-                    <native:text class="text-md font-bold text-theme-on-surface">{{ $form['recipient'] }}</native:text>
+                    <native:text class="text-base font-bold text-theme-on-surface">{{ $form['recipient'] }}</native:text>
                 </native:column>
                 <native:column class="flex-1 gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Kurir Pelapor</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $form['reporter'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $form['reporter'] }}</native:text>
                 </native:column>
             </native:row>
         </native:column>
@@ -42,7 +42,7 @@
             {{-- What went wrong. --}}
             <native:select
                 label="Jenis Kendala"
-                native:model.blur="issueType"
+                native:model="issueType"
                 :options="$typeOptions" />
 
             {{-- What the hub needs to act on it. --}}
@@ -51,7 +51,7 @@
                     label="Catatan Kendala"
                     supporting="Berikan rincian kondisi paket secara jelas"
                     :max-lines="5"
-                    native:model.blur="note" />
+                    native:model="note" />
                 <native:text class="text-sm text-theme-secondary">
                     {{ mb_strlen($note) }}/{{ $form['note_limit'] }}
                 </native:text>
@@ -60,7 +60,7 @@
             {{-- Photo of the parcel as found. --}}
             <native:column class="w-full gap-2">
                 <native:row class="w-full items-center justify-between">
-                    <native:text class="text-md text-theme-on-surface">Bukti Foto Fisik</native:text>
+                    <native:text class="text-base text-theme-on-surface">Bukti Foto Fisik</native:text>
                     @if ($photoPath !== null)
                         <native:text class="text-sm text-theme-tertiary">1 Terlampir</native:text>
                     @endif
@@ -72,7 +72,7 @@
                             <native:image :src="$photoPath" alt="Bukti foto kemasan paket beku"
                                 fit="cover" class="w-14 h-14 rounded-lg" />
                             <native:column class="flex-1 gap-0.5">
-                                <native:text class="text-md font-bold text-theme-on-surface">{{ $form['photo_name'] }}</native:text>
+                                <native:text class="text-base font-bold text-theme-on-surface">{{ $form['photo_name'] }}</native:text>
                                 <native:text class="text-sm text-theme-secondary">{{ $form['photo_meta'] }}</native:text>
                             </native:column>
                         </native:row>

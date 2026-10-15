@@ -258,13 +258,13 @@ final class CourierGpsValidationTest extends TestCase
     private function makePackage(PackageStatus $status = PackageStatus::COURIER_ASSIGNED): Package
     {
         $buyer = Buyer::create([
-            'name' => 'Rina Penerima',
+            'name' => 'Rina Pengirim',
             'phone' => '+6281299900033',
             'password' => 'rahasia123',
-            'address' => 'Jl. Tebet Barat Dalam No. 5',
-            'area' => 'Tebet',
-            'latitude' => self::DESTINATION_LAT,
-            'longitude' => self::DESTINATION_LNG,
+            'address' => 'Jl. Kemang Raya No. 10',
+            'area' => 'Kemang, Jakarta Selatan',
+            'latitude' => -6.260000,
+            'longitude' => 106.810000,
             'is_active' => true,
         ]);
 
@@ -272,6 +272,14 @@ final class CourierGpsValidationTest extends TestCase
             'buyer_id' => $buyer->id,
             'created_by' => $this->admin->id,
             'courier_id' => $this->courier->id,
+            // The destination the courier is measured against is the recipient.
+            'recipient_name' => 'Rina Penerima',
+            'recipient_phone' => '+6281299900044',
+            'recipient_address' => 'Jl. Tebet Barat Dalam No. 5',
+            'recipient_area' => 'Tebet',
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => self::DESTINATION_LAT,
+            'recipient_longitude' => self::DESTINATION_LNG,
             'status' => $status,
             'scheduled_at' => Carbon::now('UTC')->addHour(),
             'weight_kg' => 1.0,

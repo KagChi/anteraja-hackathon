@@ -112,7 +112,16 @@ function normalise(options) {
   return run(code(INBOUND, 'Normalisasi'), {
     nodes: {
       'Webhook WAHA': {
-        body: { event: 'message', payload: { from: from, fromMe: o.fromMe === true, body: message, notifyName: null } },
+        body: {
+          event: 'message',
+          payload: {
+            from: from,
+            fromMe: o.fromMe === true,
+            body: message,
+            notifyName: null,
+            id: o.id === undefined ? null : { _serialized: o.id }
+          }
+        },
       },
     },
     input: o.pn === undefined ? { pn: null } : { pn: o.pn },
@@ -127,7 +136,7 @@ function detect(text) {
 function decide(options) {
   const o = options || {};
   const text = o.text === undefined ? 'hai' : o.text;
-  const normalised = normalise({ text: text });
+  const normalised = normalise({ text: text, id: o.id });
   const resi = run(code(INBOUND, 'Deteksi Resi'), { nodes: { Normalisasi: normalised } });
 
   const context = run(code(INBOUND, 'Siapkan Konteks'), {
@@ -186,7 +195,8 @@ scenario('every step is still chained, lookup included', () => {
     ['Webhook WAHA', 0, 'Resolusi LID'],
     ['Resolusi LID', 0, 'Normalisasi'],
     ['Normalisasi', 0, 'Pesan Masuk?'],
-    ['Pesan Masuk?', 0, 'Ambil State'],
+    ['Pesan Masuk?', 0, 'Catat Pesan Masuk'],
+    ['Catat Pesan Masuk', 0, 'Ambil State'],
     ['Ambil State', 0, 'Deteksi Resi'],
     ['Deteksi Resi', 0, 'Ada Resi?'],
     ['Ada Resi?', 0, 'Cari Paket'],
@@ -199,7 +209,8 @@ scenario('every step is still chained, lookup included', () => {
     ['Ada Aksi App?', 1, 'Susun Balasan'],
     ['Panggil App', 0, 'Susun Balasan'],
     ['Susun Balasan', 0, 'Balas WAHA'],
-    ['Balas WAHA', 0, 'Simpan State Pesan'],
+    ['Balas WAHA', 0, 'Catat Balasan'],
+    ['Catat Balasan', 0, 'Simpan State Pesan'],
   ];
 
   for (const step of chain) {
@@ -632,6 +643,164 @@ scenario('a stored conversation is kept when the resi matches it', () => {
   eq(out.context.tracking_number, RESI, 'tracking kept');
 });
 
+// ------------------------------------------------------------------- staff
+
+console.log('');
+console.log('Inbound — courier and admin replies');
+
+const COURIER_PHONE = '6281200000099';
+const COURIER_STATE = {
+  phone: COURIER_PHONE,
+  tracking_number: RESI,
+  client_token: null,
+  last_template: 'task_assigned',
+  context: { recipient_type: 'COURIER', window: 'Hari ini, 13:00 - 15:00' }
+};
+const ADMIN_STATE = {
+  phone: COURIER_PHONE,
+  tracking_number: RESI,
+  client_token: null,
+  last_template: 'issue_reported',
+  context: { recipient_type: 'ADMIN' }
+};
+const FOUND_COURIER = {
+  found: true,
+  role: 'COURIER',
+  courier_name: 'Budi Santoso',
+  tracking_number: RESI,
+  template: 'task_assigned',
+  status_label: 'Kurir Ditugaskan',
+  window: 'Hari ini, 13:00 - 15:00'
+};
+const FOUND_ADMIN = {
+  found: true,
+  role: 'ADMIN',
+  tracking_number: RESI,
+  template: 'admin_decision',
+  status_label: 'Pengiriman Terkendala'
+};
+
+scenario('a courier accepts the task from a WhatsApp reply', () => {
+  const out = decide({ text: 'terima', state: COURIER_STATE });
+
+  eq(out.decision.app_url, 'http://anteraja-hackathon-service/api/internal/whatsapp/action', 'action endpoint');
+  eq(out.decision.app_body.action, 'accept', 'action');
+  eq(out.decision.app_body.resi, RESI, 'resi from the conversation');
+  eq(out.decision.next_template, 'courier_accepted', 'next step');
+  eq(out.decision.intent, 'staff:accept', 'intent');
+});
+
+scenario('the courier keywords map to the actions the app knows', () => {
+  const cases = [
+    ['TOLAK, motor masuk bengkel', 'reject', null],
+    ['berangkat sekarang', 'depart', null],
+    ['sudah tiba di lokasi', 'arrived', null],
+    ['selesai, diterima Bu Rina', 'deliver', null],
+    ['kemasan BOCOR di sisi kiri', 'issue', 'kemasan_bocor'],
+    ['kemasan basah kena hujan', 'issue', 'kemasan_basah'],
+    ['suhu naik, es mulai meleleh', 'issue', 'suhu_naik']
+  ];
+
+  for (const entry of cases) {
+    const out = decide({ text: entry[0], state: COURIER_STATE });
+    eq(out.decision.app_body.action, entry[1], 'action for ' + entry[0]);
+    eq(out.decision.app_body.category, entry[2], 'category for ' + entry[0]);
+    eq(out.decision.app_body.phone, PHONE, 'phone for ' + entry[0]);
+  }
+});
+
+scenario('a courier reply the app cannot place asks for one it can', () => {
+  const out = decide({ text: 'hmm nanti dulu deh', state: COURIER_STATE });
+
+  eq(out.decision.app_url, null, 'no action call');
+  contains(out.reply.text, 'TERIMA', 'lists the commands');
+  contains(out.reply.text, 'BOCOR', 'lists the issue command');
+});
+
+scenario('an admin decision reply is handed to the app', () => {
+  const cases = [
+    ['kembalikan ' + RESI, 'return', 'admin_decision:RETURN'],
+    ['kirim ulang saja', 'resend', 'admin_decision:RESEND'],
+    ['periksa ulang dulu', 'recheck', 'admin_decision:RECHECK'],
+    ['lanjutkan dengan kompensasi', 'proceed', 'admin_decision:PROCEED'],
+    ['jadwalkan ulang', 'reschedule', 'admin_decision:RESCHEDULE']
+  ];
+
+  for (const entry of cases) {
+    const out = decide({ text: entry[0], state: ADMIN_STATE });
+    eq(out.decision.app_body.action, entry[1], 'action for ' + entry[0]);
+    eq(out.decision.next_template, entry[2], 'next step for ' + entry[0]);
+    eq(out.decision.app_body.note, entry[0], 'reason for ' + entry[0]);
+    contains(out.decision.app_url, '/api/internal/whatsapp/action', 'action endpoint for ' + entry[0]);
+  }
+});
+
+scenario('an admin reply the app cannot place lists the decisions', () => {
+  const out = decide({ text: 'lihat dulu saja', state: ADMIN_STATE });
+
+  eq(out.decision.app_url, null, 'no action call');
+  contains(out.reply.text, 'KEMBALIKAN', 'lists the decisions');
+});
+
+scenario('the lookup tells the flow it is talking to a courier', () => {
+  const out = decide({ text: RESI, state: NO_STATE, lookup: FOUND_COURIER });
+
+  eq(out.context.role, 'COURIER', 'role from the app');
+  eq(out.context.tracking_number, RESI, 'resi attached');
+  eq(out.decision.intent, 'staff:unknown', 'the resi alone is not an action');
+  contains(out.reply.text, 'TERIMA', 'courier help instead of a buyer menu');
+});
+
+scenario('an admin holding an open issue is recognised from the resi', () => {
+  const out = decide({ text: RESI, state: NO_STATE, lookup: FOUND_ADMIN });
+
+  eq(out.context.role, 'ADMIN', 'role from the app');
+  contains(out.reply.text, 'KEMBALIKAN', 'admin help');
+  absent(out.reply.text, MENU, 'never the buyer options menu');
+});
+
+scenario('the courier action carries the WhatsApp message id', () => {
+  const out = decide({ text: 'BERANGKAT', state: COURIER_STATE, id: 'wamid-42' });
+
+  eq(out.decision.app_body.message_id, 'wamid-42', 'message id forwarded');
+  eq(out.decision.app_body.text, 'BERANGKAT', 'raw text forwarded');
+});
+
+scenario('a buyer conversation is never treated as staff', () => {
+  const buyerLookup = {
+    found: true,
+    tracking_number: RESI,
+    client_token: 'tok',
+    client_url: 'https://app/api/client/tok',
+    template: 'issue_options',
+    status_label: 'Pengiriman Terkendala'
+  };
+
+  const out = decide({ text: '1', state: ISSUE_STATE, lookup: buyerLookup });
+
+  eq(out.decision.intent, 'choice', 'buyer action kept');
+  contains(out.decision.app_url, '/api/guest/', 'still the guest API');
+  eq(out.decision.app_body.choice, 1, 'buyer choice recorded');
+});
+
+scenario('the courier action node carries the shared token', () => {
+  eq(nodeOf(INBOUND, 'Panggil App').credentials.httpHeaderAuth.id, 'anterajaAppHook', 'credential');
+});
+
+scenario('the message history is wired for both directions', () => {
+  const target = (from, index) => ((INBOUND.connections[from] || {}).main || [])[index || 0][0].node;
+
+  eq(target('Pesan Masuk?', 0), 'Catat Pesan Masuk', 'inbound log');
+  eq(target('Catat Pesan Masuk', 0), 'Ambil State', 'log then state');
+  eq(target('Balas WAHA', 0), 'Catat Balasan', 'reply log');
+  eq(target('Catat Balasan', 0), 'Simpan State Pesan', 'log then state save');
+
+  contains(nodeOf(INBOUND, 'Catat Pesan Masuk').parameters.url, '/api/internal/whatsapp/messages', 'inbound url');
+  contains(nodeOf(INBOUND, 'Catat Balasan').parameters.url, '/api/internal/whatsapp/messages', 'reply url');
+  contains(nodeOf(OUTBOUND, 'Catat Pesan Keluar').parameters.url, '/api/internal/whatsapp/messages', 'outbound url');
+});
+
+
 // ----------------------------------------------------------------- outbound
 
 console.log('');
@@ -696,12 +865,131 @@ scenario('a recheck decision reaches the buyer', () => {
   eq(out.template, 'issue_decision_update:RECHECK', 'stored template');
 });
 
-scenario('courier and admin steps stay in the app', () => {
-  const templates = ['task_assigned', 'task_rejected', 'issue_reported', 'reschedule_requested', 'issue_decision'];
+scenario('courier steps reach the courier', () => {
+  const assigned = render('task_assigned', {
+    scheduled_window: 'Besok 13:00-15:00',
+    handling_instructions: 'Simpan dalam cold box, jangan dibalik.',
+    items: [
+      { name: 'Nugget Ayam', quantity: 2 },
+      { name: 'Es Krim Vanilla', quantity: 1 }
+    ]
+  });
+  eq(assigned.should_send, true, 'should_send for task_assigned');
+  eq(assigned.chat_id, '6289636887928@c.us', 'courier chat id');
+  contains(assigned.text, 'Nomor Resi: AJ-FRZ-0012345', 'names the resi');
+  contains(assigned.text, 'Nugget Ayam x2', 'lists the items');
+  contains(assigned.text, 'Instruksi penanganan: Simpan dalam cold box', 'carries the handling instructions');
+  contains(assigned.text, 'Balas *TERIMA*', 'asks the courier to answer');
+  contains(assigned.text, '*TOLAK*', 'offers the refusal');
+  eq(assigned.template, 'task_assigned', 'stored template');
+
+  const reminder = render('condition_check_reminder');
+  eq(reminder.should_send, true, 'should_send for condition_check_reminder');
+  contains(reminder.text, 'checklist pemeriksaan kemasan', 'asks for the checklist');
+
+  const decision = render('issue_decision', {
+    decision_reason: 'Segel terbuka saat pemeriksaan.',
+    instructions: 'Tarik paket ke DC untuk klaim retur.'
+  }, 'RETURN');
+  eq(decision.should_send, true, 'should_send for issue_decision');
+  contains(decision.text, 'Keputusan: Paket dikembalikan ke pengirim', 'names the decision');
+  contains(decision.text, 'Alasan: Segel terbuka', 'carries the reason');
+  contains(decision.text, 'Instruksi: Tarik paket ke DC', 'carries the instruction');
+  eq(decision.template, 'issue_decision:RETURN', 'stored template');
+});
+
+scenario('admin steps reach the admin dashboard owner', () => {
+  const reschedule = render('reschedule_requested', {
+    recipient_name: 'Dimas',
+    proposed_window: 'Besok, 13:00 - 15:00 WIB'
+  });
+  eq(reschedule.should_send, true, 'should_send for reschedule_requested');
+  contains(reschedule.text, 'meminta jadwal penerimaan lain', 'says what happened');
+  contains(reschedule.text, 'Jadwal yang diminta: Besok, 13:00 - 15:00 WIB', 'names the requested window');
+
+  const overdue = render('confirmation_overdue', { recipient_name: 'Dimas', age_minutes: 135 });
+  eq(overdue.should_send, true, 'should_send for confirmation_overdue');
+  contains(overdue.text, 'belum menjawab', 'says the buyer has not answered');
+  contains(overdue.text, '135 menit', 'states how long it has been');
+
+  const reported = render('issue_reported', {
+    recipient_name: 'Dimas',
+    courier_name: 'Budi Santoso',
+    issue_label: 'Kemasan bocor'
+  });
+  eq(reported.should_send, true, 'should_send for issue_reported');
+  contains(reported.text, 'Budi Santoso', 'names the courier');
+  contains(reported.text, 'Kendala: Kemasan bocor', 'names the problem');
+
+  const rejected = render('task_rejected', {
+    recipient_name: 'Dimas',
+    courier_name: 'Budi Santoso',
+    reason: 'Motor sedang masuk bengkel'
+  });
+  eq(rejected.should_send, true, 'should_send for task_rejected');
+  contains(rejected.text, 'menolak penugasan', 'says the task was refused');
+  contains(rejected.text, 'Motor sedang masuk bengkel', 'carries the reason');
+
+  const choice = render('buyer_issue_choice', {
+    recipient_name: 'Dimas',
+    choice: 1,
+    choice_label: 'Pengembalian Paket ke Pengirim',
+    issue_label: 'Kemasan bocor'
+  });
+  eq(choice.should_send, true, 'should_send for buyer_issue_choice');
+  contains(choice.text, 'Pilihan pembeli: Pengembalian Paket ke Pengirim', 'names the buyer choice');
+
+  const resend = render('resend_requested', {
+    recipient_name: 'Dimas',
+    replacement_tracking_number: 'AJ-FRZ-0012399'
+  });
+  eq(resend.should_send, true, 'should_send for resend_requested');
+  contains(resend.text, 'Resi pengganti: AJ-FRZ-0012399', 'names the replacement');
+});
+
+scenario('the daily report carries every count the brief asks for', () => {
+  const out = render('daily_report', {
+    recipient_name: 'Dimas',
+    report_date: '16 Oktober 2026',
+    total_shipments: 12,
+    delivered_count: 7,
+    in_process_count: 4,
+    issue_count: 1,
+    decision_count: 2,
+    unanswered_count: 3
+  });
+
+  eq(out.should_send, true, 'should_send');
+  contains(out.text, 'Laporan Harian Anteraja Frozen', 'opens as a report');
+  contains(out.text, 'Tanggal: 16 Oktober 2026', 'names the day');
+  contains(out.text, 'Total paket: 12', 'totals');
+  contains(out.text, 'Selesai (diterima): 7', 'delivered');
+  contains(out.text, 'Dalam proses: 4', 'in process');
+  contains(out.text, 'Kendala hari ini: 1', 'issues');
+  contains(out.text, 'Keputusan admin: 2', 'decisions');
+  contains(out.text, 'Pembeli belum merespons: 3', 'unanswered');
+});
+
+scenario('a report with no numbers still renders zeroes', () => {
+  const out = render('daily_report', { recipient_name: 'Dimas' });
+  eq(out.should_send, true, 'should_send');
+  contains(out.text, 'Total paket: 0', 'no undefined leaks into the message');
+  absent(out.text, 'undefined', 'never prints undefined');
+});
+
+scenario('every operational message stands alone without a link', () => {
+  const templates = [
+    'schedule_request', 'schedule_rescheduled', 'issue_options', 'on_the_way', 'courier_arrived', 'delivered',
+    'task_assigned', 'condition_check_reminder', 'issue_decision', 'reschedule_requested',
+    'confirmation_overdue', 'issue_reported', 'task_rejected', 'buyer_issue_choice', 'resend_requested',
+    'daily_report'
+  ];
   for (const template of templates) {
-    const out = render(template);
-    eq(out.should_send, false, 'should_send for ' + template);
-    eq(out.response.reason, 'unmapped', 'reason for ' + template);
+    const out = render(template, { issue_label: 'Kemasan bocor', choice_label: 'Pengembalian Paket ke Pengirim' });
+    eq(out.should_send, true, 'should_send for ' + template);
+    absent(out.text, 'http', 'no link in ' + template);
+    absent(out.text, 'undefined', 'no missing field in ' + template);
+    contains(out.text, 'Anteraja', 'names the service in ' + template);
   }
 });
 

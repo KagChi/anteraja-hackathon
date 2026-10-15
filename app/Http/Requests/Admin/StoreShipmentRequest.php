@@ -31,6 +31,17 @@ final class StoreShipmentRequest extends FormRequest
             'buyer.address_type' => ['nullable', 'string', 'in:RESIDENTIAL,COMMERCIAL'],
             'buyer.latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'buyer.longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            // Optional: a hub shipment that leaves the recipient out is
+            // delivered to the buyer, exactly as it was before the parcel
+            // carried its own destination.
+            'recipient' => ['nullable', 'array'],
+            'recipient.name' => ['required_with:recipient', 'string', 'min:2', 'max:120'],
+            'recipient.phone' => ['required_with:recipient', 'string', 'max:20'],
+            'recipient.address' => ['required_with:recipient', 'string', 'min:5', 'max:255'],
+            'recipient.area' => ['nullable', 'string', 'max:120'],
+            'recipient.address_type' => ['nullable', 'string', 'in:RESIDENTIAL,COMMERCIAL'],
+            'recipient.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'recipient.longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:recipient.latitude'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id', 'distinct'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],

@@ -18,13 +18,13 @@ use App\NativeComponents\Client\Register;
 use App\NativeComponents\Client\Schedule;
 use App\NativeComponents\Client\Start;
 use App\NativeComponents\Client\Tracking;
-use App\Support\Appearance;
 use App\Support\ClientCart;
 use App\Support\ClientPayload;
 use App\Support\ClientReceipt;
 use App\Support\MobileToken;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
+use Native\Mobile\UI\Theme;
 use Tests\Support\MobileApiFake;
 use Tests\TestCase;
 
@@ -63,7 +63,7 @@ final class ClientNativeScreensTest extends TestCase {
     public function test_the_landing_screen_offers_the_catalog_and_the_sign_up_cta(): void {
         Native::test(Landing::class)
             ->assertSee('Anteraja Frozen')
-            ->assertSee('Kiriman beku Anda sampai utuh, dingin, dan tercatat')
+            ->assertSee('Kiriman Anda sampai ke penerima, utuh, dingin, dan tercatat')
             ->assertSee('Lihat Katalog')
             ->assertSee('Produk Populer')
             ->assertSee('Nugget Ayam 1 kg')
@@ -159,7 +159,7 @@ final class ClientNativeScreensTest extends TestCase {
         Native::test(Checkout::class)->assertNavigatedTo('/client/register');
     }
 
-    public function test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order(): void {
+    public function test_checkout_reads_the_basket_and_posts_the_order_to_the_recipient(): void {
         MobileToken::set(MobileToken::CLIENT, 'client-test-token');
         ClientCart::set(1, 2);
 
@@ -168,10 +168,18 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Nugget Ayam 1 kg')
             ->assertSee('Rp 96.000')
             ->assertSet('cartCount', 2)
-            // Prefilled from the customer profile the API returns.
-            ->assertSet('recipientName', 'Rina Putri');
+            // The recipient block starts empty: the customer's own profile is
+            // never copied into the destination.
+            ->assertSet('recipientName', '')
+            ->assertSet('recipientPhone', '')
+            ->assertSet('recipientAddress', '');
 
         $screen->call('increment', 1)->assertSet('cartCount', 3);
+
+        $screen->set('recipientName', 'Ibu Sari')
+            ->set('recipientPhone', '081299900011')
+            ->set('recipientAddress', 'Jl. Kenanga No. 3, Coblong')
+            ->set('recipientArea', 'Bandung');
 
         $screen->call('submit')->assertNavigatedTo('/client/order-success?resi=AJ-FRZ-0012400');
 
@@ -240,63 +248,36 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Layanan Pelanggan Anteraja Frozen');
     }
 
-    /** The profile carries the theme switcher, and picking a mode pins it. */
-    public function test_the_profile_switches_the_app_theme(): void {
-        $dark = config('native-ui.theme.dark');
-        $light = config('native-ui.theme.light');
+    /** Keluar revokes the token server-side, drops it locally, and gates back. */
+    public function test_logout_revokes_the_token_and_returns_to_login(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
 
         Native::test(Profile::class)
-            ->assertSee('Tema')
-            ->assertSee('Sistem')
-            ->assertSee('Terang')
-            ->assertSee('Gelap')
-            ->assertSet('appearance', 0)
-            ->call('setAppearance', 2)
-            ->assertSet('appearance', 2);
+            ->assertSee('Keluar')
+            ->tap('Keluar')
+            ->assertNavigatedTo('/client/login');
 
-        $this->assertSame(Appearance::DARK, Appearance::get());
-
-        // Pinned, not merely stored: the light block carries the dark palette
-        // too, because the platform picks per element from the OS scheme.
-        $this->assertSame($dark['background'], config('native-ui.theme.light.background'));
-        $this->assertNotSame('#F9F9FF', config('native-ui.theme.light.background'));
-
-        // And the next frame draws the pinned palette rather than the authored
-        // light one — a resolved class string must not survive the switch.
-        $pinned = json_encode(Native::test(Profile::class)->tree());
-        $this->assertStringContainsString($dark['on-surface'], $pinned);
-        $this->assertStringNotContainsString($light['on-surface'], $pinned);
+        Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/auth/logout'));
+        $this->assertNull(MobileToken::get(MobileToken::CLIENT));
     }
 
-    /** "Sistem" hands the palette back to the device. */
-    public function test_choosing_the_device_theme_restores_the_authored_palette(): void {
-        $light = config('native-ui.theme.light');
-        $dark = config('native-ui.theme.dark');
-
+    /**
+     * The customer shell is light only: there is no theme card and no toggle,
+     * and the build pins the platform chrome to light so a device set to dark
+     * cannot put a dark frame around the light screens.
+     */
+    public function test_the_profile_offers_no_theme_switcher(): void {
         Native::test(Profile::class)
-            ->call('setAppearance', 1)
-            ->assertSet('appearance', 1);
+            ->assertDontSee('Tema')
+            ->assertDontSee('Gelap')
+            ->assertDontSee('Sistem');
 
-        $this->assertSame(Appearance::LIGHT, Appearance::get());
-        $this->assertEquals($light, config('native-ui.theme.light'));
-        $this->assertEquals($light, config('native-ui.theme.dark'));
+        $this->assertSame('light', config('nativephp.appearance'));
 
-        // A fresh mount reads the stored mode back, and the way out restores
-        // the authored pair — the dark block derived from light again.
-        Native::test(Profile::class)
-            ->assertSet('appearance', 1)
-            ->call('setAppearance', 0)
-            ->assertSet('appearance', 0);
-
-        $this->assertSame(Appearance::SYSTEM, Appearance::get());
-        $this->assertEquals($light, config('native-ui.theme.light'));
-        $this->assertEquals($dark, config('native-ui.theme.dark'));
-
-        // The frame is back on the authored pair: the light palette is drawn
-        // again, and the dark companion is back beside it.
-        $restored = json_encode(Native::test(Profile::class)->tree());
-        $this->assertStringContainsString($light['on-surface'], $restored);
-        $this->assertStringContainsString('"dark_color"', $restored);
+        // One palette only: the dark block repeats light, so the renderers'
+        // `dark_*` companions resolve to the same hex and never paint dark.
+        $theme = Theme::all();
+        $this->assertSame($theme['light'], $theme['dark']);
     }
 
     public function test_tracking_shows_the_cold_chain_reading_and_the_journey(): void {
@@ -418,6 +399,25 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertNavigatedTo('/client/orders');
 
         $this->assertSame('client-test-token', MobileToken::get(MobileToken::CLIENT));
+    }
+
+    /**
+     * The login fields must sync on every keystroke, not on focus loss.
+     * `native:model.blur` waits for a blur, and on Android the tap on Masuk
+     * is dispatched before that blur reaches PHP, so the first attempt would
+     * carry the previous (empty) password and fail as "wrong password".
+     */
+    public function test_the_login_fields_sync_live_not_on_blur(): void {
+        Native::test(Login::class)
+            ->assertElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'live')
+            ->assertMissingElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur');
+    }
+
+    /** Register submits password + confirmation in one tap, so it must not wait for a blur either. */
+    public function test_the_register_fields_sync_live_not_on_blur(): void {
+        Native::test(Register::class)
+            ->assertMissingElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur')
+            ->assertMissingElement('select', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur');
     }
 
     public function test_the_login_screen_refuses_empty_credentials(): void {

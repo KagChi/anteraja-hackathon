@@ -4,7 +4,7 @@ import { MaterialIcon } from "@/components/MaterialIcon";
 import { ShipmentDetailModal } from "@/components/ShipmentDetailModal";
 import { HISTORY_STATUS_OPTIONS, STATUS_TONE } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
-import { ApiError, api, type HistoryResponse } from "@/lib/api";
+import { ApiError, api, type HistoryResponse, type MessageRow } from "@/lib/api";
 import { cx } from "@/lib/cx";
 
 interface HistoryProps {
@@ -27,6 +27,8 @@ export default function History({ q: initialQuery, status: initialStatus }: Hist
     const [data, setData] = useState<HistoryResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [messages, setMessages] = useState<MessageRow[]>([]);
+    const [messagesLoading, setMessagesLoading] = useState(true);
 
     const requestId = useRef(0);
 
@@ -57,6 +59,31 @@ export default function History({ q: initialQuery, status: initialStatus }: Hist
 
         return () => window.clearTimeout(handle);
     }, [load]);
+
+    // Riwayat pesan WhatsApp mengikuti kata kunci yang sama dengan riwayat
+    // pengiriman: satu kolom pencarian untuk keduanya.
+    useEffect(() => {
+        let active = true;
+        const handle = window.setTimeout(() => {
+            setMessagesLoading(true);
+            void (async () => {
+                try {
+                    const resi = query.trim();
+                    const response = await api.messages.index(resi === "" ? {} : { resi });
+                    if (active) setMessages(response.messages);
+                } catch {
+                    if (active) setMessages([]);
+                } finally {
+                    if (active) setMessagesLoading(false);
+                }
+            })();
+        }, 250);
+
+        return () => {
+            active = false;
+            window.clearTimeout(handle);
+        };
+    }, [query]);
 
     const rows = data?.history ?? [];
     const paginator = data?.paginator;
@@ -247,6 +274,69 @@ export default function History({ q: initialQuery, status: initialStatus }: Hist
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <div className="mt-space-xl overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest">
+                <div className="flex items-center justify-between border-outline-variant border-b px-space-lg py-space-md">
+                    <div>
+                        <h2 className="font-headline-sm text-headline-sm text-on-surface">Riwayat Pesan WhatsApp</h2>
+                        <p className="font-body-sm text-body-sm text-secondary">
+                            Pesan masuk dan balasan otomatis, terbaru di atas
+                        </p>
+                    </div>
+                    <MaterialIcon name="forum" className="text-[20px] text-secondary" />
+                </div>
+                <ul className={cx("divide-y divide-surface-container", messagesLoading && "opacity-60")}>
+                    {messages.map((message) => (
+                        <li key={message.id} className="flex flex-col gap-1 px-space-lg py-space-md">
+                            <span className="flex flex-wrap items-center gap-space-sm">
+                                <span
+                                    className={cx(
+                                        "rounded-sm px-space-xs py-0.5 font-label-sm text-label-sm",
+                                        message.direction === "IN"
+                                            ? "bg-secondary-container text-on-secondary-container"
+                                            : "bg-tertiary-fixed text-on-tertiary-fixed"
+                                    )}
+                                >
+                                    {message.direction === "IN" ? "Masuk" : "Keluar"}
+                                </span>
+                                <span className="font-data-mono text-body-sm text-on-surface">{message.phone}</span>
+                                {message.role ? (
+                                    <span className="font-label-sm text-label-sm text-secondary">{message.role}</span>
+                                ) : null}
+                                {message.tracking_number ? (
+                                    <span className="font-data-mono text-body-sm text-secondary">
+                                        {message.tracking_number}
+                                    </span>
+                                ) : null}
+                                <span className="ml-auto font-body-sm text-body-sm text-secondary">{message.at}</span>
+                            </span>
+                            <span className="font-body-sm text-body-sm text-on-surface">{message.body}</span>
+                            {message.reply_body ? (
+                                <span className="font-body-sm text-body-sm text-secondary">
+                                    Balasan: {message.reply_body}
+                                </span>
+                            ) : null}
+                            <span
+                                className={cx(
+                                    "font-label-sm text-label-sm",
+                                    message.status === "FAILED" ? "text-error" : "text-secondary"
+                                )}
+                            >
+                                {message.status === "FAILED"
+                                    ? "Gagal terkirim"
+                                    : message.status === "SENT"
+                                      ? "Terkirim"
+                                      : "Diterima"}
+                            </span>
+                        </li>
+                    ))}
+                    {!messagesLoading && messages.length === 0 ? (
+                        <li className="px-space-lg py-space-xl text-center font-body-sm text-body-sm text-secondary">
+                            Belum ada pesan WhatsApp yang tercatat.
+                        </li>
+                    ) : null}
+                </ul>
             </div>
 
             {detailResi ? (

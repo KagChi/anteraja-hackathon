@@ -27,7 +27,7 @@
             <native:text class="text-lg font-bold text-theme-on-surface select-text">{{ $form['tracking'] }}</native:text>
             <native:row class="items-center gap-1.5 pt-1">
                 <native:icon :ios="Ios::PersonFill" :android="Android::Person" :size="18" class="text-theme-on-surface-variant" />
-                <native:text class="text-md text-theme-on-surface-variant">
+                <native:text class="text-base text-theme-on-surface-variant">
                     Tujuan Penerima: {{ $form['recipient'] }}
                 </native:text>
             </native:row>
@@ -41,18 +41,18 @@
                     label="Nama Penerima Fisik"
                     supporting="Pastikan nama sesuai dengan identitas penerima paket di lokasi."
                     placeholder="Masukkan nama orang yang menerima paket"
-                    native:model.blur="recipientName" />
+                    native:model="recipientName" />
             </native:column>
 
             {{-- Relationship to the recipient. --}}
             <native:column class="w-full gap-2">
-                <native:text class="text-md text-theme-on-surface">Hubungan dengan Penerima</native:text>
+                <native:text class="text-base text-theme-on-surface">Hubungan dengan Penerima</native:text>
                 @foreach (array_chunk($form['relations'], 2) as $pair)
                     <native:row class="w-full gap-2">
                         @foreach ($pair as $option)
                             <native:pressable class="flex-1" @tap="chooseRelation('{{ $option }}')" a11y-label="{{ $option }}">
                                 <native:column class="w-full items-center justify-center rounded-xl p-3 {{ $relation === $option ? 'bg-theme-primary' : 'bg-theme-surface-container-low' }}">
-                                    <native:text class="text-md {{ $relation === $option ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
+                                    <native:text class="text-base {{ $relation === $option ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
                                         {{ $option }}
                                     </native:text>
                                 </native:column>
@@ -64,14 +64,14 @@
 
             {{-- The photo is the proof; the native camera is why this screen exists. --}}
             <native:column class="w-full gap-2">
-                <native:text class="text-md text-theme-on-surface">Foto Bukti Penyerahan</native:text>
+                <native:text class="text-base text-theme-on-surface">Foto Bukti Penyerahan</native:text>
                 @if ($photoPath !== null)
                     <native:row class="w-full items-center justify-between gap-3 rounded-xl bg-theme-surface-container-low p-3">
                         <native:row class="flex-1 items-center gap-3">
                             <native:image :src="$photoPath" alt="Bukti serah terima paket beku"
                                 fit="cover" class="w-14 h-14 rounded-lg" />
                             <native:column class="flex-1 gap-0.5">
-                                <native:text class="text-md text-theme-on-surface">{{ $form['photo_name'] }}</native:text>
+                                <native:text class="text-base text-theme-on-surface">{{ $form['photo_name'] }}</native:text>
                                 <native:text class="text-sm text-theme-secondary">{{ $form['photo_meta'] }}</native:text>
                             </native:column>
                         </native:row>
@@ -92,7 +92,7 @@
                     label="Catatan Tambahan"
                     supporting="Opsional"
                     :placeholder="$form['notes_placeholder']"
-                    native:model.blur="notes" />
+                    native:model="notes" />
             </native:column>
         </native:column>
 

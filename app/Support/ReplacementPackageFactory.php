@@ -11,7 +11,6 @@ use App\Models\Package;
 use App\Models\PackageItem;
 use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
-use App\Services\Client\ClientLinkService;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -20,7 +19,6 @@ final class ReplacementPackageFactory
     public function __construct(
         private readonly PackageStatusTransitioner $transitioner,
         private readonly NotificationQueue $notificationQueue,
-        private readonly ClientLinkService $linkService,
     ) {}
 
     public function from(Package $original, ?Staff $actor = null): Package
@@ -48,6 +46,15 @@ final class ReplacementPackageFactory
             $replacement = Package::create([
                 'buyer_id' => $original->buyer_id,
                 'created_by' => $original->created_by,
+                // A resend goes to the same person at the same door, so the
+                // destination travels with it.
+                'recipient_name' => $original->recipient_name,
+                'recipient_phone' => $original->recipient_phone,
+                'recipient_address' => $original->recipient_address,
+                'recipient_area' => $original->recipient_area,
+                'recipient_address_type' => $original->recipient_address_type,
+                'recipient_latitude' => $original->recipient_latitude,
+                'recipient_longitude' => $original->recipient_longitude,
                 'package_category' => $original->package_category,
                 'weight_kg' => $original->weight_kg,
                 'service_type' => $original->service_type,
@@ -88,8 +95,6 @@ final class ReplacementPackageFactory
             ]);
 
             // Queue notifications
-            $clientUrl = $this->linkService->entry($replacement);
-
             $this->notificationQueue->queue(
                 $replacement,
                 RecipientType::BUYER,
@@ -97,7 +102,6 @@ final class ReplacementPackageFactory
                 'schedule_request',
                 [
                     'tracking_number' => $replacement->tracking_number,
-                    'client_url' => $clientUrl,
                     'window' => DisplayTime::windowLabel($newScheduledAt, $newScheduledEndAt),
                 ]
             );

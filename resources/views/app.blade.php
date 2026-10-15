@@ -3,6 +3,11 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        {{-- Anteraja Frozen ships a single light theme; these two tell the
+             browser to paint its own chrome — form controls, scrollbars, the
+             URL bar tint — light even when the device asks for dark. --}}
+        <meta name="color-scheme" content="light">
+        <meta name="theme-color" content="#f9f9ff">
 
         <title inertia>{{ config('app.name', 'Anteraja Frozen') }}</title>
 

@@ -36,27 +36,24 @@
                 <native:icon :ios="Ios::PhoneFill" :android="Android::Call" :size="18" class="text-theme-secondary" />
                 <native:column class="gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Telepon</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $profile['phone'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $profile['phone'] }}</native:text>
                 </native:column>
             </native:row>
             <native:row class="items-center gap-2">
                 <native:icon :ios="Ios::Building2" :android="Android::Warehouse" :size="18" class="text-theme-secondary" />
                 <native:column class="gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Hub</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $profile['hub'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $profile['hub'] }}</native:text>
                 </native:column>
             </native:row>
             <native:row class="items-center gap-2">
                 <native:icon :ios="Ios::Scooter" :android="Android::TwoWheeler" :size="18" class="text-theme-secondary" />
                 <native:column class="gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Armada</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $profile['vehicle'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $profile['vehicle'] }}</native:text>
                 </native:column>
             </native:row>
         </native:column>
-
-        {{-- Appearance. --}}
-        @include('native.partials.appearance', ['appearance' => $appearance, 'appearanceOptions' => $appearanceOptions])
 
         <native:button variant="secondary" label="Keluar" @tap="logout"
             :ios-icon="Ios::ArrowRightToLine" :android-icon="Android::Logout" />

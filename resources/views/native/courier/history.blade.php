@@ -29,7 +29,7 @@
                         <native:badge :label="$row['status']" variant="destructive" />
                     @endif
                 </native:row>
-                <native:text class="text-md text-theme-on-surface">{{ $row['recipient'] }}</native:text>
+                <native:text class="text-base text-theme-on-surface">{{ $row['recipient'] }}</native:text>
                 <native:text class="text-sm text-theme-secondary">{{ $row['completed_at'] }}</native:text>
             </native:column>
         @endforeach

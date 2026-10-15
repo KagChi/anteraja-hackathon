@@ -69,15 +69,30 @@ this account" card.
 
 ## Storefront
 
-The customer app is a shop as well as a tracker. Beranda and the catalog read
-`GET /api/client/catalog`, which is public, so a visitor can look around before
-signing up; the app asks for an account at checkout. Registering calls
-`POST /api/client/auth/register` and stores the bearer token, and checkout posts
-`POST /api/client/orders`: the order is created with source CLIENT_APP and shows
-up in the hub queue tagged APP.
+The customer app is the sender's app: the account holder picks what to send and
+names the recipient — family or a friend at another address — and the parcel is
+delivered there. Beranda and the catalog read `GET /api/client/catalog`, which
+is public, so a visitor can look around before signing up; the app asks for an
+account at checkout. Registering calls `POST /api/client/auth/register` and
+stores the bearer token, and checkout posts `POST /api/client/orders`: the
+recipient block becomes the parcel's destination and the order is created with
+source CLIENT_APP, showing up in the hub queue tagged APP.
+
+Nothing about the customer's own profile fills that block. The destination lives
+on the package (`recipient_name`, `recipient_phone`, `recipient_address`,
+`recipient_area`, `recipient_address_type`, `recipient_latitude`,
+`recipient_longitude`), because the same customer sends to a different family
+member next time. The recipient has no account and no app: they answer the
+delivery steps over WhatsApp, and the customer follows the parcel in the
+Pesanan, Riwayat and tracking screens. The courier drives to the recipient's
+coordinates, which is what the geofence validates.
+
+`GET /api/client/orders` and the tracking screens read the recipient from the
+package, so the Pesanan list shows who the parcel is going to rather than the
+account holder.
 
 The basket lives in `App\Support\ClientCart` (product ids and quantities in the
-cache store, like `MobileToken` and `Appearance`), because native screens are
+cache store, like `MobileToken`), because native screens are
 separate components with no shared parent. Names, prices and weights are always
 re-read from the catalog at checkout, so a stale basket can never quote a price
 the server would not charge. `App\Support\ClientReceipt` carries the created
@@ -120,22 +135,37 @@ for the hub. Validasi GPS is where the hub approves or rejects it, and an
 approval is what lets the courier's retry through while the incident stays on
 record.
 
-## Theme switcher
+## Theme
 
-Both apps end the Profil tab with a `Tema` card — the shared
-`native/partials/appearance.blade.php` — offering **Sistem** (follow the
-device), **Terang** and **Gelap**. The choice is kept in the cache store, which
-the shells build with the file driver, so it survives a launch;
-`AppServiceProvider` re-applies it once every provider has booted, so a pinned
-app opens in its palette instead of the device's.
+Both apps are light only, and neither has a theme toggle. There is a single
+palette: `config/native-ui.php` defines the light tokens and repeats them as
+`dark`. Core turns every `bg-theme-*` / `text-theme-*` / `border-theme-*` class
+into a light hex plus a `dark_*` companion the native renderers pick at draw
+time via `isSystemInDarkTheme()`, and it only emits the companion when it
+differs from the light value — so an identical block keeps the screens light on
+a device set to dark. (Left empty, the `dark` block would instead be
+auto-inverted into a real dark palette.)
 
-Pinning cannot work by selecting a theme block: every `*-theme-*` class emits a
-light and a dark companion, and the platform picks one per element from the OS
-colour scheme. `App\Support\Appearance` therefore writes the chosen palette
-into **both** blocks, which keeps the `theme()` helper that colours the tab bar
-in step with what the renderers draw. The OS chrome around the app — status
-bar, keyboards, the platform's own sheets — still follows the device, which is
-pinned only at build time (`NATIVEPHP_APPEARANCE`).
+Chrome and screens are pinned by `scripts/force-light-appearance.sh`, which
+`scripts/build-apk.sh` runs right after `native:install`:
+
+- **iOS** — `NATIVEPHP_APPEARANCE=light` (`.env.mobile.example`) is written to
+  the Info.plist as `UIUserInterfaceStyle`, so the system chrome (sheets,
+  keyboard, window background) stays light.
+- **Android** — `native:install` regenerates `nativephp/android` from the
+  vendor template every build, whose theme parents on
+  `DayNight.DarkActionBar` and whose Compose UI reads `isSystemInDarkTheme()`
+  in both `MainActivity` (the Material3 scheme) and every
+  `nativephp/mobile-ui` renderer (its light vs dark tokens). The script
+  reparents `values/themes.xml` and `values-night/themes.xml` to the Light
+  variant, pins the Compose `isDark` read to `false`, and adds an
+  `attachBaseContext` override that pins the Activity's Configuration to
+  night-mode NO — the one read all the renderers share. It fails the build if
+  the template has moved rather than shipping an app that honours dark mode.
+
+`status_bar_style='dark'` separately keeps the status/navigation bar icons dark
+on the light surface, and the Android theme colours are the same magenta day
+and night.
 
 ## Building an APK
 

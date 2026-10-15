@@ -81,15 +81,14 @@ final class CourierFlowTest extends TestCase
 
     public function test_courier_task_distance_endpoint(): void
     {
-        // Distance with buyer coordinates
+        // Distance with the recipient's coordinates
         $response = $this->actingAs($this->courier)->getJson('/api/courier/tasks/AJ-FRZ-0012351/distance?lat=-6.220000&lng=106.840000');
         $response->assertOk();
         $response->assertJsonStructure(['distance_km', 'eta_minutes']);
 
-        // Distance with no buyer coordinates -> 204
+        // Distance with no destination coordinates -> 204
         $pkg = Package::where('tracking_number', 'AJ-FRZ-0012351')->firstOrFail();
-        $buyer = $pkg->buyer;
-        $buyer->update(['latitude' => null, 'longitude' => null]);
+        $pkg->update(['recipient_latitude' => null, 'recipient_longitude' => null]);
 
         $response2 = $this->actingAs($this->courier)->getJson('/api/courier/tasks/AJ-FRZ-0012351/distance?lat=-6.220000&lng=106.840000');
         $response2->assertNoContent();

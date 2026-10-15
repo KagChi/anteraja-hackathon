@@ -117,16 +117,20 @@ return [
     | window background behind the safe areas) follows the device unless it
     | is locked here.
     |
-    | Options: 'system' - Follow the device (default)
+    | Anteraja Frozen has one theme — the light one — and no in-app toggle, so
+    | this stays at 'light': a phone or emulator set to dark must not put a
+    | dark frame, keyboard or sheet around the light screens.
+    |
+    | Options: 'light'  - Always light (default here)
+    |          'system' - Follow the device
     |          'dark'   - Always dark
-    |          'light'  - Always light
     |
     | iOS only for now: written to the Info.plist as UIUserInterfaceStyle at
     | build time.
     |
     */
 
-    'appearance' => env('NATIVEPHP_APPEARANCE', 'system'),
+    'appearance' => env('NATIVEPHP_APPEARANCE', 'light'),
 
     /*
     |--------------------------------------------------------------------------
@@ -334,7 +338,7 @@ return [
         |          'dark'  - Dark icons
         |
         */
-        'status_bar_style' => 'auto',
+        'status_bar_style' => 'dark',
 
         /*
         |--------------------------------------------------------------------------
@@ -375,8 +379,8 @@ return [
         |
         */
         'theme' => [
-            'color_primary' => env('NATIVEPHP_ANDROID_COLOR_PRIMARY', '#04ABA6'),
-            'color_primary_night' => env('NATIVEPHP_ANDROID_COLOR_PRIMARY_NIGHT', '#FFFFFF'),
+            'color_primary' => env('NATIVEPHP_ANDROID_COLOR_PRIMARY', '#B6005B'),
+            'color_primary_night' => env('NATIVEPHP_ANDROID_COLOR_PRIMARY_NIGHT', '#B6005B'),
             'color_on_primary' => env('NATIVEPHP_ANDROID_COLOR_ON_PRIMARY', '#FFFFFF'),
         ],
 

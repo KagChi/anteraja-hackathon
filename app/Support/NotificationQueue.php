@@ -12,15 +12,10 @@ use App\Jobs\DispatchNotificationToN8n;
 use App\Models\Notification;
 use App\Models\Package;
 use App\Models\Staff;
-use App\Services\Client\ClientLinkService;
 use Carbon\CarbonInterface;
 
 final class NotificationQueue
 {
-    public function __construct(
-        private readonly ?ClientLinkService $linkService = null
-    ) {}
-
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -31,11 +26,6 @@ final class NotificationQueue
         string $template,
         array $payload = []
     ): Notification {
-        if ($type === RecipientType::BUYER && ! isset($payload['client_url'])) {
-            $linkService = $this->linkService ?? app(ClientLinkService::class);
-            $payload['client_url'] = $linkService->entry($package);
-        }
-
         $payload = $this->withDeliveryContext($package, $type, $recipientId, $payload);
 
         $notification = Notification::create([
@@ -68,6 +58,33 @@ final class NotificationQueue
                 ]
             );
         }
+    }
+
+    /**
+     * Pesan ke staf yang tidak terikat pada satu paket, misalnya ringkasan
+     * harian untuk admin. package_id sengaja kosong: laporan itu tentang
+     * seluruh armada, bukan satu resi.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function queueStaffReport(Staff $staff, string $template, array $payload): Notification
+    {
+        $payload['recipient_type'] = RecipientType::ADMIN->value;
+        $payload['recipient_name'] ??= $staff->name;
+        $payload['recipient_phone'] ??= self::normalizePhone($staff->phone);
+
+        $notification = Notification::create([
+            'package_id' => null,
+            'recipient_type' => RecipientType::ADMIN,
+            'recipient_id' => $staff->id,
+            'template' => $template,
+            'payload' => $payload,
+            'status' => NotificationStatus::QUEUED,
+        ]);
+
+        DispatchNotificationToN8n::dispatch($notification->id)->afterCommit();
+
+        return $notification;
     }
 
     public function queueOnTheWay(Package $package, Staff $courier): void
@@ -116,6 +133,8 @@ final class NotificationQueue
 
     public function queueIssueReported(Package $package, Staff $courier, string $issueCategory): void
     {
+        $label = IssueCategory::fromOrFallback($issueCategory)->label();
+
         $admins = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->get();
         foreach ($admins as $admin) {
             $this->queue(
@@ -126,6 +145,9 @@ final class NotificationQueue
                 [
                     'tracking_number' => $package->tracking_number,
                     'issue_category' => $issueCategory,
+                    // The admin's WhatsApp message names the problem; the raw
+                    // category code would only be readable to the console.
+                    'issue_label' => $label,
                     'courier_name' => $courier->name,
                 ]
             );
@@ -133,7 +155,7 @@ final class NotificationQueue
     }
 
     /**
-     * Menu pilihan penyelesaian kendala (opsi 1-4) untuk pembeli.
+     * Menu pilihan penyelesaian kendala (opsi 1-4) untuk penerima.
      */
     public function queueIssueOptions(Package $package, IssueCategory $category): void
     {
@@ -153,7 +175,14 @@ final class NotificationQueue
     /**
      * Payload notifikasi dibuat mandiri supaya workflow n8n tidak perlu
      * membuka database aplikasi: nomor penerima, nama, alamat, resi, dan token
-     * tautan pembeli ikut dikirim bersama template.
+     * paket ikut dikirim bersama template.
+     *
+     * The BUYER party is the parcel's receiving party — the person the courier
+     * hands the box to. Their number, name and address come from the package's
+     * own recipient block, so a delivery-leg message never reads the customer's
+     * own profile. The token is how an answer is applied
+     * (/api/guest/{token}/...); the customer's app link is not part of this
+     * payload because the recipient has no account to open it with.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -167,9 +196,9 @@ final class NotificationQueue
         $package->loadMissing(['buyer', 'courier']);
 
         if ($type === RecipientType::BUYER) {
-            $phone = $package->buyer?->phone;
-            $name = $package->buyer?->name;
-            $payload['address'] ??= $package->buyer?->address;
+            $phone = $package->recipient_phone;
+            $name = $package->recipient_name;
+            $payload['address'] ??= $package->recipient_address;
             $payload['buyer_name'] ??= $package->buyer?->name;
         } else {
             $staff = Staff::find($recipientId);
@@ -181,6 +210,8 @@ final class NotificationQueue
         $payload['recipient_name'] ??= $name;
         $payload['recipient_phone'] ??= self::normalizePhone($phone);
         $payload['tracking_number'] ??= $package->tracking_number;
+        // Kept server-side: the inbound workflow uses it to apply the
+        // recipient's reply to this parcel.
         $payload['client_token'] ??= $package->client_token;
         $payload['courier_name'] ??= $package->courier?->name;
         // Every schedule template renders this line as the delivery window.

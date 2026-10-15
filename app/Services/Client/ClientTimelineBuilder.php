@@ -125,7 +125,7 @@ final class ClientTimelineBuilder
                     'tag' => 'returned',
                 ];
             } elseif (! $isIssueOnly && $to === PackageStatus::RECEIVED) {
-                $receivedBy = $package->delivery?->received_by ?? $package->buyer?->name ?? 'Penerima';
+                $receivedBy = $package->delivery?->received_by ?? $package->recipient_name ?? 'Penerima';
                 $events[] = [
                     'time' => $at,
                     'title' => 'Paket Diterima',

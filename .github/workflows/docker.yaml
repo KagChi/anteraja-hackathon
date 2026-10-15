@@ -17,3 +17,28 @@ jobs:
     secrets: inherit
     with:
       PLATFORMS: linux/amd64
+
+  # Flux image automation points at `^main-(\d+)$` and keeps the highest
+  # number, so every main build needs a unique, monotonically increasing tag.
+  # The reusable build above only tags `main` and the commit SHA, so re-tag
+  # the pushed `main` image with the run number here. `main` keeps moving for
+  # the mobile/manual flows; Flux tracks the `main-<run>` tags.
+  tag:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add the monotonic main-<run> tag
+        run: |
+          docker buildx imagetools create \
+            -t "ghcr.io/kagchi/anteraja-hackathon:main-${GITHUB_RUN_NUMBER}" \
+            ghcr.io/kagchi/anteraja-hackathon:main

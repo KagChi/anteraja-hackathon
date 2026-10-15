@@ -16,7 +16,7 @@ use Illuminate\Http\JsonResponse;
  * A tracking number is the only thing the visitor has, so this endpoint is
  * reachable without a session — which means it must not hand out anything that
  * identifies the recipient. It answers with the status, the agreed window, the
- * destination city (regency level, derived from the buyer's area) and a timeline
+ * destination city (regency level, derived from the recipient's area) and a timeline
  * built from fixed labels: no names, no phone numbers, no street addresses, and
  * no free text written by staff or couriers.
  */
@@ -73,7 +73,7 @@ final class TrackController extends Controller
                 'category' => $package->package_category,
                 // Same wording the customer app shows on its order lists.
                 'cold_chain' => 'Beku -18°C',
-                'destination_city' => $this->city($package->buyer?->area),
+                'destination_city' => $this->city($package->recipient_area),
                 'schedule_label' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
                 'updated_label' => $lastEvent !== null
                     ? DisplayTime::dateTimeIndo($lastEvent)

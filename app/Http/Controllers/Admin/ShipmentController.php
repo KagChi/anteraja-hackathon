@@ -55,8 +55,11 @@ final class ShipmentController extends Controller
             return [
                 'id' => $pkg->id,
                 'tracking' => $pkg->tracking_number,
+                // The buyer is the sender; the parcel's destination is the
+                // recipient the customer chose.
                 'buyer' => $pkg->buyer?->name ?? '-',
-                'location' => $pkg->buyer?->area ?? $pkg->buyer?->address ?? '-',
+                'recipient' => $pkg->recipient_name ?? '-',
+                'location' => $pkg->recipient_area ?? $pkg->recipient_address ?? '-',
                 'schedule' => DisplayTime::windowLabel($pkg->scheduled_at, $pkg->scheduled_end_at),
                 'courier' => $pkg->courier?->name,
                 'courier_id' => $pkg->courier_id,

@@ -44,16 +44,16 @@ final class PublicTrackingTest extends TestCase
     public function test_the_response_never_identifies_the_recipient(): void
     {
         /** @var Package $package */
-        $package = Package::where('tracking_number', 'AJ-FRZ-0012345')->with('buyer')->firstOrFail();
-        $buyer = $package->buyer;
+        $package = Package::where('tracking_number', 'AJ-FRZ-0012345')->firstOrFail();
+        $recipient = $package->recipient;
 
-        $this->assertNotNull($buyer);
+        $this->assertNotEmpty($recipient['name']);
 
         $body = $this->getJson('/api/track/AJ-FRZ-0012345')->assertOk()->getContent();
 
-        $this->assertStringNotContainsString((string) $buyer?->name, $body);
-        $this->assertStringNotContainsString((string) $buyer?->phone, $body);
-        $this->assertStringNotContainsString((string) $buyer?->address, $body);
+        $this->assertStringNotContainsString((string) $recipient['name'], $body);
+        $this->assertStringNotContainsString((string) $recipient['phone'], $body);
+        $this->assertStringNotContainsString((string) $recipient['address'], $body);
         // The area is cut down to its last segment, so the street part of a
         // compound area never travels.
         $this->assertStringNotContainsString('Jl.', $body);
@@ -62,8 +62,8 @@ final class PublicTrackingTest extends TestCase
     public function test_the_destination_is_only_the_district_or_city(): void
     {
         /** @var Package $package */
-        $package = Package::where('tracking_number', 'AJ-FRZ-0012345')->with('buyer')->firstOrFail();
-        $area = (string) $package->buyer?->area;
+        $package = Package::where('tracking_number', 'AJ-FRZ-0012345')->firstOrFail();
+        $area = (string) $package->recipient_area;
         $expected = trim(substr($area, strrpos($area, ',') === false ? 0 : strrpos($area, ',') + 1));
 
         $this->getJson('/api/track/AJ-FRZ-0012345')

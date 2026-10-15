@@ -13,7 +13,7 @@
                 <native:icon :ios="Ios::Bag" :android="Android::ShoppingCart" :size="26"
                     class="text-theme-secondary" />
                 <native:text class="text-lg font-bold text-theme-on-surface">Keranjang masih kosong</native:text>
-                <native:text class="text-md text-theme-secondary">
+                <native:text class="text-base text-theme-secondary">
                     Pilih produk beku di katalog, lalu kembali ke halaman ini untuk mengisi data pengantaran.
                 </native:text>
                 <native:button class="w-full" variant="primary" label="Buka Katalog" @tap="openCatalog"
@@ -36,12 +36,12 @@
                                     class="text-theme-primary" />
                             </native:column>
                             <native:column class="flex-1 gap-0.5">
-                                <native:text class="text-md font-bold text-theme-on-surface">{{ $line['name'] }}</native:text>
+                                <native:text class="text-base font-bold text-theme-on-surface">{{ $line['name'] }}</native:text>
                                 <native:text class="text-sm text-theme-secondary">
                                     {{ $line['price_label'] }} • {{ $line['weight_label'] }}
                                 </native:text>
                             </native:column>
-                            <native:text class="text-md font-bold text-theme-on-surface">
+                            <native:text class="text-base font-bold text-theme-on-surface">
                                 {{ $line['line_total_label'] }}
                             </native:text>
                         </native:row>
@@ -54,7 +54,7 @@
                                 </native:column>
                             </native:pressable>
 
-                            <native:text class="text-md font-bold text-theme-on-surface">{{ $line['quantity'] }}</native:text>
+                            <native:text class="text-base font-bold text-theme-on-surface">{{ $line['quantity'] }}</native:text>
 
                             <native:pressable @tap="increment({{ $line['id'] }})" a11y-label="Tambah {{ $line['name'] }}">
                                 <native:column class="h-8 w-8 items-center justify-center rounded-lg bg-theme-surface-container">
@@ -63,14 +63,17 @@
                                 </native:column>
                             </native:pressable>
 
-                            <native:pressable class="ml-auto" @tap="removeLine({{ $line['id'] }})"
-                                a11y-label="Hapus {{ $line['name'] }} dari keranjang">
-                                <native:row class="items-center gap-1 px-2 py-1">
-                                    <native:icon :ios="Ios::Xmark" :android="Android::Close" :size="14"
-                                        class="text-theme-secondary" />
-                                    <native:text class="text-sm text-theme-secondary">Hapus</native:text>
-                                </native:row>
-                            </native:pressable>
+                            {{-- EDGE has no ml-auto: the trailing action gets its own row. --}}
+                            <native:row class="flex-1 justify-end">
+                                <native:pressable @tap="removeLine({{ $line['id'] }})"
+                                    a11y-label="Hapus {{ $line['name'] }} dari keranjang">
+                                    <native:row class="items-center gap-1 px-2 py-1">
+                                        <native:icon :ios="Ios::Xmark" :android="Android::Close" :size="14"
+                                            class="text-theme-secondary" />
+                                        <native:text class="text-sm text-theme-secondary">Hapus</native:text>
+                                    </native:row>
+                                </native:pressable>
+                            </native:row>
                         </native:row>
 
                         <native:divider />
@@ -78,7 +81,7 @@
                 @endforeach
 
                 <native:row class="w-full items-center justify-between">
-                    <native:text class="text-md text-theme-secondary">Total produk</native:text>
+                    <native:text class="text-base text-theme-secondary">Total produk</native:text>
                     <native:text class="text-xl font-bold text-theme-primary">{{ $totalLabel }}</native:text>
                 </native:row>
                 <native:text class="text-sm text-theme-secondary">
@@ -86,52 +89,57 @@
                 </native:text>
             </native:column>
 
-            {{-- Where and when. --}}
+            {{-- Who receives it, and when. The sender is the account holder;
+                 this block is the family member or friend at the door. --}}
             <native:column class="w-full gap-4 rounded-xl bg-theme-surface-container-lowest p-4">
-                <native:text class="text-sm text-theme-secondary uppercase">Data pengantaran</native:text>
+                <native:text class="text-sm text-theme-secondary uppercase">Data penerima</native:text>
+                <native:text class="text-sm leading-snug text-theme-secondary">
+                    Paket dikirim ke orang yang Anda isi di sini. Update pengantaran dikirim ke nomor
+                    penerima lewat WhatsApp.
+                </native:text>
 
                 <native:outlined-text-input
                     label="Nama penerima"
                     placeholder="Nama orang yang menerima"
-                    native:model.blur="recipientName" />
+                    native:model="recipientName" />
 
                 <native:outlined-text-input
                     label="Nomor HP penerima"
                     placeholder="0812xxxxxxx"
                     keyboard="phone"
                     supporting="Kurir menghubungi nomor ini saat tiba"
-                    native:model.blur="recipientPhone" />
+                    native:model="recipientPhone" />
 
                 <native:outlined-text-input
                     label="Alamat lengkap"
                     placeholder="Jalan, nomor rumah, patokan"
                     :max-lines="3"
-                    native:model.blur="recipientAddress" />
+                    native:model="recipientAddress" />
 
                 <native:outlined-text-input
                     label="Area / kota"
                     placeholder="Contoh: Tebet, Jakarta Selatan"
-                    native:model.blur="recipientArea" />
+                    native:model="recipientArea" />
 
                 <native:select
                     label="Jenis alamat"
-                    native:model.blur="addressType"
+                    native:model="addressType"
                     :options="$typeOptions" />
 
                 <native:select
                     label="Layanan"
                     supporting="Instant Frozen hanya untuk area Jabodetabek"
-                    native:model.blur="serviceType"
+                    native:model="serviceType"
                     :options="$serviceOptions" />
 
                 <native:select
                     label="Tanggal pengantaran"
-                    native:model.blur="scheduleDate"
+                    native:model="scheduleDate"
                     :options="$dateOptions" />
 
                 <native:select
                     label="Jendela waktu"
-                    native:model.blur="scheduleWindow"
+                    native:model="scheduleWindow"
                     :options="$windowOptions" />
 
                 <native:outlined-text-input
@@ -139,7 +147,7 @@
                     placeholder="Contoh: titip ke sekuriti lobi"
                     supporting="Opsional, maksimal 300 karakter"
                     :max-lines="3"
-                    native:model.blur="notes" />
+                    native:model="notes" />
             </native:column>
 
             @if ($actionError !== null)

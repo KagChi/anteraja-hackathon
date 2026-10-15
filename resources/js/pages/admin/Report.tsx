@@ -76,6 +76,8 @@ export default function Report() {
     const [data, setData] = useState<ReportResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [sending, setSending] = useState(false);
+    const [notice, setNotice] = useState<string | null>(null);
 
     const requestId = useRef(0);
 
@@ -106,6 +108,25 @@ export default function Report() {
         const params = new URLSearchParams({ date });
         if (statusFilter) params.set("status", statusFilter);
         router.visit(`/admin/shipment?${params.toString()}`);
+    }
+
+    /**
+     * Rings the same bell the nightly job does: the summary is computed by the
+     * server, so a demo can send it at any moment and the numbers match the
+     * cards on this page.
+     */
+    async function sendDailyReport() {
+        setSending(true);
+        setNotice(null);
+
+        try {
+            const response = await api.reports.dailyWhatsapp({ date });
+            setNotice(response.message);
+        } catch (caught) {
+            setNotice(caught instanceof ApiError ? caught.message : "Laporan tidak dapat dikirim.");
+        } finally {
+            setSending(false);
+        }
     }
 
     const kpis = data?.kpis;
@@ -144,7 +165,23 @@ export default function Report() {
                         className="cursor-pointer bg-transparent font-body-sm text-body-sm text-on-surface focus:outline-none"
                     />
                 </div>
+                <button
+                    type="button"
+                    onClick={() => void sendDailyReport()}
+                    disabled={sending}
+                    className="flex h-9 items-center gap-space-xs self-start rounded-md bg-primary px-space-md font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60 md:self-center"
+                >
+                    <MaterialIcon name="send" className="text-[16px]" />
+                    {sending ? "Mengirim..." : "Kirim laporan WhatsApp"}
+                </button>
             </div>
+
+            {notice ? (
+                <div className="mb-space-md flex items-center gap-space-sm rounded-md border border-outline-variant bg-surface-container-low px-space-md py-space-sm">
+                    <MaterialIcon name="chat" className="text-[16px] text-primary" />
+                    <span className="font-body-sm text-body-sm text-on-surface">{notice}</span>
+                </div>
+            ) : null}
 
             {error ? (
                 <div

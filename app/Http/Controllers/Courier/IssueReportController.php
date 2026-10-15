@@ -25,7 +25,7 @@ final class IssueReportController extends Controller
         $courier = $request->user();
 
         $package = Package::where('tracking_number', $trackingNumber)
-            ->with(['buyer', 'statusRef'])
+            ->with(['statusRef'])
             ->firstOrFail();
 
         Gate::authorize('update', $package);
@@ -70,7 +70,7 @@ final class IssueReportController extends Controller
         return response()->json([
             'issueForm' => [
                 'tracking' => $package->tracking_number,
-                'recipient' => $package->buyer?->name ?? '',
+                'recipient' => $package->recipient_name ?? '',
                 'reporter' => $courier->name,
                 'noteLimit' => 200,
                 'options' => $options,

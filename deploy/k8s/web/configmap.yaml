@@ -9,7 +9,10 @@ data:
   APP_NAME: "Anteraja Hackathon"
   APP_ENV: "production"
   APP_DEBUG: "false"
-  APP_TIMEZONE: "Asia/Jakarta"
+  # Aplikasi menyimpan waktu dalam UTC dan mengubahnya ke WIB hanya saat
+  # menampilkan (App\Support\DisplayTime). Jangan disetel ke zona lain: nilai
+  # ini juga menentukan zona sesi database (lihat config/database.php).
+  APP_TIMEZONE: "UTC"
   APP_URL: "https://hackathon.kagchi.my.id"
   # Notifikasi WhatsApp dikirim lewat workflow n8n (lihat deploy/n8n/README.md).
   N8N_WEBHOOK_ENABLED: "true"
