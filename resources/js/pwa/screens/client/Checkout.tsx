@@ -3,7 +3,7 @@ import { LocationPicker, type PickedPoint } from "@/components/LocationPicker";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ActionError } from "../../components/ActionError";
 import { SelectField, TextAreaField, TextField } from "../../components/Field";
-import { StateCard } from "../../components/StateCard";
+import { ScreenLoading, StateCard } from "../../components/StateCard";
 import { clientApi, firstError } from "../../lib/api";
 import { clearCart, setQuantity } from "../../lib/cart";
 import { rupiah } from "../../lib/format";
@@ -55,7 +55,7 @@ function dayLabel(iso: string, offset: number): string {
 export default function Checkout() {
     const { navigate } = useRouter();
     const { cart } = useCart();
-    const { data, error, reload } = useLoad(() => clientApi.catalog.list(), "client-catalog");
+    const { data, error, loading, reload } = useLoad(() => clientApi.catalog.list(), "client-catalog");
 
     const [recipientName, setRecipientName] = useState("");
     const [recipientPhone, setRecipientPhone] = useState("");
@@ -76,11 +76,17 @@ export default function Checkout() {
         }
     }, [navigate]);
 
-    const products = data?.data ?? [];
+    const products = useMemo(() => data?.data ?? [], [data]);
 
     // Anything the catalog no longer offers is dropped from the basket, so the
-    // total on this screen always matches what can actually be ordered.
+    // total on this screen always matches what can actually be ordered. The
+    // catalog has to have loaded first: while data is null `products` is empty,
+    // and pruning against it would wipe a perfectly good basket on mount.
     useEffect(() => {
+        if (data === null) {
+            return;
+        }
+
         for (const key of Object.keys(cart)) {
             const id = Number(key);
 
@@ -88,7 +94,7 @@ export default function Checkout() {
                 setQuantity(id, 0);
             }
         }
-    }, [cart, products]);
+    }, [cart, data, products]);
 
     const lines = useMemo(
         () =>
@@ -177,6 +183,16 @@ export default function Checkout() {
         return (
             <div className="flex w-full flex-col gap-space-lg p-margin">
                 <StateCard message={error} onRetry={reload} />
+            </div>
+        );
+    }
+
+    // The catalog is what turns the basket into lines; until it lands the
+    // basket is not empty, it is simply not known, so neither card is right yet.
+    if (loading && data === null) {
+        return (
+            <div className="flex w-full flex-col gap-space-lg p-margin">
+                <ScreenLoading label="Memuat katalog…" />
             </div>
         );
     }
