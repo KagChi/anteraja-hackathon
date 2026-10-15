@@ -27,7 +27,7 @@ satu paket.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | layar kendala kurir, app/NativeComponents/Courier/Issue.php |
+| UI | layar kendala kurir, resources/js/pwa/screens/courier/Issue.tsx |
 | Endpoint | GET /api/courier/deliveries/{tracking_number}/issue |
 | Nama route | api.courier.issues.create |
 
@@ -89,7 +89,7 @@ Tidak ada.
 | Model | IssueReport, ConditionCheck, Package |
 | Konfigurasi | config/coldchain.php checklist_items |
 | Test | tests/Feature/CourierFlowTest.php test_courier_report_issue_flow |
-| UI | app/NativeComponents/Courier/Issue.php, app/Support/CourierPayload.php method issueForm |
+| UI | resources/js/pwa/screens/courier/Issue.tsx |
 
 ## 11. Skenario uji
 

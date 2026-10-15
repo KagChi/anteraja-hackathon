@@ -47,7 +47,7 @@ Tanpa body.
 2. Controller mengambil currentAccessToken milik user.
 3. Bila token itu instance PersonalAccessToken, hapus barisnya.
 4. Balas JSON berisi message "Berhasil logout." dan code LOGGED_OUT.
-5. Layar native menghapus token lokal dari penyimpanan perangkat.
+5. Layar PWA menghapus token lokal dari penyimpanan peramban.
 
 Detail penting pada AuthenticateCourier: token diresolusi ulang setiap permintaan
 lewat PersonalAccessToken::findToken, bukan melalui guard sanctum yang menyimpan
@@ -84,7 +84,7 @@ tanpa menunggu proses dijalankan ulang.
 | Controller | Api/Courier/AuthController@logout |
 | Middleware | app/Http/Middleware/AuthenticateCourier.php |
 | Test | tests/Feature/CourierApiAuthTest.php test_logout_revokes_the_token |
-| UI | app/NativeComponents/Courier/Profile.php |
+| UI | resources/js/pwa/screens/courier/Profile.tsx |
 
 ## 11. Skenario uji
 

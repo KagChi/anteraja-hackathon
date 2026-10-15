@@ -11,7 +11,7 @@
 
 ## 1. Ringkasan
 
-Satu kendala ditampilkan lengkap: kondisi paket, checklist yang sudah dinormalkan,
+Satu kendala ditampilkan lengkap: kondisi paket, checklist yang sudah dinormalkan
 foto, timeline, dan daftar keputusan yang diizinkan kategori tersebut. Ini dasar
 bagi admin untuk memutuskan.
 

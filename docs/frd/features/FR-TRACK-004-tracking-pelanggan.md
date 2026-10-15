@@ -26,7 +26,7 @@ cold chain, timeline, dan akses menghubungi kurir.
 | Pemicu | Detail |
 | --- | --- |
 | Endpoint | GET /api/client/orders/{tracking_number}/tracking, GET /api/guest/{token}/tracking, GET /api/client/{token}/tracking |
-| UI | app/NativeComponents/Client/Tracking.php |
+| UI | resources/js/pwa/screens/client/Tracking.tsx |
 
 ## 4. Precondition dan postcondition
 
@@ -85,8 +85,8 @@ Tidak ada penulisan.
 | --- | --- |
 | Service | Services/Client/TrackingViewService.php, ColdChainSummaryService.php, ClientTimelineBuilder.php |
 | DTO | DTOs/Client/TrackingView.php, TimelineEntry.php, ColdChainSummary.php |
-| Test | tests/Feature/ClientFlowTest.php test_tracking_returns_formatted_data_and_client_status_labels, tests/Unit/ClientUnitTest.php test_cold_chain_summary_evaluates_measured_and_target_states, tests/Feature/ClientNativeScreensTest.php test_tracking_shows_the_cold_chain_reading_and_the_journey, test_tracking_calls_the_courier, test_tracking_offers_the_action_its_state_calls_for |
-| UI | app/NativeComponents/Client/Tracking.php, resources/js/pages/client/Tracking.tsx |
+| Test | tests/Feature/ClientFlowTest.php test_tracking_returns_formatted_data_and_client_status_labels, tests/Unit/ClientUnitTest.php test_cold_chain_summary_evaluates_measured_and_target_states, tests/Feature/PwaShellTest.php test_tracking_shows_the_cold_chain_reading_and_the_journey, test_tracking_calls_the_courier, test_tracking_offers_the_action_its_state_calls_for |
+| UI | resources/js/pwa/screens/client/Tracking.tsx, resources/js/pages/client/Tracking.tsx |
 
 ## 11. Skenario uji
 

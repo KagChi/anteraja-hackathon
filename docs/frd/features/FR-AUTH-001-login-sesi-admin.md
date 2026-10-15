@@ -13,7 +13,7 @@
 ## 1. Ringkasan
 
 Admin hub masuk ke konsol melalui halaman web /login. Halaman itu hanya kerangka
-Inertia; autentikasi sesungguhnya terjadi di endpoint JSON POST /api/auth/login,
+Inertia; autentikasi sesungguhnya terjadi di endpoint JSON POST /api/auth/login
 karena endpoint API menjawab 401 dan tidak dapat merender layar.
 
 ## 2. Aktor dan otorisasi

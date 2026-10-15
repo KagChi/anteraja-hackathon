@@ -77,8 +77,8 @@ export function SiteHeader() {
                         href="#unduh"
                         className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container"
                     >
-                        <MaterialIcon name="android" className="text-[16px]" />
-                        Unduh
+                        <MaterialIcon name="install_mobile" className="text-[16px]" />
+                        Aplikasi
                     </a>
                     <button
                         type="button"

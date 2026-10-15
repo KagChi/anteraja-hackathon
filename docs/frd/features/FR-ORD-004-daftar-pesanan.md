@@ -11,7 +11,7 @@
 
 ## 1. Ringkasan
 
-Layar Pesanan dan Riwayat pelanggan. Empat tab dengan hitungan masing-masing,
+Layar Pesanan dan Riwayat pelanggan. Empat tab dengan hitungan masing-masing
 pencarian pada resi dan nama produk, serta paginasi.
 
 ## 2. Aktor dan otorisasi
@@ -97,7 +97,7 @@ Tidak ada penulisan. Hitungan tab dihitung ulang setiap pemanggilan tanpa cache.
 | Resource | Resources/Client/OrderSummaryResource.php |
 | Service | Services/Client/OrderPresenter.php |
 | Test | tests/Feature/ClientApiAuthTest.php test_buyer_orders_list_with_tabs_and_counts, test_order_ownership_isolation_returns_404_for_other_buyer |
-| UI | app/NativeComponents/Client/Orders.php, History.php, app/Support/ClientPayload.php method order |
+| UI | resources/js/pwa/screens/client/Orders.tsx, History.tsx |
 
 ## 11. Skenario uji
 

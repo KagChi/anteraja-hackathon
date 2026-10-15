@@ -9,8 +9,8 @@ flowchart LR
         B3["TypeScript 5.9<br/>tsc --noEmit"]
         B4["Biome 2.5.15<br/>lint dan format"]
         B5["Tailwind CSS 4.3 + PostCSS"]
-        B6["NativePHP 4.6 + mobile-ui 0.8<br/>EDGE ke Jetpack Compose"]
-        B7["JDK 17 · Android SDK 36<br/>Gradle · keystore"]
+        B6["React SPA tanpa router pihak ketiga<br/>history API + route table"]
+        B7["Manifest per app · service worker<br/>ikon 192/512 + maskable"]
     end
 
     subgraph BAND_K["2. Klien"]
@@ -19,8 +19,8 @@ flowchart LR
         K2["App Kurir<br/>com.anteraja.kurir"]
         K3["App Frozen<br/>com.anteraja.frozen"]
         K4["Landing dan blog<br/>Inertia + Tailwind"]
-        K5["mobile/apps.php<br/>registri identitas app"]
-        K6["routes/mobile.php<br/>rute native"]
+        K5["config/pwa.php<br/>registri identitas app"]
+        K6["routes/web.php<br/>shell /client/* dan /courier/*"]
     end
 
     subgraph BAND_E["3. Edge dan runtime"]
@@ -104,11 +104,11 @@ flowchart LR
     subgraph BAND_C["10. CI dan mutu"]
         direction TB
         C1["Actions docker.yaml"]
-        C2["Actions android-apk.yaml"]
+        C2["Actions release.yaml<br/>lint · tsc · build"]
         C3["Actions n8n-scenarios.yaml"]
         C4["Actions release.yaml"]
         C5["PHPUnit 11<br/>feature dan unit"]
-        C6["Uji layar native<br/>Native test"]
+        C6["Uji shell PWA<br/>manifest · worker · ikon"]
         C7["Laravel Pint + PHP-CS-Fixer<br/>Biome + tsc"]
         C8["OpenAPI 3 + Swagger UI"]
         C9["Renovate"]

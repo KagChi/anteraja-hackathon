@@ -19,7 +19,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: paket milik kurir lain menghasilkan 404 lewat PackagePolicy. Paket yang belum diterima kurir menghasilkan 422 dengan redirect. Paket berstatus AWAITING_CONFIRMATION atau CONFIRMED menghasilkan 404 karena di luar daftar status.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Courier/DeliveryController@show, Services/Gps/GpsValidator::latestCheck, Services/Gps/GeofenceEvaluator, config/coldchain.php checklist_items, app/Policies/PackagePolicy.php, tests/Feature/CourierFlowTest.php test_courier_delivery_show_and_guards, app/NativeComponents/Courier/Delivery.php.
+- Traceability: routes/api.php, Courier/DeliveryController@show, Services/Gps/GpsValidator::latestCheck, Services/Gps/GeofenceEvaluator, config/coldchain.php checklist_items, app/Policies/PackagePolicy.php, tests/Feature/CourierFlowTest.php test_courier_delivery_show_and_guards, resources/js/pwa/screens/courier/Delivery.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY setelah berangkat, When layar diminta, Then canProof true dan stage DEPARTED.
   - Given paket berstatus CONFIRMED, When layar pengantaran diminta, Then HTTP 404 dan tidak ada data paket yang tersebar.
@@ -39,7 +39,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: checklist dengan satu jawaban true menghasilkan 422 tanpa perubahan data. Status di luar COURIER_ASSIGNED dan CHECKED menghasilkan DeliveryNotActionable::invalidState. GPS yang memblokir menghasilkan FakeGpsSuspected dan permintaan tinjauan dibuat.
 - Side Effects: baris condition_checks baru; baris status_logs untuk CHECKED bila perlu dan untuk IN_DELIVERY; baris delivery_milestones DEPARTED berisi koordinat; satu baris notifications QUEUED template on_the_way untuk pembeli; baris location_checks bila koordinat dikirim.
 - Postcondition: paket berada di jalan menuju penerima dan tidak dapat kembali ke CHECKED tanpa kendala.
-- Traceability: routes/api.php, Courier/StartDeliveryController, Actions/Courier/StartDelivery, Requests/Courier/StartDeliveryRequest, DTOs/Courier/StartDeliveryData, Support/ChecklistNormalizer, Services/Gps/GpsValidator, tests/Feature/CourierFlowTest.php test_courier_depart_flow, app/NativeComponents/Courier/Delivery.php.
+- Traceability: routes/api.php, Courier/StartDeliveryController, Actions/Courier/StartDelivery, Requests/Courier/StartDeliveryRequest, DTOs/Courier/StartDeliveryData, Support/ChecklistNormalizer, Services/Gps/GpsValidator, tests/Feature/CourierFlowTest.php test_courier_depart_flow, resources/js/pwa/screens/courier/Delivery.tsx.
 - Acceptance Criteria:
   - Given checklist seluruhnya normal dan paket COURIER_ASSIGNED, When depart dipanggil, Then HTTP 200, paket menjadi IN_DELIVERY, ada condition check normal, dan milestone DEPARTED tercatat.
   - Given satu item checklist bernilai true, When depart dipanggil, Then HTTP 422 dengan hasIssue true, tidak ada condition check baru, dan status paket tidak berubah.
@@ -59,7 +59,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: menandai tiba dua kali tidak membuat milestone ganda. Menandai tiba sebelum berangkat menghasilkan DeliveryNotActionable. Paket bukan milik kurir menghasilkan 404.
 - Side Effects: baris delivery_milestones ARRIVED; baris location_checks bila koordinat dikirim; satu baris notifications QUEUED template courier_arrived untuk pembeli.
 - Postcondition: tahap pengantaran kurir menjadi ARRIVED dan tombol tersebut tidak ditawarkan lagi.
-- Traceability: routes/api.php, Courier/MarkArrivedController, Actions/Courier/MarkArrived, Requests/Courier/MarkArrivedRequest, Enums/DeliveryMilestoneEnum, tests/Feature/CourierFlowTest.php test_courier_arrive_flow, app/NativeComponents/Courier/Delivery.php.
+- Traceability: routes/api.php, Courier/MarkArrivedController, Actions/Courier/MarkArrived, Requests/Courier/MarkArrivedRequest, Enums/DeliveryMilestoneEnum, tests/Feature/CourierFlowTest.php test_courier_arrive_flow, resources/js/pwa/screens/courier/Delivery.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY dengan milestone DEPARTED, When arrive dipanggil dengan koordinat, Then HTTP 200, milestone ARRIVED tercatat dengan koordinat, dan pembeli menerima notifikasi courier_arrived.
   - Given paket IN_DELIVERY tanpa milestone DEPARTED, When arrive dipanggil, Then permintaan ditolak DeliveryNotActionable dan tidak ada milestone baru.
@@ -79,7 +79,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: paket di luar status IN_DELIVERY mengembalikan 422 dengan redirect ke layar pengantaran paket itu. Paket milik kurir lain menghasilkan 404.
 - Side Effects: tidak ada.
 - Postcondition: kurir dapat mengunggah bukti.
-- Traceability: routes/api.php, Courier/ProofController@create, Enums/RecipientRelation, tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, app/NativeComponents/Courier/Proof.php.
+- Traceability: routes/api.php, Courier/ProofController@create, Enums/RecipientRelation, tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, resources/js/pwa/screens/courier/Proof.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY, When form bukti diminta, Then relationOptions memuat empat nilai enum.
   - Given paket berstatus COURIER_ASSIGNED, When form bukti diminta, Then HTTP 422 dengan redirect dan tidak ada form.
@@ -99,7 +99,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: di luar radius menghasilkan OutsideGeofence dan paket tidak berubah. Foto lebih dari 5 MB atau format lain menghasilkan 422. GPS yang terdeteksi palsu menghasilkan FakeGpsSuspected. Paket yang sudah punya bukti menghasilkan sukses tanpa baris baru.
 - Side Effects: file foto pada disk lokal; baris deliveries; baris delivery_milestones ARRIVED bila belum ada; baris status_logs IN_DELIVERY ke RECEIVED dengan deskripsi serah terima; satu baris notifications QUEUED template delivered.
 - Postcondition: paket berstatus RECEIVED dan tidak dapat menerima aksi pengantaran lagi.
-- Traceability: routes/api.php, Courier/ProofController@store, Actions/Courier/ConfirmDelivery, Requests/Courier/ConfirmDeliveryRequest, DTOs/Courier/ConfirmDeliveryData, Support/MediaStorage, Services/Gps/GpsValidator, tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/CourierGpsValidationTest.php, tests/Feature/AdminConsoleE2ETest.php test_the_delivery_journey_completes_end_to_end, app/NativeComponents/Courier/Proof.php.
+- Traceability: routes/api.php, Courier/ProofController@store, Actions/Courier/ConfirmDelivery, Requests/Courier/ConfirmDeliveryRequest, DTOs/Courier/ConfirmDeliveryData, Support/MediaStorage, Services/Gps/GpsValidator, tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/CourierGpsValidationTest.php, tests/Feature/AdminConsoleE2ETest.php test_the_delivery_journey_completes_end_to_end, resources/js/pwa/screens/courier/Proof.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY dan kurir berada dalam radius, When bukti dikirim lengkap, Then HTTP 200, barang berstatus RECEIVED, baris deliveries memuat foto, dan notifikasi delivered terantre.
   - Given kurir berada di luar radius, When bukti dikirim, Then permintaan ditolak OutsideGeofence, tidak ada baris deliveries, dan foto dibersihkan dari disk.
@@ -119,7 +119,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: kurir tanpa riwayat menerima daftar kosong dengan summary berisi nol. Paket yang belum terminal tidak muncul di sini.
 - Side Effects: tidak ada.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Courier/HistoryController@index, Queries/HistoryQuery, DTOs/HistoryFilters, Support/DisplayTime, tests/Feature/CourierFlowTest.php test_courier_history_and_profile, app/NativeComponents/Courier/History.php.
+- Traceability: routes/api.php, Courier/HistoryController@index, Queries/HistoryQuery, DTOs/HistoryFilters, Support/DisplayTime, tests/Feature/CourierFlowTest.php test_courier_history_and_profile, resources/js/pwa/screens/courier/History.tsx.
 - Acceptance Criteria:
   - Given kurir dengan dua paket RECEIVED hari ini, When riwayat diminta, Then daftar memuat dua baris berlabel Terkirim dan completedCount bernilai 2.
   - Given kurir tanpa paket terminal, When riwayat diminta, Then history kosong dan summary berisi nol, bukan error.
@@ -139,7 +139,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-009, BR-010, BR-011, BR-020, BR-022.
 - Error & Edge Cases: kurir tanpa pengantaran hari ini menerima nilai nol pada kartu pertama. Nilai tepat waktu dan rating tidak berubah karena bukan hasil hitung.
 - Side Effects: tidak ada.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Courier/ProfileController@show, config/coldchain.php hub_name, tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/CourierNativeScreensTest.php test_the_profile_tab_shows_identity_and_assignment, app/NativeComponents/Courier/Profile.php.
+- Traceability: routes/api.php, Courier/ProfileController@show, config/coldchain.php hub_name, tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/PwaShellTest.php test_the_profile_tab_shows_identity_and_assignment, resources/js/pwa/screens/courier/Profile.tsx.
 - Acceptance Criteria:
   - Given kurir dengan dua paket terkirim hari ini, When profil diminta, Then kartu "Selesai hari ini" bernilai 2 dan hub memakai nilai konfigurasi.
   - Given kurir tanpa pengantaran hari ini, When profil diminta, Then kartu pertama bernilai 0 dan permintaan tetap HTTP 200.

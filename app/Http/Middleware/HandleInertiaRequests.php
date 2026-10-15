@@ -36,9 +36,28 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            // The landing page's Android download cards read this, so an APK
-            // can be repointed from the environment without touching the page.
-            'downloads' => array_values((array) config('mobile.apps', [])),
+            // The landing page's app cards read this. Identity and copy come
+            // from config/pwa.php, the same registry the manifests are built
+            // from, so the cards cannot drift from the apps they link to.
+            'apps' => (static function (): array {
+                $cards = [];
+
+                foreach ((array) config('pwa.apps', []) as $key => $app) {
+                    $card = is_array($app['card'] ?? null) ? $app['card'] : [];
+
+                    $cards[] = [
+                        'key' => (string) $key,
+                        'name' => (string) ($app['name'] ?? ''),
+                        'url' => (string) ($app['start_url'] ?? ''),
+                        'audience' => (string) ($card['audience'] ?? 'Aplikasi'),
+                        'description' => (string) ($card['description'] ?? ''),
+                        'icon' => (string) ($card['icon'] ?? 'apps'),
+                        'points' => array_values((array) ($card['points'] ?? [])),
+                    ];
+                }
+
+                return $cards;
+            })(),
         ]);
     }
 }

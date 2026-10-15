@@ -40,7 +40,7 @@ dibentuk. Eligibility memutuskan, factory yang membuat.
 ## 5. Input dan validasi
 
 Tidak ada input pengguna; seluruh data disalin dari paket asal. Paket asal
-menentukan buyer_id, created_by, kategori, berat, layanan, koli, instruksi, item,
+menentukan buyer_id, created_by, kategori, berat, layanan, koli, instruksi, item
 dan jendela pengiriman.
 
 ## 6. Proses langkah demi langkah

@@ -26,7 +26,7 @@ kurir datang, dan slot apa saja yang bisa dipilih bila pelanggan ingin mengubah.
 | Pemicu | Detail |
 | --- | --- |
 | Endpoint | GET /api/client/orders/{tracking_number}/schedule, GET /api/guest/{token}/schedule, GET /api/client/{token}/schedule |
-| UI | app/NativeComponents/Client/Schedule.php |
+| UI | resources/js/pwa/screens/client/Schedule.tsx |
 
 ## 4. Precondition dan postcondition
 
@@ -87,8 +87,8 @@ Tidak ada penulisan.
 | Service | Services/Client/ScheduleViewService.php |
 | DTO | DTOs/Client/ScheduleView.php, CargoLine.php |
 | Konfigurasi | config/coldchain.php client.slots |
-| Test | tests/Feature/ClientFlowTest.php test_schedule_show_returns_cargo_items_and_weight, tests/Feature/ClientNativeScreensTest.php test_the_schedule_screen_shows_the_window_and_the_frozen_cargo |
-| UI | app/NativeComponents/Client/Schedule.php, resources/js/pages/client/Schedule.tsx |
+| Test | tests/Feature/ClientFlowTest.php test_schedule_show_returns_cargo_items_and_weight, tests/Feature/PwaShellTest.php test_the_schedule_screen_shows_the_window_and_the_frozen_cargo |
+| UI | resources/js/pwa/screens/client/Schedule.tsx, resources/js/pages/client/Schedule.tsx |
 
 ## 11. Skenario uji
 

@@ -80,7 +80,7 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Error & Edge Cases: kredensial salah menghasilkan 401 INVALID_CREDENTIALS. Admin yang mencoba masuk menghasilkan 403 FORBIDDEN. Lima percobaan per menit per kombinasi email dan IP menghasilkan 429 TOO_MANY_REQUESTS.
 - Side Effects: satu baris baru di personal_access_tokens.
 - Postcondition: klien memegang token dan setiap permintaan /api/courier/* wajib menyertakannya.
-- Traceability: routes/api.php, app/Http/Controllers/Api/Courier/AuthController.php@login, AppServiceProvider rate limiter courier-auth, tests/Feature/CourierApiAuthTest.php, app/NativeComponents/Courier/Login.php.
+- Traceability: routes/api.php, app/Http/Controllers/Api/Courier/AuthController.php@login, AppServiceProvider rate limiter courier-auth, tests/Feature/CourierApiAuthTest.php, resources/js/pwa/screens/courier/Login.tsx.
 - Acceptance Criteria:
   - Given kurir aktif, When email dan password benar, Then HTTP 200 dengan token ber-ability courier.
   - Given akun berperan ADMIN, When login kurir dipanggil, Then HTTP 403 FORBIDDEN dan tidak ada token dibuat.
@@ -98,9 +98,9 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Proses / Business Rules: token aktif dihapus dari personal_access_tokens. Token lain milik kurir yang sama tidak terhapus.
 - Output / Response: HTTP 200 dengan message "Berhasil logout." dan code LOGGED_OUT.
 - Error & Edge Cases: token yang sudah dicabut atau lewat masa berlaku menghasilkan 401 karena AuthenticateCourier menolak token tanpa tokenable atau yang kedaluwarsa.
-- Side Effects: baris token terhapus. Layar native membersihkan penyimpanan token lokal.
+- Side Effects: baris token terhapus. Layar PWA membersihkan penyimpanan token lokal.
 - Postcondition: permintaan /api/courier/* berikutnya gagal 401 sampai login ulang.
-- Traceability: routes/api.php, Api/Courier/AuthController.php@logout, Middleware/AuthenticateCourier.php, tests/Feature/CourierApiAuthTest.php test_logout_revokes_the_token, app/NativeComponents/Courier/Profile.php.
+- Traceability: routes/api.php, Api/Courier/AuthController.php@logout, Middleware/AuthenticateCourier.php, tests/Feature/CourierApiAuthTest.php test_logout_revokes_the_token, resources/js/pwa/screens/courier/Profile.tsx.
 - Acceptance Criteria:
   - Given kurir login, When logout dipanggil dengan token itu, Then HTTP 200 dan permintaan tugas berikutnya 401.
   - Given token yang sama dipakai lagi, When logout dipanggil kedua kali, Then HTTP 401 UNAUTHENTICATED.
@@ -120,7 +120,7 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Error & Edge Cases: nomor sudah terdaftar menghasilkan 422 dengan pesan "Nomor HP ini sudah terdaftar. Silakan masuk.". Password tidak cocok menghasilkan 422 dengan pesan "Konfirmasi password tidak sama.".
 - Side Effects: satu baris buyers baru dan satu baris personal_access_tokens baru.
 - Postcondition: pelanggan dapat langsung melanjutkan checkout.
-- Traceability: routes/api.php, Api/Client/AuthController.php@register, Requests/Api/Client/RegisterRequest.php, Resources/Client/BuyerResource.php, tests/Feature/ClientStorefrontTest.php, app/NativeComponents/Client/Register.php.
+- Traceability: routes/api.php, Api/Client/AuthController.php@register, Requests/Api/Client/RegisterRequest.php, Resources/Client/BuyerResource.php, tests/Feature/ClientStorefrontTest.php, resources/js/pwa/screens/client/Register.tsx.
 - Acceptance Criteria:
   - Given nomor baru dan password sah, When register dipanggil, Then HTTP 201 dengan token dan baris buyers terbuat.
   - Given nomor yang sudah dipakai akun lain, When register dipanggil, Then HTTP 422 pada errors.phone dan tidak ada baris baru.
@@ -140,7 +140,7 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Error & Edge Cases: pembeli tidak ada atau password salah sama-sama menghasilkan 401 INVALID_CREDENTIALS dengan pesan generik sehingga tidak membocorkan apakah nomor terdaftar. Akun nonaktif menghasilkan 403 ACCOUNT_INACTIVE. Lima percobaan per menit per kombinasi phone dan IP menghasilkan 429.
 - Side Effects: satu baris personal_access_tokens baru.
 - Postcondition: klien memegang token ability client.
-- Traceability: routes/api.php, Api/Client/AuthController.php@login, Requests/Api/Client/LoginRequest.php, Support/PhoneFormatter.php, tests/Feature/ClientApiAuthTest.php, app/NativeComponents/Client/Login.php.
+- Traceability: routes/api.php, Api/Client/AuthController.php@login, Requests/Api/Client/LoginRequest.php, Support/PhoneFormatter.php, tests/Feature/ClientApiAuthTest.php, resources/js/pwa/screens/client/Login.tsx.
 - Acceptance Criteria:
   - Given pembeli aktif, When nomor dan password benar, Then HTTP 200 dengan token ability client.
   - Given nomor benar tetapi password salah, When login dipanggil, Then HTTP 401 dengan pesan yang identik dengan kasus nomor tidak terdaftar.
@@ -160,7 +160,7 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Error & Edge Cases: tanpa token menghasilkan 401 UNAUTHENTICATED lewat render AuthenticationException di bootstrap/app.php.
 - Side Effects: baris token terhapus dan penyimpanan token di perangkat dibersihkan.
 - Postcondition: permintaan terautentikasi berikutnya gagal 401.
-- Traceability: routes/api.php, Api/Client/AuthController.php@logout, tests/Feature/ClientApiAuthTest.php test_buyer_can_logout_and_revokes_token, app/NativeComponents/Client/Profile.php.
+- Traceability: routes/api.php, Api/Client/AuthController.php@logout, tests/Feature/ClientApiAuthTest.php test_buyer_can_logout_and_revokes_token, resources/js/pwa/screens/client/Profile.tsx.
 - Acceptance Criteria:
   - Given pembeli login, When logout dipanggil, Then HTTP 200 dan /api/client/me berikutnya 401.
   - Given tanpa token, When logout dipanggil, Then HTTP 401 UNAUTHENTICATED.
@@ -180,7 +180,7 @@ Aturan bisnis terkait: BR-003, BR-017, BR-021, BR-024, BR-025.
 - Error & Edge Cases: pembeli nonaktif ditolak 403 ACCOUNT_INACTIVE oleh middleware client.buyer. Token ber-ability courier ditolak 403 FORBIDDEN oleh CheckAbilities.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Api/Client/ProfileController@show, Resources/Client/BuyerProfileResource.php, config/coldchain.php customer_service, tests/Feature/ClientApiAuthTest.php, app/NativeComponents/Client/Profile.php.
+- Traceability: routes/api.php, Api/Client/ProfileController@show, Resources/Client/BuyerProfileResource.php, config/coldchain.php customer_service, tests/Feature/ClientApiAuthTest.php, resources/js/pwa/screens/client/Profile.tsx.
 - Acceptance Criteria:
   - Given pembeli dengan tiga paket non-terminal dan dua paket selesai, When profil diminta, Then stats berisi angka 3 dan 2 serta support.whatsapp_url memuat nomor konfigurasi.
   - Given token ber-ability courier dipakai, When profil pembeli diminta, Then HTTP 403 FORBIDDEN.

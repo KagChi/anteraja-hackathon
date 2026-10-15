@@ -78,7 +78,7 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 - Error & Edge Cases: paket tanpa jadwal menampilkan estimatedDelivery kosong. Paket tanpa kurir tidak menampilkan tombol kontak. Status pra-kurir menampilkan coldChain null sehingga layar harus menangani ketiadaan kartu itu.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: Services/Client/TrackingViewService.php, ColdChainSummaryService.php, ClientTimelineBuilder.php, Enums/Client/ColdChainState.php, tests/Feature/ClientFlowTest.php test_tracking_returns_formatted_data_and_client_status_labels, tests/Unit/ClientUnitTest.php test_cold_chain_summary_evaluates_measured_and_target_states, tests/Feature/ClientNativeScreensTest.php test_tracking_shows_the_cold_chain_reading_and_the_journey, resources/js/pages/client/Tracking.tsx, app/NativeComponents/Client/Tracking.php.
+- Traceability: Services/Client/TrackingViewService.php, ColdChainSummaryService.php, ClientTimelineBuilder.php, Enums/Client/ColdChainState.php, tests/Feature/ClientFlowTest.php test_tracking_returns_formatted_data_and_client_status_labels, tests/Unit/ClientUnitTest.php test_cold_chain_summary_evaluates_measured_and_target_states, tests/Feature/PwaShellTest.php test_tracking_shows_the_cold_chain_reading_and_the_journey, resources/js/pages/client/Tracking.tsx, resources/js/pwa/screens/client/Tracking.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY dengan kurir dan suhu terukur optimal, When layar tracking diminta, Then canContactCourier true dan kartu cold chain berisi suhu serta state Terjaga.
   - Given paket CONFIRMED yang belum punya kurir, When layar tracking diminta, Then coldChain null dan canContactCourier false.
@@ -97,7 +97,7 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 - Error & Edge Cases: paket tanpa jadwal menampilkan teks "Belum ditentukan". Paket yang sudah CONFIRMED menampilkan canAction false sehingga layar tidak menawarkan aksi.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: Services/Client/ScheduleViewService.php, DTOs/Client/ScheduleView.php dan CargoLine.php, config/coldchain.php client.slots, tests/Feature/ClientFlowTest.php test_schedule_show_returns_cargo_items_and_weight, resources/js/pages/client/Schedule.tsx, app/NativeComponents/Client/Schedule.php.
+- Traceability: Services/Client/ScheduleViewService.php, DTOs/Client/ScheduleView.php dan CargoLine.php, config/coldchain.php client.slots, tests/Feature/ClientFlowTest.php test_schedule_show_returns_cargo_items_and_weight, resources/js/pages/client/Schedule.tsx, resources/js/pwa/screens/client/Schedule.tsx.
 - Acceptance Criteria:
   - Given paket AWAITING_CONFIRMATION dengan konfirmasi PENDING, When layar jadwal diminta, Then canAction true dan availableSlots memuat lima rentang.
   - Given paket yang sudah CONFIRMED, When layar jadwal diminta, Then canAction false sehingga tombol konfirmasi tidak ditawarkan lagi.
@@ -117,7 +117,7 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 - Error & Edge Cases: permintaan kedua setelah sukses mengembalikan sukses tanpa transisi tambahan. Paket yang tidak lagi menunggu konfirmasi menghasilkan ScheduleNotActionable dengan pesan status tidak dapat dikonfirmasi. Konfirmasi PENDING yang tidak ada menghasilkan ScheduleNotActionable dengan pesan tidak ada jadwal menunggu konfirmasi.
 - Side Effects: kolom response dan responded_at konfirmasi; baris status_logs ke CONFIRMED dengan changed_by null.
 - Postcondition: paket siap ditugaskan ke kurir.
-- Traceability: Actions/Client/ConfirmSchedule.php, Support/PackageStatusTransitioner.php, Api/Client/ScheduleConfirmationController, Client/ScheduleConfirmationController, app/Exceptions/ScheduleNotActionable.php, tests/Feature/ClientFlowTest.php test_schedule_confirm_transitions_status_with_null_actor, app/NativeComponents/Client/Schedule.php.
+- Traceability: Actions/Client/ConfirmSchedule.php, Support/PackageStatusTransitioner.php, Api/Client/ScheduleConfirmationController, Client/ScheduleConfirmationController, app/Exceptions/ScheduleNotActionable.php, tests/Feature/ClientFlowTest.php test_schedule_confirm_transitions_status_with_null_actor, resources/js/pwa/screens/client/Schedule.tsx.
 - Acceptance Criteria:
   - Given paket AWAITING_CONFIRMATION dengan konfirmasi PENDING, When konfirmasi dikirim, Then HTTP 200, paket menjadi CONFIRMED, dan baris status_logs baru berubah_by null.
   - Given paket yang sudah CONFIRMED, When konfirmasi dikirim lagi, Then HTTP 200 tanpa baris status_logs tambahan.
@@ -137,7 +137,7 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 - Error & Edge Cases: tanggal lebih dari 14 hari menghasilkan 422 pada errors.date; slot kurang dari 2 jam menghasilkan 422 pada errors.slot. Permintaan kedua saat status sudah RESCHEDULE_REQUESTED mengembalikan sukses tanpa perubahan.
 - Side Effects: kolom response, proposed_scheduled_at, dan responded_at konfirmasi; baris status_logs; baris notifications QUEUED reschedule_requested per admin aktif.
 - Postcondition: paket menunggu admin menyusun jadwal baru (FR-PKG-005).
-- Traceability: Actions/Client/RequestReschedule.php, Requests/Client/RescheduleRequest.php, DTOs/Client/RescheduleRequestData.php, config/coldchain.php client.reschedule_max_days dan min_lead_hours, Support/NotificationQueue.php, tests/Feature/ClientFlowTest.php test_schedule_reschedule_validates_and_transitions_status, app/NativeComponents/Client/Schedule.php.
+- Traceability: Actions/Client/RequestReschedule.php, Requests/Client/RescheduleRequest.php, DTOs/Client/RescheduleRequestData.php, config/coldchain.php client.reschedule_max_days dan min_lead_hours, Support/NotificationQueue.php, tests/Feature/ClientFlowTest.php test_schedule_reschedule_validates_and_transitions_status, resources/js/pwa/screens/client/Schedule.tsx.
 - Acceptance Criteria:
   - Given paket AWAITING_CONFIRMATION, When pelanggan memilih slot besok, Then HTTP 200, paket menjadi RESCHEDULE_REQUESTED, dan setiap admin aktif menerima notifikasi reschedule_requested.
   - Given slot yang tinggal satu jam dari sekarang, When diajukan, Then HTTP 422 pada errors.slot dan status paket tidak berubah.

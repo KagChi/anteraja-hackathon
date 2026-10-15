@@ -11,7 +11,7 @@
 
 ## 1. Ringkasan
 
-Modal detail adalah tempat admin memahami satu paket: apa isinya, siapa kurirnya,
+Modal detail adalah tempat admin memahami satu paket: apa isinya, siapa kurirnya
 apa yang sudah terjadi, dan foto bukti apa yang tersimpan. Endpoint ini juga
 menyediakan tautan klien agar admin dapat mengirim ulang tautan ke pelanggan.
 

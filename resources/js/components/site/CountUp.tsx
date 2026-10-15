@@ -35,7 +35,7 @@ export function CountUp({ value, suffix = "", durationMs = 1400 }: CountUpProps)
                 const step = (now: number) => {
                     const progress = Math.min(1, (now - startedAt) / durationMs);
                     // easeOutExpo: fast start, gentle landing.
-                    const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                    const eased = progress === 1 ? 1 : 1 - 2 ** (-10 * progress);
                     setDisplay(Math.round(value * eased));
 
                     if (progress < 1) requestAnimationFrame(step);

@@ -15,9 +15,9 @@ tergantung konteksnya.
 
 | Mode | Berkas | Dipakai saat | Isi |
 |---|---|---|---|
-| Presentasi | `mode-presentasi.mmd` | Slide, demo, sesi juri | 10 kotak dalam 3 grup, tanpa detail versi, alur satu arah dari klien sampai WhatsApp. Hasil render 4542 x 1107 px |
-| Full picture | `mode-full-picture.mmd` | Penjelasan teknis, onboarding developer baru | 7 lapisan berisi 33 node: klien, edge, permukaan API, aplikasi, data, asinkron, rilis. Hasil render 5490 x 3901 px |
-| All in | `mode-allin.mmd` | Audit, rujukan lengkap, lampiran laporan | 10 band berisi 72 node: alat build, klien, runtime, middleware, rute, lapisan aplikasi, domain, asinkron, rilis, dan CI. Hasil render 11734 x 7651 px |
+| Presentasi | `mode-presentasi.mmd` | Slide, demo, sesi juri | 10 kotak dalam 3 grup, tanpa detail versi, alur satu arah dari klien sampai WhatsApp. Hasil render sekitar 4350 x 1070 px |
+| Full picture | `mode-full-picture.mmd` | Penjelasan teknis, onboarding developer baru | 7 lapisan berisi 33 node: klien, edge, permukaan API, aplikasi, data, asinkron, rilis. Hasil render sekitar 5460 x 3890 px |
+| All in | `mode-allin.mmd` | Audit, rujukan lengkap, lampiran laporan | 10 band berisi 72 node: alat build, klien, runtime, middleware, rute, lapisan aplikasi, domain, asinkron, rilis, dan CI. Hasil render sekitar 11700 x 7580 px |
 
 Cara memilihnya sederhana: kalau audiens hanya butuh tahu bentuk sistemnya,
 pakai presentasi. Kalau audiens perlu tahu bagian mana yang menangani apa,

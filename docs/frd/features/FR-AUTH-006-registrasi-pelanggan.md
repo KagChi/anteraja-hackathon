@@ -29,7 +29,7 @@ yang sama dengan login, sehingga aplikasi dapat langsung melanjutkan ke checkout
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | layar Register aplikasi pelanggan, app/NativeComponents/Client/Register.php |
+| UI | layar Register aplikasi pelanggan, resources/js/pwa/screens/client/Register.tsx |
 | Endpoint | POST /api/client/auth/register |
 | Nama route | api.client.auth.register |
 
@@ -107,7 +107,7 @@ mengubah label bahasa Indonesia menjadi nilai enum RESIDENTIAL atau COMMERCIAL.
 | Resource | Resources/Client/BuyerResource.php |
 | Normalisasi | Support/PhoneFormatter.php, Enums/AddressType::fromInput |
 | Test | tests/Feature/ClientStorefrontTest.php test_register_creates_a_buyer_and_returns_a_token, test_register_rejects_a_phone_that_already_has_an_account |
-| UI | app/NativeComponents/Client/Register.php |
+| UI | resources/js/pwa/screens/client/Register.tsx |
 
 ## 11. Skenario uji
 

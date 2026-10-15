@@ -87,7 +87,7 @@ Tidak ada. Dua kueri hitung dijalankan setiap pemanggilan, tanpa cache.
 | Resource | Resources/Client/BuyerProfileResource.php |
 | Konfigurasi | config/coldchain.php customer_service |
 | Test | tests/Feature/ClientApiAuthTest.php test_buyer_profile_endpoint_returns_stats_and_support |
-| UI | app/NativeComponents/Client/Profile.php, app/Support/ClientPayload.php method profile |
+| UI | resources/js/pwa/screens/client/Profile.tsx |
 
 ## 11. Skenario uji
 

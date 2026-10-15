@@ -55,7 +55,7 @@ bukan tanggung jawab aplikasi.
 6. Bila respons memuat delivered true, tulis wa_message_id ke payload bila ada, set status SENT dan sent_at sekarang.
 7. Bila respons tidak delivered dan reason-nya unmapped atau skipped, biarkan QUEUED dan tulis log info berisi notification_id dan template.
 8. Selain itu, tandai FAILED dengan payload.delivery_error berisi potongan alasan maksimal 300 karakter.
-9. Bila seluruh percobaan habis, method failed menandai FAILED dengan pesan exception.
+9. Bila seluruh percobaan habis menandai FAILED dengan pesan exception.
 
 Backoff antar percobaan adalah 10 detik lalu 30 detik, dengan maksimal tiga percobaan.
 

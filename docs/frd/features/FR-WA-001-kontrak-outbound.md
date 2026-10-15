@@ -60,9 +60,9 @@ ditambah client_url, address, dan buyer_name.
 5. n8n membalas JSON berisi delivered boolean, opsional reason, dan opsional message_id.
 6. Aplikasi memperbarui status baris notifikasi sesuai jawaban itu.
 
-Template yang dipakai sistem: schedule_request, schedule_rescheduled, on_the_way,
-courier_arrived, delivered, issue_options, issue_reported, issue_decision,
-issue_decision_update, task_assigned, task_rejected, resend_requested,
+Template yang dipakai sistem: schedule_request, schedule_rescheduled, on_the_way
+courier_arrived, delivered, issue_options, issue_reported, issue_decision
+issue_decision_update, task_assigned, task_rejected, resend_requested
 buyer_issue_choice, dan confirmation_overdue.
 
 ## 7. Output
@@ -100,7 +100,7 @@ buyer_issue_choice, dan confirmation_overdue.
 | Workflow | deploy/n8n/workflows/anteraja-frozen-outbound.json |
 | State | deploy/n8n/state-table.sql |
 | Dokumentasi | deploy/n8n/README.md |
-| Test | tests/Feature/WhatsAppNotificationFlowTest.php (14 test), .github/workflows/n8n-scenarios.yaml |
+| Test | tests/Feature/WhatsAppNotificationFlowTest.php (14 test).github/workflows/n8n-scenarios.yaml |
 
 ## 11. Skenario uji
 

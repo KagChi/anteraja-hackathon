@@ -79,7 +79,7 @@ Aturan bisnis terkait: BR-004, BR-009, BR-010, BR-011, BR-022, BR-026.
 - Error & Edge Cases: action di luar enum menghasilkan 422. Paket milik kurir lain menghasilkan 404. Tanpa riwayat penilaian, permintaan tetap dibuat dengan level SUSPECTED bawaan dan daftar alasan kosong.
 - Side Effects: satu baris gps_lock_requests PENDING, atau tidak ada baris baru bila sudah ada yang terbuka.
 - Postcondition: kurir menunggu putusan hub; selama PENDING, aksi yang sama masih diblokir.
-- Traceability: routes/api.php, Courier/GpsReviewController, Services/Gps/GpsValidator::requestReview dan openLockRequest, Enums/GpsLockStatus, tests/Feature/CourierGpsValidationTest.php test_a_courier_can_ask_the_hub_to_review_and_the_request_is_idempotent, app/NativeComponents/Courier/Delivery.php.
+- Traceability: routes/api.php, Courier/GpsReviewController, Services/Gps/GpsValidator::requestReview dan openLockRequest, Enums/GpsLockStatus, tests/Feature/CourierGpsValidationTest.php test_a_courier_can_ask_the_hub_to_review_and_the_request_is_idempotent, resources/js/pwa/screens/courier/Delivery.tsx.
 - Acceptance Criteria:
   - Given kurir yang baru diblokir pada aksi POD, When minta tinjauan dikirim, Then HTTP 201 dengan satu baris gps_lock_requests berstatus PENDING.
   - Given permintaan PENDING yang sama dikirim dua kali, When permintaan kedua dikirim, Then hanya satu baris PENDING yang ada di database.

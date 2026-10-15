@@ -12,7 +12,7 @@
 
 ## 1. Ringkasan
 
-Momen ketika paket berpindah tangan. Radius titik penerima ditegakkan di sini,
+Momen ketika paket berpindah tangan. Radius titik penerima ditegakkan di sini
 foto wajib disertakan, dan paket berpindah ke RECEIVED. Aksi ini juga menjadi satu
 tempat yang menangani kegagalan dengan membersihkan foto yang sudah tersimpan.
 
@@ -28,7 +28,7 @@ tempat yang menangani kegagalan dengan membersihkan foto yang sudah tersimpan.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | form bukti serah terima pada app/NativeComponents/Courier/Proof.php |
+| UI | form bukti serah terima pada resources/js/pwa/screens/courier/Proof.tsx |
 | Endpoint | POST /api/courier/deliveries/{tracking_number}/proof (multipart) |
 | Nama route | api.courier.proof.store |
 
@@ -118,8 +118,8 @@ mengubahnya menjadi nilai enum sebelum validasi berjalan.
 | DTO | DTOs/Courier/ConfirmDeliveryData.php |
 | Support | MediaStorage, NotificationQueue, PackageStatusTransitioner |
 | Service | Services/Gps/GpsValidator |
-| Test | tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/CourierGpsValidationTest.php test_proof_of_delivery_outside_the_radius_is_refused, test_proof_of_delivery_inside_the_radius_completes_the_shipment, tests/Feature/AdminConsoleE2ETest.php test_the_delivery_journey_completes_end_to_end, tests/Feature/CourierNativeScreensTest.php test_proof_completes_the_delivery, test_proof_will_not_submit_without_a_recipient_name |
-| UI | app/NativeComponents/Courier/Proof.php |
+| Test | tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/CourierGpsValidationTest.php test_proof_of_delivery_outside_the_radius_is_refused, test_proof_of_delivery_inside_the_radius_completes_the_shipment, tests/Feature/AdminConsoleE2ETest.php test_the_delivery_journey_completes_end_to_end, tests/Feature/PwaShellTest.php test_proof_completes_the_delivery, test_proof_will_not_submit_without_a_recipient_name |
+| UI | resources/js/pwa/screens/courier/Proof.tsx |
 
 ## 11. Skenario uji
 

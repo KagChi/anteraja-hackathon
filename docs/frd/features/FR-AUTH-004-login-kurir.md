@@ -12,7 +12,7 @@
 
 ## 1. Ringkasan
 
-Kurir memakai aplikasi Android dan memerlukan bearer token alih-alih cookie sesi.
+Kurir memakai aplikasi kurir (PWA) dan memerlukan bearer token alih-alih cookie sesi.
 Endpoint ini menukar email dan password staf dengan token Sanctum ber-ability
 courier yang berlaku 30 hari.
 
@@ -28,7 +28,7 @@ courier yang berlaku 30 hari.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | layar Login aplikasi kurir, app/NativeComponents/Courier/Login.php |
+| UI | layar Login aplikasi kurir, resources/js/pwa/screens/courier/Login.tsx |
 | Endpoint | POST /api/courier/auth/login |
 | Nama route | api.courier.auth.login |
 
@@ -96,7 +96,7 @@ benar, sehingga pesan kesalahan membedakan dua kondisi itu.
 | Controller | Api/Courier/AuthController@login |
 | Rate limiter | AppServiceProvider RateLimiter for courier-auth |
 | Test | tests/Feature/CourierApiAuthTest.php (5 test) |
-| UI | app/NativeComponents/Courier/Login.php |
+| UI | resources/js/pwa/screens/courier/Login.tsx |
 
 ## 11. Skenario uji
 

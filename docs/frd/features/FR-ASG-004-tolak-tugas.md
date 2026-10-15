@@ -91,7 +91,7 @@ seluruh admin aktif diberi tahu agar dapat menugaskan kurir lain.
 | FormRequest | Requests/Courier/RejectTaskRequest.php |
 | Support | NotificationQueue::queueTaskRejected, PackageStatusTransitioner |
 | Test | tests/Feature/CourierFlowTest.php test_courier_reject_task_flow |
-| UI | app/NativeComponents/Courier/Tasks.php |
+| UI | resources/js/pwa/screens/courier/Tasks.tsx |
 
 ## 11. Skenario uji
 

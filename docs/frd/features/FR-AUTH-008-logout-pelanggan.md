@@ -63,7 +63,7 @@ Tanpa body.
 
 ## 9. Efek samping
 
-Baris token dihapus dari personal_access_tokens; layar native membersihkan token lokal.
+Baris token dihapus dari personal_access_tokens; layar PWA membersihkan token lokal.
 
 ## 10. Traceability
 
@@ -73,7 +73,7 @@ Baris token dihapus dari personal_access_tokens; layar native membersihkan token
 | Controller | Api/Client/AuthController@logout |
 | Middleware | EnsureBuyer, bootstrap/app.php render MissingAbilityException |
 | Test | tests/Feature/ClientApiAuthTest.php test_buyer_can_logout_and_revokes_token, test_sanctum_ability_isolation |
-| UI | app/NativeComponents/Client/Profile.php |
+| UI | resources/js/pwa/screens/client/Profile.tsx |
 
 ## 11. Skenario uji
 

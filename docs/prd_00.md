@@ -20,10 +20,11 @@ sekaligus:
 
 1. Admin console berbentuk SPA Inertia + React untuk hub operasional
    (routes/web.php, resources/js/pages/admin/*).
-2. Aplikasi Android Kurir berbasis NativePHP Mobile, layar native tanpa web view
-   (routes/mobile.php, app/NativeComponents/Courier/*).
-3. Aplikasi Android Pelanggan yang juga native, sekaligus menjadi storefront
-   produk beku (app/NativeComponents/Client/*, routes/mobile.php).
+2. Aplikasi Kurir berupa PWA yang dipasang dari browser, satu SPA React yang
+   berbicara ke JSON API dengan bearer token realm courier
+   (resources/js/pwa/screens/courier/*, routes/web.php).
+3. Aplikasi Pelanggan, PWA kedua dari origin yang sama, sekaligus menjadi
+   storefront produk beku (resources/js/pwa/screens/client/*, config/pwa.php).
 4. Landing page publik plus blog yang menjadi pintu masuk dan alat lacak resi
    (routes/web.php, resources/js/pages/Landing.tsx, resources/js/data/posts.ts).
 
@@ -75,7 +76,7 @@ Nilai utama produk, disimpulkan dari perilaku yang ada:
 | Multi-hub atau multi-tenant | nama hub adalah satu nilai konfigurasi (config coldchain.hub_name) |
 | Cakupan nasional | copy landing page menyatakan Jabodetabek saja (resources/js/data/landing.ts) |
 | Registrasi kurir mandiri | kurir hanya bisa masuk dengan kredensial staf yang sudah ada |
-| Aplikasi iOS | mobile/apps.php dan workflows hanya membangun APK Android |
+| Aplikasi native | kedua aplikasi adalah PWA; tidak ada paket Android atau iOS yang dibangun |
 
 ## 3. Persona dan User Journey
 
@@ -115,7 +116,7 @@ admin melihat antrean yang sama.
 
 ### 3.2 Kurir
 
-Masuk lewat aplikasi Android dengan email dan password staf, menerima token
+Masuk lewat aplikasi kurir dengan email dan password staf, menerima token
 Sanctum berumur 30 hari ber-ability courier
 (Api/Courier/AuthController.php). Semua aksinya dijaga Policy yang hanya
 mengizinkan kurir yang ditugaskan pada paket itu (app/Policies/PackagePolicy.php).
@@ -177,7 +178,7 @@ Perjalanan utama:
 ### 3.4 Visitor publik
 
 Datang ke landing page, membaca layanan dan jangkauan, memakai panel lacak resi
-tanpa login, mengunduh APK, atau membaca blog. Endpoint lacaknya hanya
+tanpa login, membuka atau memasang aplikasi, atau membaca blog. Endpoint lacaknya hanya
 mengembalikan status, jendela, kota tingkat kabupaten, dan timeline berlabel
 tetap: tanpa nama, tanpa nomor telepon, tanpa alamat jalan, tanpa teks bebas dari
 staf atau kurir (Api/Tracking/TrackController.php).
@@ -256,7 +257,7 @@ atau [TIDAK TERVERIFIKASI].
 
 | Fitur | Nilai | Aktor | Prioritas | Status |
 | --- | --- | --- | --- | --- |
-| Landing page dengan hero, statistik, layanan, keunggulan, jangkauan, tarif, unduhan APK | akuisisi | Publik | Existing-Core | Live |
+| Landing page dengan hero, statistik, layanan, keunggulan, jangkauan, tarif, kartu aplikasi | akuisisi | Publik | Existing-Core | Live |
 | Panel lacak resi di landing | layanan mandiri | Publik | Existing-Core | Live |
 | Blog index dan artikel dari module TypeScript | konten dan SEO | Publik | Existing-Supporting | Live |
 
@@ -479,8 +480,8 @@ suatu perilaku dianggap benar.
    relevan, dan dari mana asalnya?
 4. Apakah rating 4.8 dan tepat waktu 97 persen pada profil kurir boleh
    dipertahankan sebagai placeholder, atau harus dihitung dari data?
-5. Apakah aplikasi Android pelanggan tetap perlu menyimpan katalog hasil seeder
-   (delapan produk contoh) atau katalog akan diisi dari sistem lain?
+5. Apakah aplikasi pelanggan tetap perlu menyimpan katalog hasil seeder (delapan
+   produk contoh) atau katalog akan diisi dari sistem lain?
 6. Apakah paket INSTANT_FROZEN perlu perlakuan berbeda pada batas jadwal minimal
    2 jam, mengingat SLA yang dipromosikan 2 sampai 4 jam?
 7. Apakah kredensial kurir dan admin tetap sepenuhnya di luar sistem (dibuat di

@@ -28,7 +28,7 @@ admin, dan mengirim menu penyelesaian ke pelanggan lewat WhatsApp.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | form kendala pada app/NativeComponents/Courier/Issue.php |
+| UI | form kendala pada resources/js/pwa/screens/courier/Issue.tsx |
 | Endpoint | POST /api/courier/deliveries/{tracking_number}/issue (multipart) |
 | Nama route | api.courier.issues.store |
 
@@ -109,7 +109,7 @@ akses_ditutup ke alamat_tidak_ditemukan untuk kompatibilitas dengan aplikasi lam
 | DTO | DTOs/Courier/ReportIssueData.php |
 | Support | ChecklistNormalizer, MediaStorage, NotificationQueue::queueIssueOptions |
 | Test | tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_queues_buyer_resolution_menu, tests/Feature/AdminConsoleE2ETest.php test_the_kendala_journey_completes_end_to_end |
-| UI | app/NativeComponents/Courier/Issue.php |
+| UI | resources/js/pwa/screens/courier/Issue.tsx |
 
 ## 11. Skenario uji
 

@@ -5,16 +5,16 @@ aplikasi **pengirim**: pelanggan memilih isi paket dan alamat penerima —
 keluarga, kerabat, atau teman — lalu paket diantar ke sana. Satu proses utuh
 "FROZEN" berjalan end-to-end: paket dibuat, **penerima** mengonfirmasi jadwal
 **lewat WhatsApp**, admin menugaskan kurir, kurir menerima tugas dan memeriksa
-kemasan dari aplikasi Android, kendala (mis. kemasan bocor) dilaporkan dan
+kemasan dari aplikasi kurir, kendala (mis. kemasan bocor) dilaporkan dan
 diputuskan admin, lalu semuanya masuk laporan harian.
 
-Tiga permukaan, satu backend Laravel:
+Empat permukaan, satu backend Laravel:
 
 | Permukaan | Teknologi | Masuk lewat |
 | --- | --- | --- |
 | Dashboard admin | React + Inertia (desktop) | `/login` → `/admin/shipment` |
-| Aplikasi Pelanggan (pengirim) | NativePHP for Mobile (Jetpack Compose) | `com.anteraja.frozen` |
-| Aplikasi Kurir | NativePHP for Mobile (Jetpack Compose) | `com.anteraja.kurir` |
+| Aplikasi Pelanggan (pengirim) | PWA (React SPA + bearer token) | `/client` — pasang dari browser |
+| Aplikasi Kurir | PWA (React SPA + bearer token) | `/courier` — pasang dari browser |
 | Otomasi WhatsApp | n8n + WAHA (dua workflow, lihat `deploy/n8n/README.md`) | webhook |
 
 Seluruh tampilan — landing, dashboard, dan kedua aplikasi — **hanya mode
@@ -44,8 +44,10 @@ php artisan queue:work        # mengirim baris notifications ke n8n
 php artisan schedule:work
 ```
 
-Untuk mengemas APK: `scripts/build-apk.sh kurir` dan `scripts/build-apk.sh client`
-(membutuhkan Android SDK; lihat `mobile/README.md`).
+Kedua aplikasi adalah PWA: buka `/client` dan `/courier` di browser, lalu pilih
+“Pasang aplikasi” dari menu browser (iPhone: Bagikan → Tambahkan ke Layar
+Utama). Identitas, ikon, dan manifest kedua aplikasi diatur di `config/pwa.php`;
+peta dan geolokasi membutuhkan HTTPS (kecuali localhost).
 
 ## Environment
 
@@ -57,8 +59,6 @@ Untuk mengemas APK: `scripts/build-apk.sh kurir` dan `scripts/build-apk.sh clien
 | `N8N_WEBHOOK_ENABLED` | `true` mengaktifkan pengiriman WhatsApp lewat n8n. `false` membuat notifikasi tetap `QUEUED` (mode uji lokal). |
 | `N8N_WEBHOOK_URL` | Webhook workflow outbound, mis. `http://n8n/webhook/anteraja-frozen/notify`. |
 | `N8N_WEBHOOK_TOKEN` | Token bersama (`X-Anteraja-Token`) untuk webhook n8n dan endpoint internal aplikasi (`/api/internal/whatsapp/*`). Kosong = endpoint internal menjawab 503. |
-| `MOBILE_API_BASE_URL` | Backend yang dipakai APK (diisi otomatis oleh `scripts/build-apk.sh`). |
-| `ANDROID_APK_URL`, `ANDROID_APK_VERSION` | Unduhan APK di landing page. |
 
 ## Alur FROZEN (yang didemokan)
 
@@ -69,7 +69,7 @@ Untuk mengemas APK: `scripts/build-apk.sh kurir` dan `scripts/build-apk.sh clien
 2. **Jadwal dikonfirmasi** — penerima membalas *SIAP* (atau *JADWAL LAIN*).
    Kurir tidak bisa ditugaskan sebelum ini; `CONFIRMED`.
 3. **Kurir ditugaskan** — admin memilih kurir. Kurir menerima tugas beserta
-   instruksi penanganan di WhatsApp dan aplikasi; `COURIER_ASSIGNED`.
+   instruksi penanganan di WhatsApp dan aplikasi kurir; `COURIER_ASSIGNED`.
 4. **Kondisi diperiksa** — kurir mengisi checklist kemasan (tanpa sensor suhu);
    `CHECKED`, atau `ISSUE_REPORTED` bila ada kendala.
 5. **Paket diantar** — kurir berangkat; penerima menerima pesan pengantaran dan
@@ -139,13 +139,16 @@ php artisan report:send-daily
 ## Test
 
 ```bash
-php artisan test                                    # 252 test, semua harus lulus
+php artisan test                                    # 201 test, semua harus lulus
 node deploy/n8n/tests/inbound-scenarios.mjs         # 66 skenario pesan
-bun run typecheck && bun run build                  # tsc + bundel produksi
+bun run lint && bun run typecheck && bun run build  # biome + tsc + bundel produksi
 ```
 
 Suite PHPUnit berjalan di atas database yang sudah di-seed, jadi jalankan
 `php artisan migrate:fresh --seed` lebih dulu bila database baru saja diubah.
+Uji layar kedua aplikasi ada di `tests/Feature/PwaShellTest.php`; pemasangan di
+perangkat dan jalur kamera/geolokasi diperiksa manual dengan prosedur di
+`docs/testing/skenario-aplikasi-pwa.md`.
 
 ## Akun demo
 
@@ -159,4 +162,4 @@ Penerima paket tidak punya akun. Nomornya ada di kolom penerima tiap paket demo
 (mis. `+6281200010001` untuk Ibu Sari Wulandari, tujuan paket-paket demo Rina).
 
 `php artisan migrate:fresh --seed` juga mencetak URL bertoken untuk tiap paket
-demo supaya alur pembeli bisa dibuka tanpa aplikasi.
+demo supaya alur pembeli bisa dibuka tanpa memasang aplikasinya.

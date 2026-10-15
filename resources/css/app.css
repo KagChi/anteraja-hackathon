@@ -130,8 +130,8 @@
 
      Pinning color-scheme is what stops a device or an OS set to dark from
      repainting the built-in widgets — text inputs, selects, scrollbars, the
-     date picker — in dark style. It covers the landing page, both consoles
-     and everything the native shells render through EDGE. */
+     date picker — in dark style. It covers the landing page, the admin console
+     and both installed apps. */
   :root {
     color-scheme: light;
   }

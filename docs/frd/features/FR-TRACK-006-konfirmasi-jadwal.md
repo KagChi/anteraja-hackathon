@@ -87,8 +87,8 @@ Tanpa body.
 | Action | Actions/Client/ConfirmSchedule.php |
 | Exception | app/Exceptions/ScheduleNotActionable.php |
 | Support | PackageStatusTransitioner |
-| Test | tests/Feature/ClientFlowTest.php test_schedule_confirm_transitions_status_with_null_actor, tests/Feature/ClientNativeScreensTest.php test_confirming_the_window_is_final |
-| UI | app/NativeComponents/Client/Schedule.php |
+| Test | tests/Feature/ClientFlowTest.php test_schedule_confirm_transitions_status_with_null_actor, tests/Feature/PwaShellTest.php test_confirming_the_window_is_final |
+| UI | resources/js/pwa/screens/client/Schedule.tsx |
 
 ## 11. Skenario uji
 

@@ -27,7 +27,7 @@ sehingga format 08xx, 62xx, dan +62xx menunjuk akun yang sama.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | layar Login aplikasi pelanggan, app/NativeComponents/Client/Login.php |
+| UI | layar Login aplikasi pelanggan, resources/js/pwa/screens/client/Login.tsx |
 | Endpoint | POST /api/client/auth/login |
 | Nama route | api.client.auth.login |
 
@@ -91,7 +91,7 @@ Baris token baru pada personal_access_tokens.
 | FormRequest | Requests/Api/Client/LoginRequest.php |
 | Normalisasi | Support/PhoneFormatter.php, cast Attribute pada app/Models/Buyer.php |
 | Test | tests/Feature/ClientApiAuthTest.php test_buyer_can_login_with_phone_and_password, test_login_returns_generic_error_for_invalid_credentials, test_inactive_buyer_cannot_login, test_client_auth_rate_limiting_triggers_429 |
-| UI | app/NativeComponents/Client/Login.php |
+| UI | resources/js/pwa/screens/client/Login.tsx |
 
 ## 11. Skenario uji
 

@@ -40,7 +40,7 @@ dari konsol, job terjadwal harian, atau proses di luar sistem.
 
 ## 6. Proses langkah demi langkah
 
-[TIDAK TERVERIFIKASI]. Yang dapat dipastikan hanya bahwa bila nanti dibuat,
+[TIDAK TERVERIFIKASI]. Yang dapat dipastikan hanya bahwa bila nanti dibuat
 transisi wajib melalui PackageStatusTransitioner di dalam transaction dan mengisi
 closed_at, sesuai aturan repositori pada AGENTS.md dan BR-002.
 

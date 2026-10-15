@@ -108,8 +108,8 @@ dan paket mulai bergerak.
 | DTO | DTOs/Courier/StartDeliveryData.php |
 | Support | ChecklistNormalizer, NotificationQueue, PackageStatusTransitioner |
 | Service | Services/Gps/GpsValidator |
-| Test | tests/Feature/CourierFlowTest.php test_courier_depart_flow, tests/Feature/CourierNativeScreensTest.php test_departing_from_the_app_posts_the_action_with_the_fix, tests/Feature/CourierGpsValidationTest.php test_a_mocked_fix_blocks_the_depart_and_opens_a_review |
-| UI | app/NativeComponents/Courier/Delivery.php |
+| Test | tests/Feature/CourierFlowTest.php test_courier_depart_flow, tests/Feature/PwaShellTest.php test_departing_from_the_app_posts_the_action_with_the_fix, tests/Feature/CourierGpsValidationTest.php test_a_mocked_fix_blocks_the_depart_and_opens_a_review |
+| UI | resources/js/pwa/screens/courier/Delivery.tsx |
 
 ## 11. Skenario uji
 

@@ -86,7 +86,7 @@ Tidak ada penulisan dan tidak ada baris evidence lokasi.
 | Support | Support/GeoDistance |
 | FormRequest | Requests/Courier/DistanceRequest.php |
 | Test | tests/Feature/CourierFlowTest.php test_courier_task_distance_endpoint, tests/Unit/CourierUnitTest.php test_geodistance_haversine, test_geodistance_eta_minutes |
-| UI | app/NativeComponents/Courier/Tasks.php, app/Support/CourierPayload.php method task yang mengisi placeholder jarak |
+| UI | resources/js/pwa/screens/courier/Tasks.tsx yang mengisi placeholder jarak |
 
 ## 11. Skenario uji
 

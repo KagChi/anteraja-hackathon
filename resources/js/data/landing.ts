@@ -125,8 +125,8 @@ export const COVERAGE: CoverageArea[] = [
 ];
 
 /** The interfaces a visitor can walk into from the landing page. The courier
- *  and customer apps are native (installed from the APKs in DownloadSection),
- *  so the admin console is the only web entry point left. */
+ *  and customer apps are installable web apps reached from AppSection, so the
+ *  admin console is the only console link here. */
 export const CONSOLE_LINKS = [
     {
         title: "Admin Console",

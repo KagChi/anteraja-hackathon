@@ -22,7 +22,7 @@ final class LandingPageTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_the_landing_page_shows_catalog_highlights_and_both_apk_links(): void
+    public function test_the_landing_page_shows_catalog_highlights_and_both_app_links(): void
     {
         $response = $this->get('/');
 
@@ -35,13 +35,13 @@ final class LandingPageTest extends TestCase
                 ->where('products.0.price_label', 'Rp 48.000')
                 ->where('products.0.weight_label', '1 kg')
                 ->where('products.0.image_url', '/images/catalog/nugget-ayam.svg')
-                ->has('downloads', 2)
-                ->where('downloads.0.name', 'Anteraja Kurir')
-                ->where('downloads.0.app_id', 'com.anteraja.kurir')
-                ->where('downloads.1.name', 'Anteraja Frozen')
-                ->where('downloads.1.app_id', 'com.anteraja.frozen')
-                ->has('downloads.0.apk_url')
-                ->has('downloads.0.version')
+                ->has('apps', 2)
+                ->where('apps.0.key', 'client')
+                ->where('apps.0.name', 'Anteraja Frozen')
+                ->where('apps.0.url', '/client')
+                ->where('apps.1.key', 'courier')
+                ->where('apps.1.name', 'Anteraja Kurir')
+                ->where('apps.1.url', '/courier')
         );
     }
 

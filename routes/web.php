@@ -4,8 +4,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Product;
-use App\Http\Controllers\Client\MapController as ClientMapController;
-use App\Http\Controllers\Courier\MapController;
 use App\Http\Resources\Client\ProductResource;
 
 // The marketing landing page: the anteraja.id home page rebuilt around the
@@ -41,23 +39,27 @@ Route::get("login", function (Request $request) {
 
 Route::redirect("/admin", "/admin/shipment");
 
-// The courier app's Leaflet map. NativePHP has no native map element, so the
-// delivery screen embeds a php-mode webview that renders these pages from the
-// device's own PHP runtime. The page polls the fix route, which reads the file
-// cache the native Delivery component writes as the device streams GPS.
-Route::get("courier/map/{resi}", [MapController::class, "show"])
-    ->where("resi", "[A-Za-z0-9-]{4,32}")
-    ->name("courier.map");
-Route::get("courier/map/{resi}/fix", [MapController::class, "fix"])
-    ->where("resi", "[A-Za-z0-9-]{4,32}")
-    ->name("courier.map.fix");
+// The two installable PWAs: Anteraja Frozen for the sender, Anteraja Kurir for
+// the courier. Each app is one client-side React SPA talking to the JSON API
+// with its realm's bearer token, so the shell is public and the catch-all keeps
+// every deep link working without the server knowing the SPA's route table.
+Route::get("client/{path?}", fn () => view("pwa", ["appKey" => "client"]))
+    ->where("path", ".*")
+    ->name("client.app");
+Route::get("courier/{path?}", fn () => view("pwa", ["appKey" => "courier"]))
+    ->where("path", ".*")
+    ->name("courier.app");
 
-// The customer app's destination picker. Also a php-mode webview, but the flow
-// runs the other way: the sender drops the pin on the recipient's door and the
-// page writes the point into the cache the native Checkout component polls.
-Route::get("client/map/pick", [ClientMapController::class, "show"])->name("client.map.pick");
-Route::get("client/map/pick/point", [ClientMapController::class, "point"])->name("client.map.pick.point");
-Route::post("client/map/pick", [ClientMapController::class, "store"])->name("client.map.pick.store");
+// The manifests are served from config/pwa.php rather than kept as static
+// files, so the registry stays the one place an app's identity is written down.
+Route::get("{app}.webmanifest", function (string $app) {
+    $entry = config("pwa.apps.{$app}");
+    abort_if(! is_array($entry), 404);
+
+    return response()
+        ->json(\App\Support\PwaManifest::for($entry))
+        ->header("Content-Type", "application/manifest+json");
+})->whereIn("app", ["client", "courier"])->name("pwa.manifest");
 
 Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(function () {
     // Filters travel in the query string so a Laporan drill-down and a shared

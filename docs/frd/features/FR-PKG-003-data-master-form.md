@@ -11,7 +11,7 @@
 
 ## 1. Ringkasan
 
-Mengisi form pembuatan paket membutuhkan tiga daftar: produk yang boleh dipilih,
+Mengisi form pembuatan paket membutuhkan tiga daftar: produk yang boleh dipilih
 pembeli yang sudah ada, dan kurir aktif. Endpoint ini menyediakan ketiganya dalam
 satu permintaan agar form siap dipakai tanpa beberapa panggilan.
 
@@ -48,7 +48,7 @@ Tanpa input.
 3. Ambil kurir aktif: Staff dengan role COURIER dan is_active true, hanya kolom id, name, dan phone, diurut nama.
 4. Balas ketiga daftar sebagai JSON.
 
-Perlu dicatat: daftar produk di sini mengirim seluruh kolom model Product,
+Perlu dicatat: daftar produk di sini mengirim seluruh kolom model Product
 sedangkan katalog pelanggan memakai ProductResource. Perbedaan bentuk itu
 disengaja karena pemakainya berbeda.
 

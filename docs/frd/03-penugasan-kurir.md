@@ -1,6 +1,6 @@
 # FRD Modul ASG — Penugasan Kurir dan Siklus Tugas
 
-Modul ini menggerakkan paket dari status CONFIRMED ke lapangan: menugaskan kurir,
+Modul ini menggerakkan paket dari status CONFIRMED ke lapangan: menugaskan kurir
 menampilkan papan tugas, dan menangani terima atau tolak.
 
 Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
@@ -39,7 +39,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
 - Error & Edge Cases: kurir tanpa tugas menerima dua array kosong. Koordinat pembeli null dikirim apa adanya sehingga layar tidak dapat menampilkan tombol rute berbasis koordinat. Paket yang sudah RECEIVED atau RETURNED tidak muncul lagi.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Courier/TaskController@index, Queries/CourierTaskQuery, Enums/ScheduleTiming, Support/RelativeTime, Support/DisplayTime, tests/Feature/CourierFlowTest.php test_courier_tasks_index_splits_new_and_active_tasks, app/NativeComponents/Courier/Tasks.php.
+- Traceability: routes/api.php, Courier/TaskController@index, Queries/CourierTaskQuery, Enums/ScheduleTiming, Support/RelativeTime, Support/DisplayTime, tests/Feature/CourierFlowTest.php test_courier_tasks_index_splits_new_and_active_tasks, resources/js/pwa/screens/courier/Tasks.tsx.
 - Acceptance Criteria:
   - Given kurir dengan satu tugas COURIER_ASSIGNED yang belum diterima dan satu tugas IN_DELIVERY, When papan tugas diminta, Then newTasks memuat satu baris dan activeTasks memuat satu baris.
   - Given kurir lain membuka papan tugasnya, When daftar diminta, Then paket kurir pertama tidak muncul.
@@ -59,7 +59,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
 - Error & Edge Cases: paket milik kurir lain menghasilkan 404 lewat PackagePolicy karena denials dikembalikan sebagai not found. Paket yang sudah IN_DELIVERY menghasilkan TaskNotActionable.
 - Side Effects: kolom courier_accepted_at paket terisi. Papan tugas berpindah dari daftar tugas baru ke tugas aktif.
 - Postcondition: kurir dapat membuka layar pengantaran; tanpa langkah ini layar pengantaran menolak dengan pesan agar tugas diterima lebih dulu.
-- Traceability: routes/api.php, Courier/AcceptTaskController, Actions/Courier/AcceptTask, app/Policies/PackagePolicy.php, tests/Feature/CourierFlowTest.php test_courier_accept_task_flow, app/NativeComponents/Courier/Tasks.php.
+- Traceability: routes/api.php, Courier/AcceptTaskController, Actions/Courier/AcceptTask, app/Policies/PackagePolicy.php, tests/Feature/CourierFlowTest.php test_courier_accept_task_flow, resources/js/pwa/screens/courier/Tasks.tsx.
 - Acceptance Criteria:
   - Given tugas COURIER_ASSIGNED milik kurir, When accept dipanggil, Then HTTP 200 dan courier_accepted_at terisi.
   - Given tugas yang sudah diterima, When accept dipanggil lagi, Then HTTP 200 tanpa perubahan nilai courier_accepted_at.
@@ -79,7 +79,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
 - Error & Edge Cases: menolak setelah accept menghasilkan penolakan; alasan lebih dari 200 karakter menghasilkan 422; alasan kosong tetap diterima dan memakai teks bawaan.
 - Side Effects: baris status_logs baru dari COURIER_ASSIGNED ke CONFIRMED; courier_id menjadi null; baris notifications QUEUED template task_rejected untuk tiap admin.
 - Postcondition: paket kembali ke antrean hub siap ditugaskan ke kurir lain.
-- Traceability: routes/api.php, Courier/RejectTaskController, Actions/Courier/RejectTask, Requests/Courier/RejectTaskRequest, Support/NotificationQueue::queueTaskRejected, tests/Feature/CourierFlowTest.php test_courier_reject_task_flow, app/NativeComponents/Courier/Tasks.php.
+- Traceability: routes/api.php, Courier/RejectTaskController, Actions/Courier/RejectTask, Requests/Courier/RejectTaskRequest, Support/NotificationQueue::queueTaskRejected, tests/Feature/CourierFlowTest.php test_courier_reject_task_flow, resources/js/pwa/screens/courier/Tasks.tsx.
 - Acceptance Criteria:
   - Given tugas belum diterima, When kurir menolak dengan alasan, Then HTTP 200, paket berstatus CONFIRMED, courier_id null, dan admin menerima notifikasi task_rejected.
   - Given tugas yang sudah diterima, When kurir menolak, Then permintaan ditolak TaskNotActionable dan status tidak berubah.
@@ -99,7 +99,7 @@ Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
 - Error & Edge Cases: koordinat di luar rentang menghasilkan 422. Paket tanpa koordinat tujuan menghasilkan 204, bukan error, dan layar kurir harus menanganinya sebagai ketiadaan data.
 - Side Effects: tidak ada penulisan. Panggilan ini tidak membuat baris location_checks karena bukan aksi GPS yang divalidasi.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Courier/TaskDistanceController, Support/GeoDistance, Requests/Courier/DistanceRequest, tests/Feature/CourierFlowTest.php test_courier_task_distance_endpoint, tests/Unit/CourierUnitTest.php test_geodistance_haversine dan test_geodistance_eta_minutes, app/NativeComponents/Courier/Tasks.php.
+- Traceability: routes/api.php, Courier/TaskDistanceController, Support/GeoDistance, Requests/Courier/DistanceRequest, tests/Feature/CourierFlowTest.php test_courier_task_distance_endpoint, tests/Unit/CourierUnitTest.php test_geodistance_haversine dan test_geodistance_eta_minutes, resources/js/pwa/screens/courier/Tasks.tsx.
 - Acceptance Criteria:
   - Given pembeli dengan koordinat dan kurir berjarak beberapa kilometer, When jarak diminta, Then HTTP 200 dengan distance_km dan eta_minutes terisi.
   - Given pembeli tanpa koordinat, When jarak diminta, Then HTTP 204 tanpa body.

@@ -83,7 +83,7 @@ Sama dengan FR-ISS-007: paket pengganti, item, konfirmasi PENDING, log status, d
 | Controller | Api/Client/ReplacementController, Client/ReplacementController |
 | Action | Actions/Client/RequestReplacement |
 | Test | tests/Feature/ClientFlowTest.php test_issue_replacement_creates_child_package_and_handles_double_tap, tests/Feature/WhatsAppNotificationFlowTest.php test_resend_option_creates_replacement_when_package_is_returned |
-| UI | app/NativeComponents/Client/Issue.php |
+| UI | resources/js/pwa/screens/client/Issue.tsx |
 
 ## 11. Skenario uji
 

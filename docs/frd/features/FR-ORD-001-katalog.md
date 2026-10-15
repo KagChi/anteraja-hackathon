@@ -81,8 +81,8 @@ Tidak ada penulisan.
 | Resource | Resources/Client/ProductResource.php |
 | Model | app/Models/Product.php scope inCatalogOrder, priceLabel, weightLabel |
 | Seed | database/seeders/DemoDataSeeder.php seedCatalog (delapan produk) |
-| Test | tests/Feature/ClientStorefrontTest.php test_the_catalog_lists_the_seeded_frozen_goods, tests/Feature/ClientNativeScreensTest.php test_the_catalog_lists_products_and_fills_the_basket |
-| UI | app/NativeComponents/Client/Catalog.php, Landing.php |
+| Test | tests/Feature/ClientStorefrontTest.php test_the_catalog_lists_the_seeded_frozen_goods, tests/Feature/PwaShellTest.php test_the_catalog_lists_products_and_fills_the_basket |
+| UI | resources/js/pwa/screens/client/Catalog.tsx, Landing.tsx |
 
 ## 11. Skenario uji
 

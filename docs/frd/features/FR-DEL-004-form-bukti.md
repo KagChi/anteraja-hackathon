@@ -50,7 +50,7 @@ penerima, daftar hubungan penerima, dan placeholder catatan.
 3. Bila status bukan IN_DELIVERY, balas 422 dengan pesan paket tidak dalam proses pengantaran aktif dan redirect ke layar pengantaran paket itu.
 4. Susun proofForm berisi tracking, service, recipient, relations (empat label teks), relationOptions (pasangan value dan label dari RecipientRelation::options), dan notesPlaceholder.
 
-Dua bentuk daftar hubungan disertakan karena layar lama membaca label teks,
+Dua bentuk daftar hubungan disertakan karena layar lama membaca label teks
 sedangkan layar baru membaca pasangan nilai dan label.
 
 ## 7. Output
@@ -83,8 +83,8 @@ Tidak ada.
 | Route | routes/api.php grup courier deliveries |
 | Controller | Courier/ProofController@create |
 | Enum | Enums/RecipientRelation termasuk method options dan fromInput |
-| Test | tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/CourierNativeScreensTest.php test_the_hand_over_screen_shows_the_device_accuracy |
-| UI | app/NativeComponents/Courier/Proof.php, app/Support/CourierPayload.php method proofForm |
+| Test | tests/Feature/CourierFlowTest.php test_courier_proof_create_and_store_flow, tests/Feature/PwaShellTest.php test_the_hand_over_screen_shows_the_device_accuracy |
+| UI | resources/js/pwa/screens/courier/Proof.tsx |
 
 ## 11. Skenario uji
 

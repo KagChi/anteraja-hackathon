@@ -13,7 +13,7 @@
 ## 1. Ringkasan
 
 Setiap keputusan memindahkan paket ke tempat yang berbeda dan memberi tahu pihak
-yang berbeda. Lima handler ini adalah satu-satunya tempat efek itu dijalankan,
+yang berbeda. Lima handler ini adalah satu-satunya tempat efek itu dijalankan
 sehingga perubahan perilaku cukup dilakukan di satu berkas per keputusan.
 
 ## 2. Aktor dan otorisasi
@@ -56,7 +56,7 @@ Pada semua handler, notifikasi ke kurir dilewati bila paket tidak punya kurir.
 
 ## 7. Output
 
-Handler tidak mengembalikan respons HTTP. Hasilnya terbaca dari status paket,
+Handler tidak mengembalikan respons HTTP. Hasilnya terbaca dari status paket
 baris notifications, baris status_logs, dan pada RESEND dari paket baru.
 
 ## 8. Error dan edge case

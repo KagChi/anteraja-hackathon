@@ -1,6 +1,6 @@
 # FRD Modul ORD — Katalog dan Pemesanan Pelanggan
 
-Modul ini membuka jalur pesanan mandiri pelanggan: menjelajah katalog tanpa akun,
+Modul ini membuka jalur pesanan mandiri pelanggan: menjelajah katalog tanpa akun
 checkout dengan akun, lalu memantau pesanan.
 
 Aturan bisnis terkait: BR-005, BR-021, BR-024.
@@ -19,7 +19,7 @@ Aturan bisnis terkait: BR-005, BR-021, BR-024.
 - Error & Edge Cases: katalog kosong mengembalikan data kosong dengan count nol, bukan error. Produk yang disembunyikan (is_available false) tidak muncul.
 - Side Effects: tidak ada.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Api/Client/CatalogController@index, Resources/Client/ProductResource.php, app/Models/Product.php scopeInCatalogOrder, database/seeders/DemoDataSeeder.php seedCatalog, tests/Feature/ClientStorefrontTest.php test_the_catalog_lists_the_seeded_frozen_goods, app/NativeComponents/Client/Catalog.php dan Landing.php.
+- Traceability: routes/api.php, Api/Client/CatalogController@index, Resources/Client/ProductResource.php, app/Models/Product.php scopeInCatalogOrder, database/seeders/DemoDataSeeder.php seedCatalog, tests/Feature/ClientStorefrontTest.php test_the_catalog_lists_the_seeded_frozen_goods, resources/js/pwa/screens/client/Catalog.tsx dan Landing.php.
 - Acceptance Criteria:
   - Given delapan produk tersedia dan satu produk disembunyikan, When katalog diminta, Then data memuat delapan kartu dan produk yang disembunyikan tidak ada.
   - Given katalog kosong, When diminta, Then HTTP 200 dengan data kosong dan meta.count bernilai 0.
@@ -39,7 +39,7 @@ Aturan bisnis terkait: BR-005, BR-021, BR-024.
 - Error & Edge Cases: slug tidak dikenal atau produk tidak tersedia menghasilkan 404 dengan message "Produk tidak ditemukan." dan code PRODUCT_NOT_FOUND.
 - Side Effects: tidak ada.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Api/Client/CatalogController@show, tests/Feature/ClientStorefrontTest.php test_a_product_can_be_opened_by_slug, tests/Feature/ClientNativeScreensTest.php test_an_unknown_product_shows_the_empty_state, app/NativeComponents/Client/ProductDetail.php.
+- Traceability: routes/api.php, Api/Client/CatalogController@show, tests/Feature/ClientStorefrontTest.php test_a_product_can_be_opened_by_slug, tests/Feature/PwaShellTest.php test_an_unknown_product_shows_the_empty_state, resources/js/pwa/screens/client/ProductDetail.tsx.
 - Acceptance Criteria:
   - Given slug produk yang tersedia, When detail diminta, Then HTTP 200 dengan nama, harga, dan berat produk.
   - Given slug yang tidak ada, When detail diminta, Then HTTP 404 PRODUCT_NOT_FOUND dan layar menampilkan keadaan kosong.
@@ -59,7 +59,7 @@ Aturan bisnis terkait: BR-005, BR-021, BR-024.
 - Error & Edge Cases: seluruh produk yang dipilih sudah tidak tersedia menghasilkan 422 dengan code PRODUCT_UNAVAILABLE. Keranjang kosong atau lebih dari 20 baris menghasilkan 422. Tanggal lampau menghasilkan 422 pada errors.scheduled_date dengan pesan bahwa tanggal tidak boleh di masa lalu. Koordinat lintang tanpa bujur menghasilkan 422.
 - Side Effects: baris buyers diperbarui; baris packages, package_items, dan schedule_confirmations; baris status_logs CREATED lalu AWAITING_CONFIRMATION dengan changed_by null; satu baris notifications QUEUED template schedule_request.
 - Postcondition: paket masuk antrean hub dengan penanda sumber APP dan menunggu konfirmasi pelanggan.
-- Traceability: routes/api.php, Api/Client/OrderController@store, Actions/Client/CreateClientOrder, Requests/Api/Client/StoreOrderRequest, Resources/Client/OrderReceiptResource.php, Enums/PackageSource.php, tests/Feature/ClientStorefrontTest.php test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order dan test_checkout_requires_a_session_and_a_basket, app/NativeComponents/Client/Checkout.php.
+- Traceability: routes/api.php, Api/Client/OrderController@store, Actions/Client/CreateClientOrder, Requests/Api/Client/StoreOrderRequest, Resources/Client/OrderReceiptResource.php, Enums/PackageSource.php, tests/Feature/ClientStorefrontTest.php test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order dan test_checkout_requires_a_session_and_a_basket, resources/js/pwa/screens/client/Checkout.tsx.
 - Acceptance Criteria:
   - Given pelanggan login dengan keranjang berisi satu produk tersedia, When checkout dikirim, Then HTTP 201 dengan resi AJ-FRZ-, paket bersumber CLIENT_APP, dan notifikasi schedule_request terantre.
   - Given keranjang berisi produk yang sudah tidak tersedia, When checkout dikirim, Then HTTP 422 PRODUCT_UNAVAILABLE dan tidak ada baris packages baru.
@@ -79,7 +79,7 @@ Aturan bisnis terkait: BR-005, BR-021, BR-024.
 - Error & Edge Cases: tab kosong mengembalikan data kosong dengan hitungan yang benar. per_page di luar rentang menghasilkan 422. sla_rate bernilai konstanta 96 persen, bukan hasil hitung.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Api/Client/OrderController@index, Queries/ClientOrderListQuery, Requests/Api/Client/OrderIndexRequest, Resources/Client/OrderSummaryResource.php, Services/Client/OrderPresenter.php, tests/Feature/ClientApiAuthTest.php test_buyer_orders_list_with_tabs_and_counts dan test_order_ownership_isolation_returns_404_for_other_buyer, app/NativeComponents/Client/Orders.php dan History.php.
+- Traceability: routes/api.php, Api/Client/OrderController@index, Queries/ClientOrderListQuery, Requests/Api/Client/OrderIndexRequest, Resources/Client/OrderSummaryResource.php, Services/Client/OrderPresenter.php, tests/Feature/ClientApiAuthTest.php test_buyer_orders_list_with_tabs_and_counts dan test_order_ownership_isolation_returns_404_for_other_buyer, resources/js/pwa/screens/client/Orders.tsx dan History.php.
 - Acceptance Criteria:
   - Given pembeli dengan tiga paket aktif dan dua paket selesai, When tab active diminta, Then data memuat tiga baris dan meta.tab_counts.active bernilai 3.
   - Given pencarian memakai resi milik pembeli lain, When daftar diminta, Then tidak ada baris yang dikembalikan karena pembatasan buyer_id.

@@ -1,41 +1,24 @@
-import { fileURLToPath, pathToFileURL, URL } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import laravel from "laravel-vite-plugin";
 import viteReact from "@vitejs/plugin-react";
 
-// NativePHP's Vite plugin exists for the Android and iOS bundles only: it
-// rewrites the dev-server host for hot reload, redirects the build output on
-// iOS, and requires axios to be a real dependency. The Android shells load the
-// deployed site, so the bundle the server hands them has to stay a plain
-// browser build; keeping the plugin behind the mode keeps that explicit and
-// stops iOS-only rewrites from leaking into a web build.
-//
-// The specifier is built at runtime rather than written as a literal because
-// Vite bundles this config file and resolves literal dynamic imports while
-// doing so. `vendor/` is not part of an image or an APK build context, so a
-// literal import breaks every web build that runs without it.
-const nativephpPlugin = () =>
-    pathToFileURL(process.cwd() + "/vendor/nativephp/mobile/resources/js/vite-plugin.js").href;
-
-export default defineConfig(async ({ mode }) => {
-    const nativeBuild = mode === "android" || mode === "ios";
-    const nativephp = nativeBuild ? await import(nativephpPlugin()) : null;
-
-    return {
-        plugins: [
-            laravel({
-                input: ["resources/js/app.tsx"],
-                refresh: true,
-                ...(nativephp ? { hotFile: nativephp.nativephpHotFile() } : {})
-            }),
-            viteReact(),
-            ...(nativephp ? [nativephp.nativephpMobile()] : [])
-        ],
-        resolve: {
-            alias: {
-                "@": fileURLToPath(new URL("./resources/js", import.meta.url))
-            }
+// Two entries share this build: the Inertia app behind the landing page, the
+// blog and the admin console, and the PWA bundle behind /client/* and
+// /courier/*. The PWA is a client-side React SPA, so it is its own entry rather
+// than a page the Inertia resolver would look for.
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ["resources/js/app.tsx", "resources/js/pwa/main.tsx"],
+            refresh: true
+        }),
+        viteReact()
+    ],
+    resolve: {
+        alias: {
+            "@": fileURLToPath(new URL("./resources/js", import.meta.url))
         }
-    };
+    }
 });
 

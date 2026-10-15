@@ -1,13 +1,13 @@
 # FRD Modul LAND — Landing Page dan Blog
 
-Modul ini adalah wajah publik produk: halaman pemasaran, panel lacak resi, blog,
+Modul ini adalah wajah publik produk: halaman pemasaran, panel lacak resi, blog
 dan halaman login staf.
 
 ---
 
 ### FR-LAND-001 — Halaman landing
 
-- Deskripsi: Sistem HARUS menampilkan halaman pemasaran yang menyajikan produk unggulan dari katalog, layanan, keunggulan, jangkauan, perkiraan tarif, panel lacak resi, dan tautan unduhan dua aplikasi Android.
+- Deskripsi: Sistem HARUS menampilkan halaman pemasaran yang menyajikan produk unggulan dari katalog, layanan, keunggulan, jangkauan, perkiraan tarif, panel lacak resi, dan kartu dua aplikasi web yang dapat dipasang.
 - Aktor & Otorisasi: publik pada route web GET /, tanpa autentikasi.
 - Trigger: kunjungan ke alamat utama situs.
 - Precondition: tidak ada.
@@ -17,10 +17,10 @@ dan halaman login staf.
 - Error & Edge Cases: tanpa produk tersedia, properti products kosong dan blok produk unggulan tidak dirender. Tautan unduhan kosong membuat kartu unduhan tidak muncul.
 - Side Effects: tidak ada.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/web.php route home, app/Models/Product.php scopeInCatalogOrder, Resources/Client/ProductResource.php, Middleware/HandleInertiaRequests.php, config/mobile.php dan mobile/apps.php, resources/js/pages/Landing.tsx, resources/js/data/landing.ts, resources/js/components/site/TrackResiCard.tsx, tests/Feature/LandingPageTest.php test_the_landing_page_shows_catalog_highlights_and_both_apk_links.
+- Traceability: routes/web.php route home, app/Models/Product.php scopeInCatalogOrder, Resources/Client/ProductResource.php, Middleware/HandleInertiaRequests.php, config/pwa.php, resources/js/pages/Landing.tsx, resources/js/data/landing.ts, resources/js/components/site/TrackResiCard.tsx, tests/Feature/LandingPageTest.php test_the_landing_page_shows_catalog_highlights_and_both_app_links.
 - Acceptance Criteria:
   - Given sembilan produk tersedia, When halaman utama dibuka, Then properti products memuat tepat empat produk sesuai urutan katalog.
-  - Given konfigurasi unduhan berisi dua aplikasi, When halaman dibuka, Then kedua tautan APK tersedia pada halaman.
+  - Given registri config/pwa.php berisi dua aplikasi, When halaman dibuka, Then kedua kartu aplikasi tersedia pada halaman.
 - Status: Live
 
 ---

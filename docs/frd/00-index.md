@@ -18,7 +18,7 @@ FRD tempat detail lengkapnya berada.
 | ORD — Katalog dan Pemesanan Pelanggan | docs/frd/10-katalog-pesanan.md | 5 |
 | RPT — Pelaporan, Ekspor, dan Media | docs/frd/11-pelaporan.md | 6 |
 | LAND — Landing Page dan Blog | docs/frd/12-landing-blog.md | 3 |
-| MOB — Shell Mobile Native | docs/frd/13-mobile-native.md | 6 |
+| PWA — Aplikasi Web Terpasang | docs/frd/13-pwa.md | 6 |
 
 Total: 80 requirement fungsional.
 
@@ -156,13 +156,13 @@ Total: 80 requirement fungsional.
 | FR-LAND-002 | Blog index dan artikel | Konten blog dari module TypeScript | Live |
 | FR-LAND-003 | Halaman login admin dan redirect ringkas | Halaman login Inertia dan pengalihan path pendek | Live |
 
-## MOB — Shell Mobile Native
+## PWA — Aplikasi Web Terpasang
 
 | ID | Fitur | Ringkas | Status |
 | --- | --- | --- | --- |
-| FR-MOB-001 | Rute dan grup layar native | Dua shell dengan grup tab dan layar bertumpuk | Live |
-| FR-MOB-002 | Penyimpanan token per realm | Keychain atau keystore dengan fallback cache | Live |
-| FR-MOB-003 | Klien API mobile | Pembungkus HTTP tunggal yang menormalkan hasil | Live |
-| FR-MOB-004 | Kapabilitas perangkat kurir | Kamera dan geolokasi untuk bukti dan fix window | Live |
-| FR-MOB-005 | Keranjang dan struk lokal pelanggan | Keranjang berbasis cache dan struk pesanan terakhir | Live |
-| FR-MOB-006 | Pemilih tema aplikasi | Mode sistem, terang, dan gelap yang dipersistenkan | Live |
+| FR-PWA-001 | Shell dan rute dua aplikasi | Shell publik per aplikasi, rute dipegang SPA | Live |
+| FR-PWA-002 | Token realm dan sesi berakhir | Bearer token per realm di localStorage | Live |
+| FR-PWA-003 | Klien API realm | Klien HTTP per realm yang menormalkan galat | Live |
+| FR-PWA-004 | Kapabilitas perangkat dan peta | Kamera, fix window, dan peta Leaflet sebaris | Live |
+| FR-PWA-005 | Keranjang dan struk pelanggan | Keranjang localStorage dan struk sesi terakhir | Live |
+| FR-PWA-006 | Installability dan offline | Dua manifest, service worker, dan halaman luring | Live |

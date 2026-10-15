@@ -13,7 +13,7 @@
 ## 1. Ringkasan
 
 Menghubungkan nomor pengirim dengan paketnya agar bot dapat menyebutkan status dan
-langkah yang tertunda. Pencocokan memerlukan resi dan nomor yang sama-sama cocok,
+langkah yang tertunda. Pencocokan memerlukan resi dan nomor yang sama-sama cocok
 sehingga satu pelanggan tidak dapat membuka paket orang lain.
 
 ## 2. Aktor dan otorisasi

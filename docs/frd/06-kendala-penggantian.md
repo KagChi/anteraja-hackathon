@@ -1,10 +1,10 @@
 # FRD Modul ISS — Laporan Kendala, Keputusan, dan Penggantian
 
-Modul ini menutup paket bermasalah: laporan kurir di lapangan, antrean kendala hub,
+Modul ini menutup paket bermasalah: laporan kurir di lapangan, antrean kendala hub
 lima arah keputusan, menu pilihan pelanggan lewat WhatsApp, dan pembuatan paket
 pengganti.
 
-Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-007, BR-008, BR-012, BR-013,
+Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-007, BR-008, BR-012, BR-013
 BR-022, BR-025, BR-026.
 
 ---
@@ -21,7 +21,7 @@ BR-022, BR-025, BR-026.
 - Error & Edge Cases: paket di luar tiga status yang diizinkan menghasilkan 422 dengan redirect ke layar pengantaran paket itu. Bila sudah ada kendala terbuka pada paket yang sama, sistem mengembalikan 422 dengan pesan bahwa kendala sudah dilaporkan. Paket COURIER_ASSIGNED yang belum diterima menghasilkan 422 dengan redirect ke /courier/tasks.
 - Side Effects: tidak ada.
 - Postcondition: kurir dapat mengirim laporan.
-- Traceability: routes/api.php, Courier/IssueReportController@create, Enums/IssueCategory, config/coldchain.php checklist_items, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, app/NativeComponents/Courier/Issue.php.
+- Traceability: routes/api.php, Courier/IssueReportController@create, Enums/IssueCategory, config/coldchain.php checklist_items, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, resources/js/pwa/screens/courier/Issue.tsx.
 - Acceptance Criteria:
   - Given paket IN_DELIVERY tanpa kendala terbuka, When form diminta, Then HTTP 200 dengan enam opsi kategori.
   - Given paket yang sudah punya kendala belum diputuskan, When form diminta, Then HTTP 422 dan kurir tidak dapat membuat laporan kedua.
@@ -41,7 +41,7 @@ BR-022, BR-025, BR-026.
 - Error & Edge Cases: kategori suhu_naik tanpa suhu menghasilkan 422. Foto lebih dari 5 MB atau format lain menghasilkan 422. Status di luar daftar menghasilkan DeliveryNotActionable. Kendala terbuka yang sudah ada menghasilkan DeliveryNotActionable::issueAlreadyOpen. GPS tidak divalidasi pada endpoint ini sehingga laporan kendala tidak pernah diblokir oleh lokasi.
 - Side Effects: baris condition_checks dan issue_reports; baris status_logs untuk CHECKED bila perlu dan untuk ISSUE_REPORTED; satu baris notifications QUEUED per admin aktif dengan template issue_reported; satu baris notifications QUEUED untuk pembeli dengan template issue_options berisi kategori dan labelnya.
 - Postcondition: paket menunggu keputusan admin dan tidak dapat menerima bukti serah terima sampai kendala diputuskan.
-- Traceability: routes/api.php, Courier/IssueReportController@store, Actions/Courier/ReportIssue, Requests/Courier/ReportIssueRequest, DTOs/Courier/ReportIssueData, Support/ChecklistNormalizer, Support/MediaStorage, Support/NotificationQueue::queueIssueOptions, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_queues_buyer_resolution_menu, app/NativeComponents/Courier/Issue.php.
+- Traceability: routes/api.php, Courier/IssueReportController@store, Actions/Courier/ReportIssue, Requests/Courier/ReportIssueRequest, DTOs/Courier/ReportIssueData, Support/ChecklistNormalizer, Support/MediaStorage, Support/NotificationQueue::queueIssueOptions, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_queues_buyer_resolution_menu, resources/js/pwa/screens/courier/Issue.tsx.
 - Acceptance Criteria:
   - Given paket CHECKED tanpa kendala, When kurir mengirim laporan lengkap, Then HTTP 200, paket menjadi ISSUE_REPORTED, satu issue_reports tersimpan, dan notifikasi issue_options terantre untuk pembeli.
   - Given kategori suhu_naik tanpa kolom suhu, When laporan dikirim, Then HTTP 422 dan tidak ada issue_reports baru.
@@ -166,7 +166,7 @@ BR-022, BR-025, BR-026.
 - Error & Edge Cases: resi milik pembeli lain menghasilkan 404 PACKAGE_NOT_FOUND. Keputusan yang belum ada ditampilkan sebagai pesan pending, bukan kosong.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
-- Traceability: routes/api.php, Api/Client/IssueController@show, Services/Client/IssueViewService, ColdChainSummaryService, ClientTimelineBuilder, ReplacementEligibility, ClientLinkService, lang id untuk client.issue dan client.status, tests/Feature/ClientFlowTest.php, app/NativeComponents/Client/Issue.php.
+- Traceability: routes/api.php, Api/Client/IssueController@show, Services/Client/IssueViewService, ColdChainSummaryService, ClientTimelineBuilder, ReplacementEligibility, ClientLinkService, lang id untuk client.issue dan client.status, tests/Feature/ClientFlowTest.php, resources/js/pwa/screens/client/Issue.tsx.
 - Acceptance Criteria:
   - Given paket dengan kendala yang sudah diputuskan RETURN, When layar dibuka, Then pesan keputusan terisi dan penanda kelayakan penggantian bernilai true.
   - Given paket tanpa laporan kendala, When layar dibuka, Then HTTP 200 dengan redirect_url ke tracking dan tanpa data kendala.
@@ -206,7 +206,7 @@ BR-022, BR-025, BR-026.
 - Error & Edge Cases: paket yang belum layak menghasilkan ReplacementNotAllowed. Permintaan berulang mengembalikan paket pengganti yang sudah ada, sehingga pengguna tidak melihat error dan tidak menghasilkan resi kedua.
 - Side Effects: sama dengan FR-ISS-007.
 - Postcondition: pelanggan mengarahkan diri ke konfirmasi jadwal paket pengganti.
-- Traceability: routes/api.php, Api/Client/ReplacementController, Actions/Client/RequestReplacement, tests/Feature/ClientFlowTest.php test_issue_replacement_creates_child_package_and_handles_double_tap, tests/Feature/WhatsAppNotificationFlowTest.php test_resend_option_creates_replacement_when_package_is_returned, app/NativeComponents/Client/Issue.php.
+- Traceability: routes/api.php, Api/Client/ReplacementController, Actions/Client/RequestReplacement, tests/Feature/ClientFlowTest.php test_issue_replacement_creates_child_package_and_handles_double_tap, tests/Feature/WhatsAppNotificationFlowTest.php test_resend_option_creates_replacement_when_package_is_returned, resources/js/pwa/screens/client/Issue.tsx.
 - Acceptance Criteria:
   - Given paket RETURNED yang memenuhi syarat, When permintaan pengiriman ulang dikirim, Then HTTP 201 dengan replacement_tracking_number dan redirect_url berisi token paket baru.
   - Given paket yang masih IN_DELIVERY, When permintaan dikirim, Then permintaan ditolak ReplacementNotAllowed dan tidak ada paket baru.

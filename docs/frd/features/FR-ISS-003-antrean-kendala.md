@@ -81,7 +81,7 @@ ada paket yang tertinggal, sedangkan tab selesai mengurutkan dari yang terbaru.
 
 ## 9. Efek samping
 
-Tidak ada penulisan. Status resolusi dihitung dengan aturan: RETURN selesai,
+Tidak ada penulisan. Status resolusi dihitung dengan aturan: RETURN selesai
 PROCEED dan RESCHEDULE selesai hanya bila paket RECEIVED atau CLOSED, RESEND
 selesai hanya bila paket pengganti RECEIVED atau CLOSED, dan RECHECK selalu
 Pemeriksaan Ulang.

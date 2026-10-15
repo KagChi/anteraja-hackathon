@@ -79,8 +79,8 @@ Tidak ada.
 | Route | routes/api.php grup courier |
 | Controller | Courier/ProfileController@show |
 | Konfigurasi | config/coldchain.php hub_name |
-| Test | tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/CourierNativeScreensTest.php test_the_profile_tab_shows_identity_and_assignment, test_the_profile_switches_the_app_theme |
-| UI | app/NativeComponents/Courier/Profile.php |
+| Test | tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/PwaShellTest.php test_the_profile_tab_shows_identity_and_assignment, test_the_profile_switches_the_app_theme |
+| UI | resources/js/pwa/screens/courier/Profile.tsx |
 
 ## 11. Skenario uji
 

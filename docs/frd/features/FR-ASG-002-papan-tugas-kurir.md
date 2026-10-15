@@ -27,7 +27,7 @@ sedang berjalan, dan memberi tahu seberapa mendesak jendela pengantarannya.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | tab tugas aplikasi kurir, app/NativeComponents/Courier/Tasks.php |
+| UI | tab tugas aplikasi kurir, resources/js/pwa/screens/courier/Tasks.tsx |
 | Endpoint | GET /api/courier/tasks |
 | Nama route | api.courier.tasks.index |
 
@@ -106,7 +106,7 @@ Tidak ada penulisan. Dua subquery korelatif per baris dijalankan untuk mendapatk
 | Enum | Enums/ScheduleTiming, Enums/DeliveryStage |
 | Support | DisplayTime, RelativeTime |
 | Test | tests/Feature/CourierFlowTest.php test_courier_tasks_index_splits_new_and_active_tasks, test_courier_cannot_access_another_couriers_package |
-| UI | app/NativeComponents/Courier/Tasks.php |
+| UI | resources/js/pwa/screens/courier/Tasks.tsx |
 
 ## 11. Skenario uji
 

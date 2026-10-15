@@ -1,6 +1,6 @@
 # FRD Modul WA — Percakapan WhatsApp (n8n, WAHA, LLM)
 
-Aplikasi ini tidak memanggil WhatsApp. Ia menyerahkan template dan payload ke n8n,
+Aplikasi ini tidak memanggil WhatsApp. Ia menyerahkan template dan payload ke n8n
 dan n8n yang merender pesan, mengirim lewat WAHA, serta menerjemahkan balasan
 pelanggan menjadi aksi ke API aplikasi.
 
@@ -46,7 +46,7 @@ Aturan bisnis terkait: BR-015, BR-016, BR-021.
 - Error & Edge Cases: chat yang dijawab ke alamat LID sebagai nomor biasa akan gagal di WAHA dengan 500, sehingga resolusi LID wajib berhasil lebih dulu. State yang tertinggal setelah admin menyusun ulang jadwal disegarkan dengan menyebut nomor resi. Jawaban yang tidak cocok dengan langkah yang menunggu tidak dipaksa menjadi aksi.
 - Side Effects: baris anteraja_chat_state diperbarui (last_template dan context); aksi aplikasi seperti konfirmasi jadwal, pengajuan jadwal ulang, atau pencatatan pilihan kendala berjalan lewat API guest beserta seluruh efek sampingnya.
 - Postcondition: langkah yang menunggu jawaban pelanggan sudah terpenuhi atau state tetap menunggu bila jawaban tidak dikenali.
-- Traceability: deploy/n8n/workflows/anteraja-frozen-inbound.json, deploy/n8n/README.md, deploy/n8n/state-table.sql, deploy/n8n/tests/inbound-scenarios.mjs, .github/workflows/n8n-scenarios.yaml, routes/api.php grup guest, Actions/Client/ConfirmSchedule.php, Actions/Client/RequestReschedule.php, Actions/Client/RecordIssueChoice.php.
+- Traceability: deploy/n8n/workflows/anteraja-frozen-inbound.json, deploy/n8n/README.md, deploy/n8n/state-table.sql, deploy/n8n/tests/inbound-scenarios.mjs.github/workflows/n8n-scenarios.yaml, routes/api.php grup guest, Actions/Client/ConfirmSchedule.php, Actions/Client/RequestReschedule.php, Actions/Client/RecordIssueChoice.php.
 - Acceptance Criteria:
   - Given state last_template schedule_request dan pelanggan menjawab "siap", When webhook inbound diproses, Then API schedule/confirm dipanggil, paket menjadi CONFIRMED, dan last_template menjadi confirmed.
   - Given state issue_options dan pelanggan menjawab angka 9, When webhook inbound diproses, Then tidak ada aksi yang dijalankan dan bot menjawab dengan bantuan.

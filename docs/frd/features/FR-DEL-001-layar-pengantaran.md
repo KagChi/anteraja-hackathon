@@ -12,8 +12,8 @@
 
 ## 1. Ringkasan
 
-Menyatukan seluruh informasi yang dibutuhkan kurir di depan pintu penerima: tujuan,
-kontak, tautan peta, instruksi penanganan, tombol aksi yang sedang boleh dipakai,
+Menyatukan seluruh informasi yang dibutuhkan kurir di depan pintu penerima: tujuan
+kontak, tautan peta, instruksi penanganan, tombol aksi yang sedang boleh dipakai
 daftar checklist, dan konteks validasi lokasi.
 
 ## 2. Aktor dan otorisasi
@@ -28,7 +28,7 @@ daftar checklist, dan konteks validasi lokasi.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | app/NativeComponents/Courier/Delivery.php |
+| UI | resources/js/pwa/screens/courier/Delivery.tsx |
 | Endpoint | GET /api/courier/deliveries/{tracking_number} |
 | Nama route | api.courier.deliveries.show |
 
@@ -102,8 +102,8 @@ tinjauan dari gps_lock_requests.
 | Service | Services/Gps/GpsValidator::latestCheck, Services/Gps/GeofenceEvaluator |
 | Konfigurasi | config/coldchain.php checklist_items |
 | Support | PhoneFormatter, DisplayTime |
-| Test | tests/Feature/CourierFlowTest.php test_courier_delivery_show_and_guards, tests/Feature/CourierGpsValidationTest.php test_the_delivery_screen_reports_the_geofence_context, tests/Feature/CourierNativeScreensTest.php test_the_delivery_screen_offers_the_route_and_the_handover, test_the_delivery_screen_shows_the_location_validation |
-| UI | app/NativeComponents/Courier/Delivery.php |
+| Test | tests/Feature/CourierFlowTest.php test_courier_delivery_show_and_guards, tests/Feature/CourierGpsValidationTest.php test_the_delivery_screen_reports_the_geofence_context, tests/Feature/PwaShellTest.php test_the_delivery_screen_offers_the_route_and_the_handover, test_the_delivery_screen_shows_the_location_validation |
+| UI | resources/js/pwa/screens/courier/Delivery.tsx |
 
 ## 11. Skenario uji
 

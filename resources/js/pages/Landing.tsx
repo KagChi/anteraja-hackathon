@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from "@inertiajs/react";
 import { MaterialIcon } from "@/components/MaterialIcon";
+import { type AppCard, AppSection } from "@/components/site/AppSection";
 import { CountUp } from "@/components/site/CountUp";
-import { type DownloadApp, DownloadSection } from "@/components/site/DownloadSection";
 import { PostCard } from "@/components/site/PostCard";
 import { Reveal } from "@/components/site/Reveal";
 import { ShippingFeeCard } from "@/components/site/ShippingFeeCard";
@@ -29,7 +29,7 @@ interface LandingProps {
 
 export default function Landing({ products }: LandingProps) {
     const page = usePage();
-    const downloads = (page.props.downloads ?? []) as DownloadApp[];
+    const apps = (page.props.apps ?? []) as AppCard[];
     const posts = latestPosts(3);
 
     return (
@@ -82,8 +82,8 @@ export default function Landing({ products }: LandingProps) {
                                     href="#unduh"
                                     className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-label-md text-label-md text-on-primary transition-transform hover:-translate-y-0.5 hover:bg-primary-container"
                                 >
-                                    <MaterialIcon name="android" className="text-[18px]" />
-                                    Unduh aplikasi pelanggan
+                                    <MaterialIcon name="open_in_new" className="text-[18px]" />
+                                    Buka aplikasi pelanggan
                                 </a>
                                 <a
                                     href="#layanan"
@@ -357,7 +357,7 @@ export default function Landing({ products }: LandingProps) {
                     </div>
                 </section>
 
-                <DownloadSection apps={downloads} />
+                <AppSection apps={apps} />
             </main>
 
             <SiteFooter />

@@ -59,7 +59,7 @@ export function SiteFooter() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <span className="font-label-md text-label-md text-white/50 uppercase">Unduh</span>
+                    <span className="font-label-md text-label-md text-white/50 uppercase">Aplikasi</span>
                     <a
                         href="#unduh"
                         className="font-body-sm text-body-sm text-white/80 transition-colors hover:text-white"

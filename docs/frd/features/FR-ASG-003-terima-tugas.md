@@ -53,7 +53,7 @@ Tanpa body.
 6. Set courier_accepted_at dengan Carbon::now dan simpan.
 7. Kembalikan paket.
 
-Perlu dicatat: status historis COURIER_ASSIGNED ke CHECKED tercatat di matriks,
+Perlu dicatat: status historis COURIER_ASSIGNED ke CHECKED tercatat di matriks
 namun langkah ini tidak memakainya; perpindahan itu terjadi pada saat kurir mulai
 mengantar atau melaporkan kendala.
 
@@ -89,7 +89,7 @@ langkah ini; pembeli baru diberi tahu saat kurir berangkat.
 | Policy | app/Policies/PackagePolicy.php |
 | Exception | app/Exceptions/TaskNotActionable.php |
 | Test | tests/Feature/CourierFlowTest.php test_courier_accept_task_flow, test_access_controls |
-| UI | app/NativeComponents/Courier/Tasks.php |
+| UI | resources/js/pwa/screens/courier/Tasks.tsx |
 
 ## 11. Skenario uji
 

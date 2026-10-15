@@ -96,8 +96,8 @@ permintaan. Ini temuan kecil yang perlu diputuskan.
 | Service | Services/Gps/GpsValidator::requestReview dan openLockRequest |
 | Enum | Enums/GpsAction.php, Enums/GpsLockStatus.php |
 | Model | app/Models/GpsLockRequest.php |
-| Test | tests/Feature/CourierGpsValidationTest.php test_a_courier_can_ask_the_hub_to_review_and_the_request_is_idempotent, tests/Feature/CourierNativeScreensTest.php test_a_blocked_hand_over_offers_a_hub_review, test_asking_the_hub_to_review_from_the_delivery_screen |
-| UI | app/NativeComponents/Courier/Delivery.php |
+| Test | tests/Feature/CourierGpsValidationTest.php test_a_courier_can_ask_the_hub_to_review_and_the_request_is_idempotent, tests/Feature/PwaShellTest.php test_a_blocked_hand_over_offers_a_hub_review, test_asking_the_hub_to_review_from_the_delivery_screen |
+| UI | resources/js/pwa/screens/courier/Delivery.tsx |
 
 ## 11. Skenario uji
 

@@ -26,7 +26,7 @@ dilakukan, tanpa membuka data bebas yang ditulis staf atau kurir.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | layar kendala pelanggan, app/NativeComponents/Client/Issue.php |
+| UI | layar kendala pelanggan, resources/js/pwa/screens/client/Issue.tsx |
 | Endpoint | GET /api/client/orders/{tracking_number}/issue, GET /api/guest/{token}/issue, GET /api/client/{token}/issue |
 | Nama route | api.client.orders.issue.show, api.guest.issue.show, api.client.issue.show |
 
@@ -92,8 +92,8 @@ Tidak ada penulisan.
 | Service | Services/Client/IssueViewService, ColdChainSummaryService, ClientTimelineBuilder, ReplacementEligibility |
 | DTO | DTOs/Client/IssueView.php |
 | Lang | resources/js terkait kunci client.issue dan client.status (lang id) |
-| Test | tests/Feature/ClientFlowTest.php, tests/Feature/ClientNativeScreensTest.php test_the_issue_screen_shows_the_decision_and_offers_a_resend |
-| UI | app/NativeComponents/Client/Issue.php, app/Support/ClientPayload.php method issue |
+| Test | tests/Feature/ClientFlowTest.php, tests/Feature/PwaShellTest.php test_the_issue_screen_shows_the_decision_and_offers_a_resend |
+| UI | resources/js/pwa/screens/client/Issue.tsx |
 
 ## 11. Skenario uji
 

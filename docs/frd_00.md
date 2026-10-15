@@ -16,7 +16,8 @@ repositori Anteraja Frozen:
 
 - API JSON di routes/api.php.
 - Halaman Inertia di routes/web.php.
-- Layar native Android di routes/mobile.php.
+- Shell PWA di routes/web.php (shell /client/* dan /courier/*) dengan SPA di
+  resources/js/pwa.
 - Proses asinkron: queue job, scheduler, outbox notifikasi, dan workflow n8n.
 
 Di luar scope: kode frontend React (dimiliki tim frontend sesuai AGENTS.md),
@@ -42,7 +43,7 @@ Tabel modul:
 | ORD | Katalog dan Pemesanan Pelanggan | docs/frd/10-katalog-pesanan.md |
 | RPT | Pelaporan, Ekspor, dan Media | docs/frd/11-pelaporan.md |
 | LAND | Landing Page dan Blog | docs/frd/12-landing-blog.md |
-| MOB | Shell Mobile Native | docs/frd/13-mobile-native.md |
+| PWA | Aplikasi Web Terpasang | docs/frd/13-pwa.md |
 
 ### 1.3 Legenda label
 
@@ -65,7 +66,7 @@ diuji, menyebut kode HTTP bila relevan.
 Alur permintaan satu arah, dari perangkat sampai database dan kembali:
 
     flowchart TD
-        A[Klien: SPA admin, APK kurir, APK pelanggan, browser landing] --> B[Ingress nginx atau k8s]
+        A[Klien: SPA admin, PWA kurir, PWA pelanggan, browser landing] --> B[Ingress nginx atau k8s]
         B --> C[FrankenPHP + Laravel Octane, worker mode]
         C --> D[Middleware: force.json, staff.role, client.headers, client.buyer, client.owned, client.package, internal.token, throttle]
         D --> E[Controller tipis]
@@ -198,9 +199,9 @@ memetakan modul dan judul requirement agar mudah dirujuk.
 | FR-LAND-001 | Halaman landing | Live |
 | FR-LAND-002 | Blog index dan artikel | Live |
 | FR-LAND-003 | Halaman login admin dan redirect ringkas | Live |
-| FR-MOB-001 | Rute dan grup layar native | Live |
-| FR-MOB-002 | Penyimpanan token per realm | Live |
-| FR-MOB-003 | Klien API mobile | Live |
+| FR-PWA-001 | Shell dan rute dua aplikasi | Live |
+| FR-PWA-002 | Token realm dan sesi berakhir | Live |
+| FR-PWA-003 | Klien API realm | Live |
 | FR-MOB-004 | Kapabilitas perangkat kurir | Live |
 | FR-MOB-005 | Keranjang dan struk lokal pelanggan | Live |
 | FR-MOB-006 | Pemilih tema aplikasi | Live |
@@ -519,7 +520,7 @@ data yang diharapkan halaman, bukan instruksi perubahan UI.
 
 | Layar | Data | Aksi | Validasi | Keadaan kosong |
 | --- | --- | --- | --- | --- |
-| courier/Tasks dan layar native Tasks | GET /api/courier/tasks | terima, tolak dengan alasan, lihat jarak dan ETA | alasan tolak maksimal 200 karakter | dua daftar kosong dengan pesan tugas baru dan tugas aktif |
+| courier/Tasks dan layar PWA Tasks | GET /api/courier/tasks | terima, tolak dengan alasan, lihat jarak dan ETA | alasan tolak maksimal 200 karakter | dua daftar kosong dengan pesan tugas baru dan tugas aktif |
 | courier/Delivery | GET /api/courier/deliveries/{resi} | buka peta, telepon, berangkat, tiba, buka bukti, buka kendala, minta tinjauan GPS | checklist dan suhu opsional numerik -60 sampai 40 | blok GPS menampilkan tingkat, alasan, jarak, radius, dan tombol minta tinjauan |
 | courier/Proof | GET dan POST .../proof | ambil foto, isi nama penerima, pilih hubungan, catatan | foto wajib maksimal 5 MB format jpeg, jpg, png, webp; nama penerima 2 sampai 120 karakter; hubungan wajib | 422 mengembalikan pesan dan pengguna tetap di layar |
 | courier/Issue | GET dan POST .../issue | pilih kategori, isi catatan, isi suhu bila suhu_naik, ambil foto | deskripsi 10 sampai 200 karakter, foto wajib 5 MB | paket di luar status yang diizinkan mendapat 422 dengan redirect ke halaman pengantaran |
@@ -545,11 +546,12 @@ data yang diharapkan halaman, bukan instruksi perubahan UI.
 
 | Halaman | Data | Aksi | Keadaan kosong |
 | --- | --- | --- | --- |
-| Landing | produk highlight, konfigurasi unduhan APK, data statis landing | lacak resi, unduh APK, masuk ke tiga konsol, buka blog | produk highlight kosong menyembunyikan kartu |
+| Landing | produk highlight, kartu aplikasi dari config/pwa.php, data statis landing | lacak resi, buka atau pasang aplikasi, masuk ke konsol admin, buka blog | produk highlight kosong menyembunyikan kartu |
 | Blog Index dan Show | resources/js/data/posts.ts | buka artikel | slug tidak dikenal menampilkan halaman artikel tanpa konten |
 
-Layar native tidak boleh memuat web view; ClientNativeScreensTest dan
-CourierNativeScreensTest memverifikasi hal itu (test_no_screen_renders_a_web_view).
+Kedua aplikasi adalah SPA yang dipasang dari browser: shell /client/* dan
+/courier/* disajikan tanpa data, dan setiap byte data datang dari JSON API lewat
+tests/Feature/PwaShellTest.php (shell, manifest, service worker, ikon).
 
 ---
 
@@ -614,7 +616,7 @@ CourierNativeScreensTest memverifikasi hal itu (test_no_screen_renders_a_web_vie
 | Package manager frontend | Bun, dilarang package-lock.json | package.json packageManager bun@1.4.2, AGENTS.md |
 | Database | PostgreSQL, bukan SQLite untuk running dan pengujian | phpunit.xml mengomentari setelan sqlite, AGENTS.md |
 | Orkestrasi | manifest Kubernetes untuk web, n8n, WAHA, database | deploy/k8s/** |
-| CI | docker.yaml, release.yaml, android-apk.yaml, n8n-scenarios.yaml | .github/workflows |
+| CI | docker.yaml, release.yaml, n8n-scenarios.yaml | .github/workflows |
 | Format kode | Laravel Pint dan php-cs-fixer | composer.json, .php-cs-fixer.php, AGENTS.md |
 
 ---
@@ -627,19 +629,19 @@ tingkat atas:
 
 | Modul | FR | Action terpakai | Test utama | Halaman UI |
 | --- | --- | --- | --- | --- |
-| AUTH | 10 | - | AdminAccessTest, CourierApiAuthTest, ClientApiAuthTest, ClientStorefrontTest | Auth/Login, Login native, Register native, Profile native |
+| AUTH | 10 | - | AdminAccessTest, CourierApiAuthTest, ClientApiAuthTest, ClientStorefrontTest | Auth/Login, PWA client/Login, client/Register, client/Profile |
 | PKG | 8 | CreatePackage, RescheduleShipment, PackageStatusTransitioner | AdminShipmentTest, ClientFlowTest, AdminConsoleWiringTest | admin/Shipment |
-| ASG | 5 | AssignCourier, AcceptTask, RejectTask | AdminShipmentTest, CourierFlowTest | admin/Shipment, courier/Tasks, Tasks native |
-| DEL | 7 | StartDelivery, MarkArrived, ConfirmDelivery | CourierFlowTest, AdminConsoleE2ETest | courier/Delivery, courier/Proof, Delivery native, Proof native |
-| GPS | 7 | GpsValidator, FakeGpsDetector, GeofenceEvaluator | GpsDetectionTest, CourierGpsValidationTest, AdminGpsConsoleTest | admin/GpsChecks, admin/Geofence, Delivery native |
-| ISS | 10 | ReportIssue, ResolveIssue, lima handler, RecordIssueChoice, RequestReplacement | CourierFlowTest, AdminExceptionTest, ClientFlowTest, WhatsAppNotificationFlowTest | courier/Issue, admin/Shipment, client/Issue, Issue native |
+| ASG | 5 | AssignCourier, AcceptTask, RejectTask | AdminShipmentTest, CourierFlowTest | admin/Shipment, courier/Tasks |
+| DEL | 7 | StartDelivery, MarkArrived, ConfirmDelivery | CourierFlowTest, AdminConsoleE2ETest | courier/Delivery, courier/Proof |
+| GPS | 7 | GpsValidator, FakeGpsDetector, GeofenceEvaluator | GpsDetectionTest, CourierGpsValidationTest, AdminGpsConsoleTest | admin/GpsChecks, admin/Geofence, courier/Delivery |
+| ISS | 10 | ReportIssue, ResolveIssue, lima handler, RecordIssueChoice, RequestReplacement | CourierFlowTest, AdminExceptionTest, ClientFlowTest, WhatsAppNotificationFlowTest | courier/Issue, admin/Shipment, client/Issue |
 | NOTIF | 3 | NotificationQueue, DispatchNotificationToN8n, RemindUnansweredConfirmations | WhatsAppNotificationFlowTest, ClientFlowTest | - |
 | WA | 3 | WhatsappLookupController, NotificationQueue | WhatsappLookupTest, WhatsAppNotificationFlowTest | - |
-| TRACK | 7 | ClientAccessService, ClientScreenResolver, tiga ViewService, ConfirmSchedule, RequestReschedule | ClientFlowTest, ClientUnitTest, PublicTrackingTest | client/Tracking, client/Schedule, Tracking native, Schedule native |
-| ORD | 5 | CreateClientOrder, ClientOrderListQuery, OrderPresenter | ClientStorefrontTest, ClientApiAuthTest, ClientFlowTest | Catalog, ProductDetail, Checkout, Orders, History native |
+| TRACK | 7 | ClientAccessService, ClientScreenResolver, tiga ViewService, ConfirmSchedule, RequestReschedule | ClientFlowTest, ClientUnitTest, PublicTrackingTest | client/Tracking, client/Schedule |
+| ORD | 5 | CreateClientOrder, ClientOrderListQuery, OrderPresenter | ClientStorefrontTest, ClientApiAuthTest, ClientFlowTest | client/Catalog, client/ProductDetail, client/Checkout, client/Orders, client/History |
 | RPT | 6 | ShipmentIndexQuery, HistoryQuery, DailyReportQuery, StreamedCsv, MediaStorage | AdminShipmentTest, AdminExceptionTest, AdminConsoleWiringTest, ColdChainUnitTest | admin/Report, admin/History, admin/Shipment |
 | LAND | 3 | - | LandingPageTest, AdminConsoleWiringTest | Landing, Blog/Index, Blog/Show |
-| MOB | 6 | MobileApi, MobileToken, ClientCart, ClientReceipt, Appearance | CourierNativeScreensTest, ClientNativeScreensTest | seluruh layar native |
+| PWA | 6 | - | PwaShellTest | seluruh layar resources/js/pwa/screens/* |
 
 ---
 
@@ -706,7 +708,7 @@ pelanggan, padahal aplikasi pelanggan saat ini memakai jalur akun
 
 App/Support/ClientData.php dan App/Support/CourierData.php masih menyimpan lima
 pesanan, katalog profil, dan riwayat contoh. Keduanya masih dipakai untuk
-membentuk tautan WhatsApp layanan pelanggan dan pesan bantuan pada layar native
+membentuk tautan WhatsApp layanan pelanggan dan pesan bantuan pada layar PWA
 (pemanggilan ClientData::whatsappLink dan ClientData::helpMessage di
 Client/Issue.php, Client/Profile.php, Client/Schedule.php, Client/Tracking.php).
 Sisanya sudah tidak dibaca layar mana pun karena layar memakai MobileApi. Kelas

@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Authenticates the courier API for both callers it serves.
  *
  * The console and the feature tests sign in with the session guard the admin
- * panel uses; the Android app sends a Sanctum bearer token it got from
+ * panel uses; the courier app sends a Sanctum bearer token it got from
  * /api/courier/auth/login. Resolving the token here, rather than through
  * `auth:sanctum`, keeps the app's default guard untouched, so a token request
  * cannot change how an unrelated session request authenticates.

@@ -95,8 +95,8 @@ berhenti; yang dicatat hanya jarak sebagai bukti pendukung.
 | Action | Actions/Courier/MarkArrived |
 | FormRequest | Requests/Courier/MarkArrivedRequest.php |
 | Enum | Enums/DeliveryMilestoneEnum |
-| Test | tests/Feature/CourierFlowTest.php test_courier_arrive_flow, tests/Feature/CourierNativeScreensTest.php test_arriving_at_the_address_is_recorded, test_arriving_ships_the_collected_fix_window |
-| UI | app/NativeComponents/Courier/Delivery.php |
+| Test | tests/Feature/CourierFlowTest.php test_courier_arrive_flow, tests/Feature/PwaShellTest.php test_arriving_at_the_address_is_recorded, test_arriving_ships_the_collected_fix_window |
+| UI | resources/js/pwa/screens/courier/Delivery.tsx |
 
 ## 11. Skenario uji
 

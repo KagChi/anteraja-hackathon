@@ -12,7 +12,7 @@
 
 ## 1. Ringkasan
 
-Tab riwayat pada aplikasi kurir: daftar paket yang sudah selesai atau dikembalikan,
+Tab riwayat pada aplikasi kurir: daftar paket yang sudah selesai atau dikembalikan
 beserta ringkasan berapa yang selesai hari ini.
 
 ## 2. Aktor dan otorisasi
@@ -93,8 +93,8 @@ Tidak ada penulisan.
 | Query | Queries/HistoryQuery |
 | DTO | DTOs/HistoryFilters |
 | Support | DisplayTime |
-| Test | tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/CourierNativeScreensTest.php test_the_history_tab_lists_completed_deliveries |
-| UI | app/NativeComponents/Courier/History.php, app/Support/CourierPayload.php method historyRow |
+| Test | tests/Feature/CourierFlowTest.php test_courier_history_and_profile, tests/Feature/PwaShellTest.php test_the_history_tab_lists_completed_deliveries |
+| UI | resources/js/pwa/screens/courier/History.tsx |
 
 ## 11. Skenario uji
 

@@ -25,7 +25,7 @@ sebelum menambah ke keranjang.
 
 | Pemicu | Detail |
 | --- | --- |
-| UI | app/NativeComponents/Client/ProductDetail.php |
+| UI | resources/js/pwa/screens/client/ProductDetail.tsx |
 | Endpoint | GET /api/client/catalog/{slug} |
 | Nama route | api.client.catalog.show |
 
@@ -73,8 +73,8 @@ Tidak ada penulisan.
 | Route | routes/api.php grup client catalog |
 | Controller | Api/Client/CatalogController@show |
 | Resource | Resources/Client/ProductResource.php |
-| Test | tests/Feature/ClientStorefrontTest.php test_a_product_can_be_opened_by_slug, tests/Feature/ClientNativeScreensTest.php test_an_unknown_product_shows_the_empty_state, test_the_product_detail_picks_a_quantity_and_adds_it |
-| UI | app/NativeComponents/Client/ProductDetail.php |
+| Test | tests/Feature/ClientStorefrontTest.php test_a_product_can_be_opened_by_slug, tests/Feature/PwaShellTest.php test_an_unknown_product_shows_the_empty_state, test_the_product_detail_picks_a_quantity_and_adds_it |
+| UI | resources/js/pwa/screens/client/ProductDetail.tsx |
 
 ## 11. Skenario uji
 

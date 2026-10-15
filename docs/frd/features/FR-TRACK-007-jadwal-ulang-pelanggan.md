@@ -45,7 +45,7 @@ berpindah ke RESCHEDULE_REQUESTED dan seluruh admin aktif menerima permintaannya
 | slot | string | required, harus salah satu nilai config coldchain.client.slots |
 
 Validator lanjutan menolak tanggal lebih dari config reschedule_max_days (14 hari)
-dan slot yang waktunya kurang dari config min_lead_hours (2 jam) dari sekarang,
+dan slot yang waktunya kurang dari config min_lead_hours (2 jam) dari sekarang
 dengan pesan yang menyebut angka batasnya.
 
 ## 6. Proses langkah demi langkah
@@ -98,8 +98,8 @@ dengan pesan yang menyebut angka batasnya.
 | FormRequest | Requests/Client/RescheduleRequest.php |
 | DTO | DTOs/Client/RescheduleRequestData.php |
 | Konfigurasi | config/coldchain.php client.reschedule_max_days, min_lead_hours, slots |
-| Test | tests/Feature/ClientFlowTest.php test_schedule_reschedule_validates_and_transitions_status, tests/Feature/ClientNativeScreensTest.php test_requesting_another_window_posts_the_chosen_slot |
-| UI | app/NativeComponents/Client/Schedule.php |
+| Test | tests/Feature/ClientFlowTest.php test_schedule_reschedule_validates_and_transitions_status, tests/Feature/PwaShellTest.php test_requesting_another_window_posts_the_chosen_slot |
+| UI | resources/js/pwa/screens/client/Schedule.tsx |
 
 ## 11. Skenario uji
 

@@ -116,9 +116,9 @@ menjadi profil pengiriman pelanggan.
 | FormRequest | Requests/Api/Client/StoreOrderRequest.php |
 | Resource | Resources/Client/OrderReceiptResource.php |
 | Enum | Enums/PackageSource.php, ServiceType.php, AddressType.php |
-| Test | tests/Feature/ClientStorefrontTest.php test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order, test_checkout_requires_a_session_and_a_basket, tests/Feature/ClientNativeScreensTest.php test_checkout_sends_a_guest_to_register, test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order |
-| UI | app/NativeComponents/Client/Checkout.php, OrderSuccess.php |
-| Peta titik penerima | routes/web.php client/map/pick, Controller Http/Controllers/Client/MapController (show, point, store), resources/views/native/client/map.blade.php |
+| Test | tests/Feature/ClientStorefrontTest.php test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order, test_checkout_requires_a_session_and_a_basket, tests/Feature/PwaShellTest.php test_checkout_sends_a_guest_to_register, test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order |
+| UI | resources/js/pwa/screens/client/Checkout.tsx, OrderSuccess.tsx |
+| Peta titik penerima | resources/js/components/LocationPicker.tsx, dipakai inline oleh Checkout.tsx |
 
 ## 11. Skenario uji
 

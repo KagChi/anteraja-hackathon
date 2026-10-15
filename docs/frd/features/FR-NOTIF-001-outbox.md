@@ -58,9 +58,9 @@ yang menghilang, dan isi pesan dapat diaudit.
 7. Jadwalkan DispatchNotificationToN8n dengan afterCommit agar hanya berjalan setelah transaksi selesai.
 8. Kembalikan model Notification.
 
-Daftar template yang dipakai sistem: schedule_request, schedule_rescheduled,
-on_the_way, courier_arrived, delivered, issue_options, issue_reported,
-issue_decision, issue_decision_update, task_assigned, task_rejected,
+Daftar template yang dipakai sistem: schedule_request, schedule_rescheduled
+on_the_way, courier_arrived, delivered, issue_options, issue_reported
+issue_decision, issue_decision_update, task_assigned, task_rejected
 resend_requested, buyer_issue_choice, dan confirmation_overdue.
 
 ## 7. Output
