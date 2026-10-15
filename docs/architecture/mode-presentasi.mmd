@@ -1,0 +1,46 @@
+---
+title: Anteraja Frozen - Arsitektur Ringkas
+---
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Segoe UI, system-ui, sans-serif","fontSize":"16px","lineColor":"#b6bdcd","clusterBkg":"#fbfcfe","clusterBorder":"#dbe2f0"}}}%%
+flowchart LR
+    subgraph KLIEN["3 aplikasi klien"]
+        direction TB
+        ADMIN["Console Admin<br/>React + Inertia"]
+        KURIR["App Kurir<br/>Android native"]
+        FROZEN["App Frozen<br/>Android native"]
+    end
+
+    API["Backend Laravel 13<br/>satu REST API untuk semua klien"]
+
+    subgraph DATA["Data"]
+        direction TB
+        PG["PostgreSQL 18<br/>status paket dijaga trigger"]
+        RD["Redis<br/>cache · session · queue"]
+    end
+
+    WORKER["Worker antrean<br/>mengirim notifikasi"]
+
+    subgraph NOTIF["Notifikasi WhatsApp"]
+        direction TB
+        N8N["n8n<br/>menyusun pesan"]
+        WAHA["WAHA<br/>WhatsApp HTTP API"]
+        PEMBELI["Pembeli<br/>balasannya memicu aksi ke API"]
+    end
+
+    KLIEN --> API
+    API --> DATA
+    DATA --> WORKER
+    WORKER --> NOTIF
+    N8N --> WAHA
+    WAHA --> PEMBELI
+
+    classDef klien fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef inti fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef data fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef luar fill:#fef3c7,stroke:#b45309,color:#0f172a
+
+    class ADMIN,KURIR,FROZEN klien
+    class API,WORKER inti
+    class PG,RD data
+    class N8N,WAHA,PEMBELI luar
+

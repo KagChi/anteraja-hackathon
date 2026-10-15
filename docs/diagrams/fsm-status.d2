@@ -1,0 +1,94 @@
+# Peta transisi status paket Anteraja Frozen (FSM).
+# Cermin dari docs/flowchart.md bagian 2 dan tabel package_status_transitions.
+
+# Arah vertikal supaya rantai statusnya turun ke bawah, bukan melebar ke samping.
+direction: down
+
+classes: {
+  normal: {
+    style: {
+      fill: "#e0f2fe"
+      stroke: "#0369a1"
+      stroke-width: 2
+      font-color: "#0c4a6e"
+    }
+  }
+  menunggu: {
+    style: {
+      fill: "#fef3c7"
+      stroke: "#b45309"
+      stroke-width: 3
+      font-color: "#78350f"
+    }
+  }
+  terminal: {
+    style: {
+      fill: "#ede9fe"
+      stroke: "#6d28d9"
+      stroke-width: 3
+      font-color: "#3b0764"
+      bold: true
+    }
+  }
+  gantung: {
+    style: {
+      fill: "#f1f5f9"
+      stroke: "#64748b"
+      stroke-width: 2
+      stroke-dash: 4
+      font-color: "#334155"
+    }
+  }
+}
+
+start: "" { shape: circle; style.fill: "#0f172a" }
+finish: "" { shape: circle; style.fill: "#0f172a" }
+
+created: "CREATED\nDibuat" { shape: oval }
+awc: "AWAITING_CONFIRMATION\nMenunggu Konfirmasi" { shape: oval }
+resch: "RESCHEDULE_REQUESTED\nMinta Jadwal Ulang" { shape: oval }
+conf: "CONFIRMED\nDijadwalkan" { shape: oval }
+ca: "COURIER_ASSIGNED\nKurir Ditugaskan" { shape: oval }
+chked: "CHECKED\nSudah Diperiksa" { shape: oval }
+issue: "ISSUE_REPORTED\nKendala" { shape: oval }
+indel: "IN_DELIVERY\nSedang Diantar" { shape: oval }
+recv: "RECEIVED\nDiterima" { shape: oval }
+ret: "RETURNED\nDikembalikan" { shape: oval }
+closed: "CLOSED\nSelesai" { shape: oval }
+
+created.class: normal
+awc.class: menunggu
+resch.class: normal
+conf.class: normal
+ca.class: normal
+chked.class: normal
+issue.class: menunggu
+indel.class: normal
+recv.class: normal
+ret.class: normal
+closed.class: gantung
+
+start -> created
+created -> awc: sistem mengirim permintaan konfirmasi
+awc -> conf: pembeli memilih siap menerima
+awc -> resch: pembeli meminta jadwal lain
+resch -> awc: admin menyusun jadwal baru
+conf -> ca: admin menugaskan kurir
+ca -> conf: kurir menolak penugasan
+ca -> chked: kurir mengisi checklist kemasan
+chked -> indel: kondisi normal, kurir berangkat
+chked -> issue: checklist menemukan kendala
+indel -> recv: serah terima tercatat
+indel -> issue: kendala di lapangan
+issue -> indel: keputusan PROCEED
+issue -> chked: keputusan RECHECK
+issue -> awc: keputusan RESCHEDULE
+issue -> ret: keputusan RETURN atau RESEND
+recv -> closed: proses ditutup { style.stroke-dash: 4 }
+ret -> closed: klaim retur selesai { style.stroke-dash: 4 }
+closed -> finish
+
+catatan: "Catatan penting\n- Menerima tugas tidak mengubah status paket.\n- Serah terima yang menghantar ke RECEIVED.\n- Dua panah putus-putus ke CLOSED diizinkan database,\n  tetapi belum ada endpoint atau job yang menjalankannya." {
+  shape: text
+  style.font-color: "#334155"
+}

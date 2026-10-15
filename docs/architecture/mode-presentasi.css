@@ -1,0 +1,26 @@
+/* Tema lembut untuk mode presentasi. render.sh memakainya lewat opsi -C. */
+
+/* Ukuran font dan palet diatur dari direktif init di dalam berkas .mmd supaya
+   Mermaid tetap mengukur ulang lebar kotaknya. CSS ini hanya menyentuh bentuk. */
+.node rect,
+.node polygon,
+.node path {
+  rx: 14px;
+  ry: 14px;
+}
+
+.cluster rect {
+  rx: 22px;
+  ry: 22px;
+}
+
+.node rect,
+.cluster rect {
+  stroke-width: 1.5px;
+}
+
+.edgePath .path,
+.flowchart-link {
+  stroke-width: 1.6px;
+}
+

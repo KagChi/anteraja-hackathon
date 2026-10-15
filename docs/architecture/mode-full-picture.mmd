@@ -1,0 +1,120 @@
+---
+title: Anteraja Frozen - Gambaran Penuh per Lapisan
+---
+flowchart TB
+    subgraph L1["1. Klien"]
+        direction LR
+        C1["Console Admin<br/>React 19 · Inertia 3.9"]
+        C2["App Kurir<br/>NativePHP Mobile"]
+        C3["App Frozen<br/>NativePHP Mobile"]
+        C4["Landing dan blog<br/>Inertia + Tailwind 4"]
+    end
+
+    subgraph L2["2. Edge dan runtime"]
+        direction LR
+        E1["Cloudflare<br/>tunnel atau DNS"]
+        E2["nginx<br/>reverse proxy atau ingress"]
+        E3["FrankenPHP + Octane<br/>Caddy, 8 worker"]
+    end
+
+    subgraph L3["3. Permukaan API"]
+        direction LR
+        R1["admin<br/>staff.role ADMIN"]
+        R2["courier<br/>ability courier"]
+        R3["client<br/>ability client"]
+        R4["guest token<br/>deep link WhatsApp"]
+        R5["internal<br/>X-Anteraja-Token"]
+        R6["track<br/>pelacakan publik"]
+    end
+
+    subgraph L4["4. Aplikasi Laravel 13"]
+        direction LR
+        A1["Controller tipis"]
+        A2["Actions<br/>setiap mutasi"]
+        A3["Queries<br/>index dan rekap"]
+        A4["Services<br/>GPS · cold chain · timeline"]
+        A5["DTO dan Enum"]
+        A6["FormRequest dan Resource"]
+    end
+
+    subgraph L5["5. Data dan integritas domain"]
+        direction LR
+        D1["PostgreSQL 18<br/>tabel transaksional"]
+        D2["Trigger FSM<br/>validate + log"]
+        D3["PackageStatusTransitioner"]
+        D4["Redis<br/>cache · session · queue"]
+    end
+
+    subgraph L6["6. Asinkron dan integrasi"]
+        direction LR
+        Q1["notifications<br/>outbox"]
+        Q2["DispatchNotificationToN8n"]
+        Q3["Scheduler<br/>reminder konfirmasi"]
+        Q4["n8n<br/>workflow outbound dan inbound"]
+        Q5["WAHA<br/>WhatsApp HTTP API"]
+        Q6["LLM<br/>deepseek-v4-flash"]
+    end
+
+    subgraph L7["7. Rilis dan operasi"]
+        direction LR
+        O1["Docker multi-stage"]
+        O2["Kubernetes<br/>web + worker"]
+        O3["GitHub Actions<br/>image · APK · skenario"]
+        O4["Mutu<br/>PHPUnit · Pint · Biome"]
+    end
+
+    C1 --> E1
+    C2 --> E1
+    C3 --> E1
+    C4 --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> R1
+    E3 --> R2
+    E3 --> R3
+    E3 --> R4
+    E3 --> R5
+    E3 --> R6
+    R1 --> A1
+    R2 --> A1
+    R3 --> A1
+    R4 --> A1
+    R5 --> A1
+    R6 --> A1
+    A1 --> A2
+    A1 --> A3
+    A2 --> A4
+    A2 --> A6
+    A3 --> A5
+    A2 --> D3
+    D3 --> D2
+    D2 --> D1
+    A3 --> D1
+    A2 --> D4
+    A2 --> Q1
+    Q3 --> Q1
+    Q1 --> Q2
+    Q2 --> Q4
+    Q4 --> Q5
+    Q4 --> Q6
+    Q5 -.->|balasan pembeli| Q4
+    Q4 -.->|aksi ke API guest| A1
+    O3 --> O1
+    O4 --> O1
+    O1 --> O2
+
+    classDef klien fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef runtime fill:#e0e7ff,stroke:#4338ca,color:#0f172a
+    classDef api fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef app fill:#f1f5f9,stroke:#475569,color:#0f172a
+    classDef data fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef luar fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef ops fill:#ffe4e6,stroke:#be123c,color:#0f172a
+
+    class C1,C2,C3,C4 klien
+    class E1,E2,E3 runtime
+    class R1,R2,R3,R4,R5,R6 api
+    class A1,A2,A3,A4,A5,A6 app
+    class D1,D2,D3,D4 data
+    class Q1,Q2,Q3,Q4,Q5,Q6 luar
+    class O1,O2,O3,O4 ops

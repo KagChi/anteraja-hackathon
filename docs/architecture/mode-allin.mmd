@@ -1,0 +1,213 @@
+---
+title: Anteraja Frozen - Semua Komponen
+---
+flowchart LR
+    subgraph BAND_B["1. Alat dan build frontend"]
+        direction TB
+        B1["Bun 1.4.2<br/>bun.lock"]
+        B2["Vite 8<br/>laravel-vite-plugin"]
+        B3["TypeScript 5.9<br/>tsc --noEmit"]
+        B4["Biome 2.5.15<br/>lint dan format"]
+        B5["Tailwind CSS 4.3 + PostCSS"]
+        B6["NativePHP 4.6 + mobile-ui 0.8<br/>EDGE ke Jetpack Compose"]
+        B7["JDK 17 · Android SDK 36<br/>Gradle · keystore"]
+    end
+
+    subgraph BAND_K["2. Klien"]
+        direction TB
+        K1["Console Admin<br/>React 19 · Inertia 3.9"]
+        K2["App Kurir<br/>com.anteraja.kurir"]
+        K3["App Frozen<br/>com.anteraja.frozen"]
+        K4["Landing dan blog<br/>Inertia + Tailwind"]
+        K5["mobile/apps.php<br/>registri identitas app"]
+        K6["routes/mobile.php<br/>rute native"]
+    end
+
+    subgraph BAND_E["3. Edge dan runtime"]
+        direction TB
+        E1["Cloudflare<br/>tunnel atau DNS"]
+        E2["nginx<br/>reverse proxy atau ingress"]
+        E3["Caddy<br/>menyajikan public/"]
+        E4["FrankenPHP 8.5 + Octane<br/>8 worker, 500 request"]
+        E5["Healthcheck /up"]
+    end
+
+    subgraph BAND_M["4. Middleware dan guard"]
+        direction TB
+        M1["force.json"]
+        M2["staff.role"]
+        M3["auth:sanctum + abilities"]
+        M4["client.headers · buyer<br/>owned · package"]
+        M5["internal.token<br/>X-Anteraja-Token"]
+        M6["throttle<br/>courier-auth · client-auth · track-resi"]
+    end
+
+    subgraph BAND_R["5. Rute API"]
+        direction TB
+        R1["/api/admin/*"]
+        R2["/api/courier/*"]
+        R3["/api/client/*"]
+        R4["/api/guest/TOKEN/*<br/>dan /api/client/TOKEN/*"]
+        R5["/api/track/RESI"]
+        R6["/api/internal/whatsapp/lookup"]
+        R7["/api/docs<br/>Swagger di luar produksi"]
+    end
+
+    subgraph BAND_A["6. Lapisan aplikasi"]
+        direction TB
+        A1["Controller tipis"]
+        A2["Actions<br/>Packages · Courier · Client · Admin"]
+        A3["IssueDecisionHandler<br/>Proceed · Recheck · Reschedule · Resend · Return"]
+        A4["Queries<br/>Shipment · History · Report · Exception"]
+        A5["Services GPS<br/>FakeGpsDetector · GeofenceEvaluator"]
+        A6["Services Client<br/>timeline · cold chain · eligibility"]
+        A7["DTO · Enum · FormRequest · Resource"]
+        A8["Support<br/>ApiResult · Csv · MediaStorage · PhoneFormatter"]
+    end
+
+    subgraph BAND_D["7. Domain dan data"]
+        direction TB
+        D1["PostgreSQL 18"]
+        D2["Trigger validate status<br/>matriks FSM"]
+        D3["Trigger log status<br/>status_logs.changed_by"]
+        D4["PackageStatusTransitioner"]
+        D5["set_config app.staff_id"]
+        D6["lockForUpdate<br/>penugasan dan keputusan"]
+        D7["Referensi FSM<br/>package_statuses + transitions"]
+        D8["Tabel transaksional<br/>paket · item · jadwal · kendala"]
+        D9["Buyer · Produk · Staff · Geofence"]
+        D10["Redis atau Dragonfly<br/>cache · session · queue"]
+    end
+
+    subgraph BAND_S["8. Asinkron dan integrasi"]
+        direction TB
+        S1["notifications<br/>outbox satu transaksi"]
+        S2["DispatchNotificationToN8n<br/>3 kali coba, backoff"]
+        S3["Scheduler<br/>confirmations:remind-unanswered"]
+        S4["n8n 2.44.1<br/>workflow outbound dan inbound"]
+        S5["anteraja_chat_state<br/>state percakapan"]
+        S6["LLM deepseek-v4-flash<br/>endpoint OpenAI-compatible"]
+        S7["WAHA 2026.9.2<br/>WhatsApp HTTP API"]
+    end
+
+    subgraph BAND_V["9. Rilis dan operasi"]
+        direction TB
+        V1["Dockerfile 3 tahap<br/>Bun · Composer · FrankenPHP"]
+        V2["image ghcr.io/kagchi/anteraja-hackathon"]
+        V3["Docker Compose<br/>postgres:18 + redis:8"]
+        V4["Kubernetes prod-other<br/>web + worker queue:work"]
+        V5["CloudNativePG + Dragonfly"]
+        V6["Ingress + cert-manager"]
+        V7["Job migrasi dan seeder"]
+    end
+
+    subgraph BAND_C["10. CI dan mutu"]
+        direction TB
+        C1["Actions docker.yaml"]
+        C2["Actions android-apk.yaml"]
+        C3["Actions n8n-scenarios.yaml"]
+        C4["Actions release.yaml"]
+        C5["PHPUnit 11<br/>feature dan unit"]
+        C6["Uji layar native<br/>Native test"]
+        C7["Laravel Pint + PHP-CS-Fixer<br/>Biome + tsc"]
+        C8["OpenAPI 3 + Swagger UI"]
+        C9["Renovate"]
+    end
+
+    %% Kunci urutan band supaya kolomnya berbaris rapi dari kiri ke kanan.
+    BAND_B ~~~ BAND_K ~~~ BAND_E ~~~ BAND_M ~~~ BAND_R ~~~ BAND_A ~~~ BAND_D ~~~ BAND_S ~~~ BAND_V ~~~ BAND_C
+
+    B1 --> B2
+    B7 --> B6
+    B2 --> K1
+    B5 --> K1
+    B6 --> K2
+    B6 --> K3
+    B6 --> K6
+    B3 --> K4
+    B4 --> K4
+    K1 --> E1
+    K2 --> E1
+    K3 --> E1
+    K4 --> E1
+    E1 --> E2
+    E2 --> E3
+    E3 --> E4
+    E4 --> E5
+    E4 --> M1
+    M1 --> M2
+    M1 --> M3
+    M1 --> M4
+    M1 --> M5
+    M1 --> M6
+    M2 --> R1
+    M3 --> R2
+    M3 --> R3
+    M4 --> R3
+    M6 --> R5
+    M5 --> R6
+    R1 --> A1
+    R2 --> A1
+    R3 --> A1
+    R4 --> A1
+    R5 --> A1
+    R6 --> A1
+    R7 --> A1
+    A1 --> A2
+    A1 --> A4
+    A1 --> A6
+    A1 --> A7
+    A1 --> A8
+    A2 --> A3
+    A2 --> A5
+    A2 --> D4
+    A2 --> D10
+    D4 --> D2
+    D4 --> D5
+    D4 --> D6
+    D2 --> D7
+    D2 --> D1
+    D3 --> D1
+    D8 --> D1
+    D9 --> D1
+    D1 --> S1
+    S3 --> S1
+    S1 --> S2
+    S2 --> S4
+    S4 --> S5
+    S4 --> S6
+    S4 --> S7
+    D1 --> V7
+    A1 --> V1
+    V3 --> V1
+    V1 --> V2
+    V2 --> V4
+    V5 --> V4
+    V6 --> V4
+    V7 --> V5
+    V2 --> C1
+    B7 --> C2
+    S4 --> C3
+    V2 --> C4
+
+    classDef klien fill:#dbeafe,stroke:#1d4ed8,color:#0f172a
+    classDef build fill:#e0e7ff,stroke:#4338ca,color:#0f172a
+    classDef runtime fill:#e0f2fe,stroke:#0369a1,color:#0f172a
+    classDef guard fill:#fef3c7,stroke:#b45309,color:#0f172a
+    classDef rute fill:#ede9fe,stroke:#6d28d9,color:#0f172a
+    classDef app fill:#f1f5f9,stroke:#475569,color:#0f172a
+    classDef data fill:#dcfce7,stroke:#15803d,color:#0f172a
+    classDef luar fill:#fae8ff,stroke:#a21caf,color:#0f172a
+    classDef ops fill:#ffe4e6,stroke:#be123c,color:#0f172a
+
+    class K1,K2,K3,K4,K5,K6 klien
+    class B1,B2,B3,B4,B5,B6,B7 build
+    class E1,E2,E3,E4,E5 runtime
+    class M1,M2,M3,M4,M5,M6 guard
+    class R1,R2,R3,R4,R5,R6,R7 rute
+    class A1,A2,A3,A4,A5,A6,A7,A8 app
+    class D1,D2,D3,D4,D5,D6,D7,D8,D9,D10 data
+    class S1,S2,S3,S4,S5,S6,S7 luar
+    class V1,V2,V3,V4,V5,V6,V7 ops
+    class C1,C2,C3,C4,C5,C6,C7,C8,C9 ops
+

@@ -1,0 +1,262 @@
+# Alur lengkap Anteraja Frozen: good case dan edge case dalam satu diagram.
+# Cermin dari docs/flowchart.md bagian 3. Kalau FSM di database berubah, ubah keduanya.
+
+direction: down
+
+classes: {
+  pembeli: {
+    style: {
+      fill: "#dbeafe"
+      stroke: "#1d4ed8"
+      stroke-width: 2
+      font-color: "#0f172a"
+    }
+  }
+  admin: {
+    style: {
+      fill: "#fef3c7"
+      stroke: "#b45309"
+      stroke-width: 2
+      font-color: "#0f172a"
+    }
+  }
+  kurir: {
+    style: {
+      fill: "#dcfce7"
+      stroke: "#15803d"
+      stroke-width: 2
+      font-color: "#0f172a"
+    }
+  }
+  sistem: {
+    style: {
+      fill: "#f1f5f9"
+      stroke: "#64748b"
+      stroke-width: 2
+      font-color: "#0f172a"
+    }
+  }
+  status: {
+    style: {
+      fill: "#ede9fe"
+      stroke: "#6d28d9"
+      stroke-width: 3
+      font-color: "#3b0764"
+      bold: true
+    }
+  }
+  keputusan: {
+    style: {
+      fill: "#ffffff"
+      stroke: "#0f172a"
+      stroke-width: 2
+      font-color: "#0f172a"
+    }
+  }
+}
+
+fase1: "Fase 1 - Paket dibuat" {
+  direction: right
+  cat: "[Pembeli] jelajahi katalog\nGET /api/client/catalog"
+  ord: "[Pembeli] checkout: produk, alamat, jadwal\nPOST /api/client/orders"
+  hub: "[Admin] input paket dari hub\nPOST /api/admin/shipments"
+  created: CREATED { shape: oval }
+  awc: AWAITING_CONFIRMATION { shape: oval }
+  req: "[Sistem] kirim permintaan konfirmasi\ntemplate schedule_request"
+
+  cat.class: pembeli
+  ord.class: pembeli
+  hub.class: admin
+  created.class: status
+  awc.class: status
+  req.class: sistem
+
+  cat -> ord
+  ord -> created
+  hub -> created
+  created -> awc
+  awc -> req
+  req -> fase2.dec1
+}
+
+fase2: "Fase 2 - Konfirmasi jadwal" {
+  direction: right
+  dec1: "[Pembeli] siap menerima?" { shape: diamond }
+  conf: CONFIRMED { shape: oval }
+  resch: RESCHEDULE_REQUESTED { shape: oval }
+  nresch: "[Sistem] notifikasi reschedule_requested\nke admin"
+  adrs: "[Admin] susun jadwal baru\nPOST /api/admin/shipments/RESI/reschedule"
+  newreq: "[Sistem] kirim jadwal baru\ntemplate schedule_rescheduled"
+  overdue: "[Sistem] reminder pembeli belum menjawab\nconfirmations:remind-unanswered"
+  adman: "[Admin] hubungi pembeli secara manual"
+
+  dec1.class: keputusan
+  conf.class: status
+  resch.class: status
+  nresch.class: sistem
+  adrs.class: admin
+  newreq.class: sistem
+  overdue.class: sistem
+  adman.class: admin
+
+  dec1 -> conf: siap menerima
+  dec1 -> resch: minta jadwal lain, E1
+  resch -> nresch
+  nresch -> adrs
+  adrs -> newreq
+  newreq -> fase1.awc: jadwal baru dikirim ulang
+  dec1 -> overdue: tidak menjawab, E2 { style.stroke-dash: 4 }
+  overdue -> adman
+  adman -> dec1 { style.stroke-dash: 4 }
+  conf -> fase3.assign
+}
+
+fase3: "Fase 3 - Penugasan kurir" {
+  direction: right
+  assign: "[Admin] tugaskan kurir\nPOST /api/admin/shipments/RESI/assign"
+  ca: COURIER_ASSIGNED { shape: oval }
+  task: "[Sistem] notifikasi task_assigned\nberisi instruksi handling"
+  kacc: "[Kurir] terima tugas?" { shape: diamond }
+  kyes: "[Kurir] terima\ncourier_accepted_at diisi, status tetap"
+  kno: "[Kurir] tolak\nPOST /api/courier/tasks/RESI/reject"
+  rej: "[Sistem] status kembali ke CONFIRMED\ncourier_id dikosongkan"
+  nadm: "[Sistem] notifikasi task_rejected ke admin"
+
+  assign.class: admin
+  ca.class: status
+  task.class: sistem
+  kacc.class: keputusan
+  kyes.class: kurir
+  kno.class: kurir
+  rej.class: sistem
+  nadm.class: sistem
+
+  assign -> ca
+  ca -> task
+  task -> kacc
+  kacc -> kyes: terima
+  kyes -> fase4.chk
+  kacc -> kno: tolak, E3
+  kno -> rej
+  rej -> nadm
+  nadm -> assign: kurir lain
+}
+
+fase4: "Fase 4 - Pemeriksaan kondisi" {
+  direction: right
+  chk: "[Kurir] isi checklist kemasan dan suhu"
+  cond: "Kondisi normal?" { shape: diamond }
+  chked: CHECKED { shape: oval }
+
+  chk.class: kurir
+  cond.class: keputusan
+  chked.class: status
+
+  chk -> cond
+  cond -> chked: normal
+  chked -> fase5.depart
+  cond -> fase5.rpt: bermasalah, E4
+}
+
+fase5: "Fase 5 - Pengantaran" {
+  direction: right
+  depart: "[Kurir] berangkat mengantar\nPOST deliveries/RESI/depart"
+  indel: IN_DELIVERY { shape: oval }
+  notw: "[Sistem] notifikasi on_the_way ke pembeli"
+  arrive: "[Kurir] tiba di lokasi\nPOST deliveries/RESI/arrive"
+  narr: "[Sistem] notifikasi courier_arrived ke pembeli"
+  road: "[Kurir] ada kendala di jalan?" { shape: diamond }
+  rpt: "[Kurir] lapor kendala\nPOST deliveries/RESI/issue"
+
+  depart.class: kurir
+  indel.class: status
+  notw.class: sistem
+  arrive.class: kurir
+  narr.class: sistem
+  road.class: keputusan
+  rpt.class: kurir
+
+  depart -> indel
+  indel -> notw
+  notw -> arrive
+  arrive -> narr
+  narr -> road
+  road -> fase7.proof: tidak
+  road -> rpt: ya, E5
+  rpt -> fase6.issue
+}
+
+fase6: "Fase 6 - Kendala dan keputusan admin" {
+  direction: right
+  issue: ISSUE_REPORTED { shape: oval }
+  nissue: "[Sistem] notifikasi issue_reported ke admin\ndan issue_options ke pembeli"
+  bchoice: "[Pembeli] pilih opsi 1 sampai 4 di WhatsApp\ntersimpan di issue_reports.buyer_choice"
+  panel: "[Admin] buka panel kendala\nGET /api/admin/exceptions/RESI"
+  catk: "Kategori kendala" { shape: diamond }
+  opt1: "Opsi: RETURN, RESEND,\nPROCEED, RECHECK" { shape: diamond }
+  opt2: "Opsi: RESCHEDULE, RETURN" { shape: diamond }
+  dp: "[Admin] PROCEED"
+  dr: "[Admin] RECHECK"
+  ds: "[Admin] RESCHEDULE"
+  drt: "[Admin] RETURN"
+  drs: "[Admin] RESEND"
+  rret: RETURNED { shape: oval }
+  rnew: "Paket baru\nAWAITING_CONFIRMATION" { shape: oval }
+
+  issue.class: status
+  nissue.class: sistem
+  bchoice.class: pembeli
+  panel.class: admin
+  catk.class: keputusan
+  opt1.class: keputusan
+  opt2.class: keputusan
+  dp.class: admin
+  dr.class: admin
+  ds.class: admin
+  drt.class: admin
+  drs.class: admin
+  rret.class: status
+  rnew.class: status
+
+  issue -> nissue
+  nissue -> panel
+  bchoice -> panel: masukan, bukan keputusan { style.stroke-dash: 4 }
+  panel -> catk
+  catk -> opt1: kemasan_bocor, kemasan_basah, suhu_naik
+  catk -> opt2: pembeli_tidak_ada, alamat_tidak_ditemukan, cod_ditolak
+  opt1 -> dp
+  opt1 -> dr
+  opt1 -> drt
+  opt1 -> drs
+  opt2 -> ds
+  opt2 -> drt
+  dp -> fase5.indel: pengantaran diteruskan
+  dr -> fase5.depart: periksa ulang lalu berangkat
+  ds -> fase1.awc: kurir dilepas, pembeli pilih jadwal
+  drt -> rret: paket ditarik ke hub
+  drs -> rret: paket asal ditutup
+  rret -> rnew: khusus RESEND, resi pengganti dibuat
+  bchoice -> rnew: opsi 2, paket asal tetap ISSUE_REPORTED { style.stroke-dash: 4 }
+  rnew -> fase1.awc: paket baru mulai dari fase konfirmasi
+}
+
+fase7: "Fase 7 - Serah terima dan penutupan" {
+  direction: right
+  proof: "[Kurir] isi bukti serah terima\nPOST deliveries/RESI/proof"
+  recv: RECEIVED { shape: oval }
+  ndlv: "[Sistem] notifikasi delivered ke pembeli"
+  report: "[Sistem] paket masuk rekap harian dan riwayat"
+  gap: "Belum terhubung\nCLOSED dan closed_at belum punya eksekutor"
+
+  proof.class: kurir
+  recv.class: status
+  ndlv.class: sistem
+  report.class: sistem
+  gap.class: sistem
+
+  proof -> recv
+  recv -> ndlv
+  ndlv -> report
+  recv -> gap: belum ada eksekutor { style.stroke-dash: 4 }
+  fase6.rret -> gap { style.stroke-dash: 4 }
+}

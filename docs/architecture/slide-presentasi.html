@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Anteraja Frozen - Slide Arsitektur</title>
+<style>
+  :root {
+    --ink: #101828;
+    --muted: #5b6478;
+    --page: #f4f6fb;
+    --line: #d7dcea;
+    --blue: #1a56db; --blue-soft: #e8f0fe;
+    --violet: #6d28d9; --violet-soft: #f1eafe;
+    --green: #15803d; --green-soft: #e6f7ee;
+    --amber: #b45309; --amber-soft: #fdf2e0;
+    --rose: #be123c; --rose-soft: #fdeaf1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  .slide {
+    width: 1920px; height: 1080px;
+    padding: 60px 80px 52px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 30px;
+  }
+  .eyebrow { font-size: 14px; font-weight: 600; letter-spacing: .18em; color: var(--muted); }
+  h1 { font-size: 48px; font-weight: 600; letter-spacing: -.01em; margin-top: 10px; }
+  .lede { font-size: 20px; line-height: 1.55; color: var(--muted); margin-top: 12px; max-width: 1180px; }
+
+  .flow { height: 300px; display: flex; align-items: stretch; }
+  .stage {
+    flex: 1; min-width: 0;
+    background: #fff; border-radius: 22px; padding: 24px 22px;
+    display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 12px 32px rgba(16, 24, 40, .07);
+  }
+  .chips { display: flex; gap: 8px; }
+  .chip { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; }
+  .stage h2 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+  .stage p { font-size: 15px; line-height: 1.6; color: var(--muted); }
+  .stage .meta { margin-top: auto; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .arrow { width: 58px; display: grid; place-items: center; color: var(--line); }
+  .blue .chip { background: var(--blue-soft); color: var(--blue); }
+  .blue h2 { color: var(--blue); }
+  .violet .chip { background: var(--violet-soft); color: var(--violet); }
+  .violet h2 { color: var(--violet); }
+  .green .chip { background: var(--green-soft); color: var(--green); }
+  .green h2 { color: var(--green); }
+  .amber .chip { background: var(--amber-soft); color: var(--amber); }
+  .amber h2 { color: var(--amber); }
+  .rose .chip { background: var(--rose-soft); color: var(--rose); }
+  .rose h2 { color: var(--rose); }
+
+  .journey {
+    background: #fff; border-radius: 22px; padding: 24px 26px;
+    display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 12px 32px rgba(16, 24, 40, .07);
+  }
+  .journey-head { display: flex; align-items: baseline; gap: 14px; }
+  .journey-head h3 { font-size: 19px; font-weight: 600; }
+  .journey-head span { font-size: 14px; color: var(--muted); }
+  .steps { display: flex; align-items: stretch; }
+  .step {
+    display: flex; flex-direction: column; gap: 3px;
+    background: var(--page); border-radius: 14px; padding: 10px 17px;
+  }
+  .step strong { font-size: 14px; font-weight: 600; color: #344054; white-space: nowrap; }
+  .step span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .sep { color: var(--line); display: grid; place-items: center; padding: 0 7px; }
+  .branch { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #344054; }
+  .branch .tag {
+    background: var(--amber-soft); color: var(--amber);
+    font-size: 13px; font-weight: 600; border-radius: 999px; padding: 6px 14px; white-space: nowrap;
+  }
+
+  footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  footer .label { font-size: 13px; font-weight: 600; letter-spacing: .12em; color: var(--muted); margin-right: 6px; }
+  .pill {
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 16px; font-size: 14px; font-weight: 500; color: #344054;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+  <header>
+    <div class="eyebrow">ANTERAJA FROZEN</div>
+    <h1>Alur sistem, dari pesanan sampai kabar ke pembeli</h1>
+    <p class="lede">Satu backend melayani tiga aplikasi, dan setiap perubahan status paket otomatis jadi pesan WhatsApp ke pembeli.</p>
+  </header>
+
+  <section class="flow">
+    <article class="stage blue">
+      <div class="chips">
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#1a56db"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="3" rx="2" />
+  <line x1="8" x2="16" y1="21" y2="21" />
+  <line x1="12" x2="12" y1="17" y2="21" />
+</svg></span>
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#1a56db"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+  <path d="M15 18H9" />
+  <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+  <circle cx="17" cy="18" r="2" />
+  <circle cx="7" cy="18" r="2" />
+</svg></span>
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#1a56db"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="m10 20-1.25-2.5L6 18" />
+  <path d="M10 4 8.75 6.5 6 6" />
+  <path d="m14 20 1.25-2.5L18 18" />
+  <path d="m14 4 1.25 2.5L18 6" />
+  <path d="m17 21-3-6h-4" />
+  <path d="m17 3-3 6 1.5 3" />
+  <path d="M2 12h6.5L10 9" />
+  <path d="m20 10-1.5 2 1.5 2" />
+  <path d="M22 12h-6.5L14 15" />
+  <path d="m4 10 1.5 2L4 14" />
+  <path d="m7 21 3-6-1.5-3" />
+  <path d="m7 3 3 6h4" />
+</svg></span>
+      </div>
+      <h2>Tiga aplikasi klien</h2>
+      <p>Console admin untuk hub, plus dua aplikasi Android: Kurir di lapangan dan Frozen untuk pembeli.</p>
+      <div class="meta">React + Inertia &middot; NativePHP</div>
+    </article>
+
+    <div class="arrow"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+
+    <article class="stage violet">
+      <div class="chips"><span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#6d28d9"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+  <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+  <line x1="6" x2="6.01" y1="6" y2="6" />
+  <line x1="6" x2="6.01" y1="18" y2="18" />
+</svg></span></div>
+      <h2>Satu backend Laravel</h2>
+      <p>Semua permintaan masuk ke satu REST API: pesanan, jadwal, pengantaran, sampai laporan kendala.</p>
+      <div class="meta">Laravel 13 &middot; FrankenPHP + Octane</div>
+    </article>
+
+    <div class="arrow"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+
+    <article class="stage green">
+      <div class="chips">
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#15803d"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <ellipse cx="12" cy="5" rx="9" ry="3" />
+  <path d="M3 5V19A9 3 0 0 0 21 19V5" />
+  <path d="M3 12A9 3 0 0 0 21 12" />
+</svg></span>
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#15803d"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z" />
+</svg></span>
+      </div>
+      <h2>Data dan antrean</h2>
+      <p>Paket dan riwayat statusnya disimpan PostgreSQL, sementara antrean pekerjaan dan sesi dijalankan Redis.</p>
+      <div class="meta">Status paket dijaga trigger database</div>
+    </article>
+
+    <div class="arrow"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+
+    <article class="stage amber">
+      <div class="chips">
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#b45309"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="8" height="8" x="3" y="3" rx="2" />
+  <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+  <rect width="8" height="8" x="13" y="13" rx="2" />
+</svg></span>
+        <span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#b45309"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719" />
+</svg></span>
+      </div>
+      <h2>Kabar otomatis</h2>
+      <p>Perubahan status menyusun pesan di n8n, lalu WAHA yang mengirimkannya ke WhatsApp pembeli.</p>
+      <div class="meta">n8n &middot; WAHA</div>
+    </article>
+
+    <div class="arrow"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></div>
+
+    <article class="stage rose">
+      <div class="chips"><span class="chip"><!-- @license lucide-static v1.57.0 - ISC -->
+<svg
+ 
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#be123c"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M12 22V12" />
+  <path d="m16 17 2 2 4-4" />
+  <path d="M21 11.127V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.729l7 4a2 2 0 0 0 2 .001l1.32-.753" />
+  <path d="M3.29 7 12 12l8.71-5" />
+  <path d="m7.5 4.27 8.997 5.148" />
+</svg></span></div>
+      <h2>Pembeli</h2>
+      <p>Menerima kabar paketnya, lalu bisa langsung membalas siap menerima atau memilih opsi kendala.</p>
+      <div class="meta">Balasannya jadi aksi di sistem</div>
+    </article>
+  </section>
+
+  <section class="journey">
+    <div class="journey-head">
+      <h3>Perjalanan satu paket</h3>
+      <span>Setiap perpindahan status dikunci dan dicatat oleh database.</span>
+    </div>
+    <div class="steps">
+      <span class="step"><strong>Dibuat</strong><span>pesanan masuk</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Menunggu konfirmasi</strong><span>pembeli dihubungi</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Dijadwalkan</strong><span>jadwal disetujui</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Kurir ditugaskan</strong><span>paket disiapkan</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Diperiksa</strong><span>kondisi dan suhu</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Sedang diantar</strong><span>kurir di jalan</span></span>
+      <span class="sep"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span><span class="step"><strong>Diterima</strong><span>serah terima</span></span>
+    </div>
+    <div class="branch">
+      <span class="tag">Kalau ada kendala</span>
+      <span>admin hub memutuskan: lanjutkan, periksa ulang, jadwal ulang, kirim ulang, atau retur</span>
+    </div>
+  </section>
+
+  <footer>
+    <span class="label">YANG DIPAKAI</span>
+    <span class="pill">Laravel 13</span>
+    <span class="pill">PostgreSQL 18</span>
+    <span class="pill">Redis</span>
+    <span class="pill">React 19 + Inertia</span>
+    <span class="pill">NativePHP Mobile</span>
+    <span class="pill">FrankenPHP + Octane</span>
+    <span class="pill">Sanctum</span>
+    <span class="pill">n8n</span>
+    <span class="pill">WAHA</span>
+    <span class="pill">Docker + Kubernetes</span>
+  </footer>
+</div>
+</body>
+</html>
+
