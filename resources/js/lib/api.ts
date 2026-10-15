@@ -244,6 +244,42 @@ export interface HistoryResponse {
     paginator: Paginator;
 }
 
+/** Riwayat pesan WhatsApp: satu baris per pesan masuk atau keluar. */
+export interface MessageRow {
+    id: number;
+    direction: "IN" | "OUT";
+    role: "BUYER" | "COURIER" | "ADMIN" | null;
+    phone: string;
+    template: string | null;
+    body: string;
+    reply_body: string | null;
+    status: string;
+    tracking_number: string | null;
+    at: string;
+    at_iso: string | null;
+}
+
+export interface MessageHistoryResponse {
+    messages: MessageRow[];
+    paginator: Paginator;
+}
+
+/** Jawaban tombol "Kirim laporan sekarang" di halaman Laporan. */
+export interface DailyReportResponse {
+    queued: number;
+    message: string;
+    summary: {
+        report_day: string;
+        report_date: string;
+        total_shipments: number;
+        delivered_count: number;
+        in_process_count: number;
+        issue_count: number;
+        decision_count: number;
+        unanswered_count: number;
+    };
+}
+
 /** Location validation: one verdict row the hub can inspect. */
 export interface GpsReason {
     code: string;
@@ -491,10 +527,16 @@ export const api = {
     },
     reports: {
         index: (query: { date?: string; category?: string; page?: number }) =>
-            get<ReportResponse>("/admin/reports", query)
+            get<ReportResponse>("/admin/reports", query),
+        dailyWhatsapp: (payload: { date?: string } = {}) =>
+            post<DailyReportResponse>("/admin/reports/daily-whatsapp", payload)
     },
     history: {
         index: (query: { q?: string; status?: string; page?: number }) => get<HistoryResponse>("/admin/history", query)
+    },
+    messages: {
+        index: (query: { resi?: string; direction?: "IN" | "OUT"; page?: number } = {}) =>
+            get<MessageHistoryResponse>("/admin/messages", query)
     },
     gps: {
         checks: (query: { status?: string; level?: string } = {}) => get<GpsChecksResponse>("/admin/gps-checks", query),

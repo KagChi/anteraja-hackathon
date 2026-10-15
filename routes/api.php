@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\HistoryExportController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportExportController;
+use App\Http\Controllers\Admin\DailyReportWhatsappController;
+use App\Http\Controllers\Admin\MessageHistoryController;
 use App\Http\Controllers\Admin\ShipmentAssignmentController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\GeofenceController;
@@ -47,6 +49,8 @@ use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
 use App\Http\Controllers\Api\Internal\WhatsappLookupController;
+use App\Http\Controllers\Api\Internal\WhatsappActionController;
+use App\Http\Controllers\Api\Internal\WhatsappMessageLogController;
 use App\Http\Controllers\Api\Tracking\TrackController;
 use App\Http\Controllers\Media\MediaPreviewController;
 use App\Http\Middleware\AuthenticateCourier;
@@ -94,10 +98,14 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     // 3. Reports / Laporan
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export', ReportExportController::class)->name('reports.export');
+    Route::post('reports/daily-whatsapp', DailyReportWhatsappController::class)->name('reports.daily-whatsapp');
 
     // 4. History / Riwayat
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     Route::get('history/export', HistoryExportController::class)->name('history.export');
+
+    // Riwayat pesan WhatsApp: masuk dan keluar, dengan isi dan statusnya.
+    Route::get('messages', [MessageHistoryController::class, 'index'])->name('messages.index');
 
     // 5. GPS validation / Validasi GPS
     Route::get('geofence', [GeofenceController::class, 'index'])->name('geofence.index');
@@ -224,6 +232,10 @@ Route::prefix('internal')->name('api.internal.')
     ->middleware(['force.json', 'internal.token', 'throttle:60,1'])
     ->group(function () {
         Route::post('whatsapp/lookup', WhatsappLookupController::class)->name('whatsapp.lookup');
+        // Aksi kurir dan admin dari balasan WhatsApp, plus titipan riwayat
+        // pesan dari workflow n8n.
+        Route::post('whatsapp/action', WhatsappActionController::class)->name('whatsapp.action');
+        Route::post('whatsapp/messages', WhatsappMessageLogController::class)->name('whatsapp.messages');
     });
 
 // OpenAPI / Swagger Documentation

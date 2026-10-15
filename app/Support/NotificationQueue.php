@@ -70,6 +70,33 @@ final class NotificationQueue
         }
     }
 
+    /**
+     * Pesan ke staf yang tidak terikat pada satu paket, misalnya ringkasan
+     * harian untuk admin. package_id sengaja kosong: laporan itu tentang
+     * seluruh armada, bukan satu resi.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function queueStaffReport(Staff $staff, string $template, array $payload): Notification
+    {
+        $payload['recipient_type'] = RecipientType::ADMIN->value;
+        $payload['recipient_name'] ??= $staff->name;
+        $payload['recipient_phone'] ??= self::normalizePhone($staff->phone);
+
+        $notification = Notification::create([
+            'package_id' => null,
+            'recipient_type' => RecipientType::ADMIN,
+            'recipient_id' => $staff->id,
+            'template' => $template,
+            'payload' => $payload,
+            'status' => NotificationStatus::QUEUED,
+        ]);
+
+        DispatchNotificationToN8n::dispatch($notification->id)->afterCommit();
+
+        return $notification;
+    }
+
     public function queueOnTheWay(Package $package, Staff $courier): void
     {
         $this->queue(
@@ -116,6 +143,8 @@ final class NotificationQueue
 
     public function queueIssueReported(Package $package, Staff $courier, string $issueCategory): void
     {
+        $label = IssueCategory::fromOrFallback($issueCategory)->label();
+
         $admins = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->get();
         foreach ($admins as $admin) {
             $this->queue(
@@ -126,6 +155,9 @@ final class NotificationQueue
                 [
                     'tracking_number' => $package->tracking_number,
                     'issue_category' => $issueCategory,
+                    // The admin's WhatsApp message names the problem; the raw
+                    // category code would only be readable to the console.
+                    'issue_label' => $label,
                     'courier_name' => $courier->name,
                 ]
             );

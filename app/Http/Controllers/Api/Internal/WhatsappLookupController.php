@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Internal;
 
+use App\Enums\PackageStatus;
+use App\Enums\StaffRole;
 use App\Http\Controllers\Controller;
 use App\Models\Package;
+use App\Models\Staff;
 use App\Services\Client\ClientLinkService;
 use App\Services\Client\OrderPresenter;
 use App\Support\DisplayTime;
@@ -14,11 +17,17 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Resolves a tracking number a customer typed on WhatsApp into that customer's
- * package, so the n8n inbound workflow can attach the conversation to it.
+ * Menghubungkan satu nomor WhatsApp dengan paket yang sedang ia tangani, jadi
+ * workflow n8n inbound tahu langkah apa yang sedang menunggu.
  *
- * Matching needs BOTH the resi and a buyer whose phone equals the number the
- * message came from, so a customer can only ever reach their own parcels.
+ * Pembeli, kurir, dan admin dikenali dari nomor pengirimnya:
+ *
+ * - BUYER: nomor harus sama dengan nomor pembeli paket itu. Hanya pemilik
+ *   paket yang bisa membukanya.
+ * - COURIER: hanya paket yang ditugaskan ke kurir tersebut.
+ * - ADMIN: paket yang sedang menunggu keputusan kendala.
+ *
+ * Tautan dan token pelanggan hanya dikirim ke pembelinya sendiri.
  */
 final class WhatsappLookupController extends Controller
 {
@@ -38,31 +47,63 @@ final class WhatsappLookupController extends Controller
         /** @var Package|null $package */
         $package = Package::query()
             ->where('tracking_number', $resi)
-            ->whereHas('buyer', fn ($query) => $query->where('phone', $phone))
             ->with(['buyer', 'courier', 'items.product'])
             ->first();
 
         if ($package === null) {
-            // Not an HTTP error: the workflow treats "no match" as a normal
-            // answer and replies with the help text.
-            return response()->json(['found' => false]);
+            return response()->json(['found' => false, 'role' => null]);
         }
 
-        return response()->json([
-            'found' => true,
-            'tracking_number' => $package->tracking_number,
-            'client_token' => $package->client_token,
-            'client_url' => $linkService->entry($package),
-            'template' => $this->templateFor($presenter, $package),
-            'status_label' => (string) __("client.status.{$package->status->value}", [], 'id'),
-            'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
-        ]);
+        if ($package->buyer !== null && $package->buyer->phone === $phone) {
+            return response()->json([
+                'found' => true,
+                'role' => 'BUYER',
+                'tracking_number' => $package->tracking_number,
+                'client_token' => $package->client_token,
+                'client_url' => $linkService->entry($package),
+                'template' => $this->templateFor($presenter, $package),
+                'status_label' => $this->statusLabel($package),
+                'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
+            ]);
+        }
+
+        /** @var Staff|null $staff */
+        $staff = Staff::query()
+            ->where('is_active', true)
+            ->whereIn('phone', PhoneFormatter::candidates($validated['phone']))
+            ->first();
+
+        if ($staff !== null && $staff->role === StaffRole::COURIER && $package->courier_id === $staff->id) {
+            return response()->json([
+                'found' => true,
+                'role' => 'COURIER',
+                'courier_name' => $staff->name,
+                'tracking_number' => $package->tracking_number,
+                'template' => $this->courierTemplate($package),
+                'status_label' => $this->statusLabel($package),
+                'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
+            ]);
+        }
+
+        if ($staff !== null && $staff->role === StaffRole::ADMIN) {
+            return response()->json([
+                'found' => true,
+                'role' => 'ADMIN',
+                'tracking_number' => $package->tracking_number,
+                'template' => $package->status === PackageStatus::ISSUE_REPORTED ? 'admin_decision' : 'none',
+                'status_label' => $this->statusLabel($package),
+                'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
+            ]);
+        }
+
+        // Nomor orang lain: jangan mengaku resi itu miliknya.
+        return response()->json(['found' => false, 'role' => null]);
     }
 
     /**
-     * What this package is waiting for, expressed as the notification template
-     * that would have been sent — the workflow keys its replies off this, so
-     * the domain decides what is pending rather than the workflow guessing.
+     * Apa yang menunggu pembeli, dinyatakan sebagai template notifikasi yang
+     * akan dikirim — workflow memakai ini untuk memilih balasannya, jadi
+     * domainnya yang menentukan, bukan workflow yang menebak.
      */
     private function templateFor(OrderPresenter $presenter, Package $package): string
     {
@@ -73,5 +114,23 @@ final class WhatsappLookupController extends Controller
             'track' => 'in_delivery',
             default => 'none',
         };
+    }
+
+    /**
+     * Langkah yang menunggu kurir pada paket ini.
+     */
+    private function courierTemplate(Package $package): string
+    {
+        return match ($package->status) {
+            PackageStatus::COURIER_ASSIGNED => 'task_assigned',
+            PackageStatus::CHECKED => 'condition_check_reminder',
+            PackageStatus::IN_DELIVERY => 'courier_on_route',
+            default => 'none',
+        };
+    }
+
+    private function statusLabel(Package $package): string
+    {
+        return (string) __("client.status.{$package->status->value}", [], 'id');
     }
 }
