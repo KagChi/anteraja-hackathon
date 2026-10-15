@@ -294,6 +294,40 @@ export interface DailyReportResponse {
     };
 }
 
+/** Beranda: the day's summary extends the same six KPIs the Laporan screen shows. */
+export interface DashboardSummary extends ReportKpis {
+    in_process_count: number;
+    returned_count: number;
+    pending_decision_count: number;
+    decided_count: number;
+}
+
+/** One row of the beranda's audit trail: a status change with its actor. */
+export interface DashboardActivityRow {
+    id: number;
+    tracking: string;
+    buyer: string;
+    from: string | null;
+    fromLabel: string | null;
+    to: string | null;
+    toLabel: string;
+    tone: Tone;
+    actor: string;
+    at: string;
+    at_iso: string | null;
+}
+
+export interface DashboardResponse {
+    date: string;
+    dateLabel: string;
+    isToday: boolean;
+    summary: DashboardSummary;
+    narrative: string;
+    activity: DashboardActivityRow[];
+    paginator: Paginator;
+    refreshedAt: string;
+}
+
 /** Location validation: one verdict row the hub can inspect. */
 export interface GpsReason {
     code: string;
@@ -540,6 +574,12 @@ export const api = {
             post<{ message: string; user: StaffUser }>("/auth/login", { email, password, remember }),
         logout: () => post<{ message: string }>("/auth/logout"),
         me: () => get<{ user: StaffUser }>("/auth/me")
+    },
+    dashboard: {
+        index: (query: { date?: string; q?: string; page?: number } = {}) =>
+            get<DashboardResponse>("/admin/dashboard", query),
+        /** Server-rendered PDF recap; opened as a normal navigation so the session cookie rides along. */
+        exportUrl: (date: string) => `/api/admin/dashboard/export${toQueryString({ date })}`
     },
     shipments: {
         index: (query: ShipmentQuery) => get<ShipmentIndexResponse>("/admin/shipments", query),

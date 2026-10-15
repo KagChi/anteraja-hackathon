@@ -196,6 +196,8 @@ memetakan modul dan judul requirement agar mudah dirujuk.
 | FR-RPT-004 | Ekspor riwayat | Live |
 | FR-RPT-005 | Ekspor antrean shipment | Live |
 | FR-RPT-006 | Pratinjau foto bukti | Live |
+| FR-RPT-007 | Ringkasan operasi otomatis beranda | Live |
+| FR-RPT-008 | Riwayat aktivitas beranda dan ekspor PDF | Live |
 | FR-LAND-001 | Halaman landing | Live |
 | FR-LAND-002 | Blog index dan artikel | Live |
 | FR-LAND-003 | Halaman login admin dan redirect ringkas | Live |
@@ -238,6 +240,8 @@ docs/openapi.yaml.
 | POST | /api/admin/exceptions/{tracking_number}/decision | Admin/ExceptionDecisionController | staff.role:ADMIN | ya |
 | GET | /api/admin/reports | Admin/ReportController@index | staff.role:ADMIN | ya |
 | GET | /api/admin/reports/export | Admin/ReportExportController | staff.role:ADMIN | ya |
+| GET | /api/admin/dashboard | Admin/DashboardController@index | staff.role:ADMIN | ya |
+| GET | /api/admin/dashboard/export | Admin/DashboardExportController | staff.role:ADMIN | ya |
 | GET | /api/admin/history | Admin/HistoryController@index | staff.role:ADMIN | ya |
 | GET | /api/admin/history/export | Admin/HistoryExportController | staff.role:ADMIN | ya |
 | GET | /api/admin/geofence | Admin/GeofenceController@index | staff.role:ADMIN | ya |
@@ -639,7 +643,7 @@ tingkat atas:
 | WA | 3 | WhatsappLookupController, NotificationQueue | WhatsappLookupTest, WhatsAppNotificationFlowTest | - |
 | TRACK | 7 | ClientAccessService, ClientScreenResolver, tiga ViewService, ConfirmSchedule, RequestReschedule | ClientFlowTest, ClientUnitTest, PublicTrackingTest | client/Tracking, client/Schedule |
 | ORD | 5 | CreateClientOrder, ClientOrderListQuery, OrderPresenter | ClientStorefrontTest, ClientApiAuthTest, ClientFlowTest | client/Catalog, client/ProductDetail, client/Checkout, client/Orders, client/History |
-| RPT | 6 | ShipmentIndexQuery, HistoryQuery, DailyReportQuery, StreamedCsv, MediaStorage | AdminShipmentTest, AdminExceptionTest, AdminConsoleWiringTest, ColdChainUnitTest | admin/Report, admin/History, admin/Shipment |
+| RPT | 8 | ShipmentIndexQuery, HistoryQuery, DailyReportQuery, DashboardQuery, StreamedCsv, MediaStorage, dompdf | AdminShipmentTest, AdminExceptionTest, AdminConsoleWiringTest, ColdChainUnitTest, AdminDashboardTest | admin/Dashboard, admin/Report, admin/History, admin/Shipment |
 | LAND | 3 | - | LandingPageTest, AdminConsoleWiringTest | Landing, Blog/Index, Blog/Show |
 | PWA | 6 | - | PwaShellTest | seluruh layar resources/js/pwa/screens/* |
 

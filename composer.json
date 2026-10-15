@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "dompdf/dompdf": "^3.1",
         "inertiajs/inertia-laravel": "^3.5",
         "laravel/framework": "^13.0",
         "laravel/octane": "^2.21",

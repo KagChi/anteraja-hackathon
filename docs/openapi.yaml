@@ -1195,6 +1195,62 @@ paths:
             text/csv:
               schema:
                 type: string
+  /admin/dashboard:
+    get:
+      tags:
+      - Admin - Beranda
+      summary: Ringkasan Operasi & Riwayat Aktivitas
+      description: Ringkasan otomatis satu hari (KPI laporan plus hitungan proses,
+        retur, dan keputusan), kalimat ikhtisar, serta jejak audit perubahan status
+        paket.
+      parameters:
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 32
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+      responses:
+        '200':
+          description: Ringkasan, naratif, dan riwayat aktivitas
+          content:
+            application/json:
+              schema:
+                type: object
+  /admin/dashboard/export:
+    get:
+      tags:
+      - Admin - Beranda
+      summary: Ekspor PDF Rekap Beranda
+      description: Mengunduh rekap A4 satu hari (KPI, ikhtisar, riwayat aktivitas)
+        sebagai berkas PDF.
+      parameters:
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        '200':
+          description: Berkas PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
   /admin/history:
     get:
       tags:

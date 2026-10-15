@@ -125,3 +125,43 @@ Aturan bisnis terkait: BR-005, BR-022, BR-023.
   - Given path yang mencoba keluar folder, When pratinjau diminta, Then HTTP 404 dan disk tidak diakses.
 - Status: Live
 
+---
+
+### FR-RPT-007 — Ringkasan operasi otomatis beranda
+
+- Deskripsi: Sistem HARUS menghitung ringkasan operasi satu hari pada beranda admin — enam KPI laporan plus jumlah paket dalam proses, paket dikembalikan, kendala menunggu keputusan, dan kendala yang sudah diputuskan — lalu menyusun kalimat ikhtisar berbahasa Indonesia.
+- Aktor & Otorisasi: admin hub.
+- Trigger: GET /api/admin/dashboard dari halaman /admin/dashboard.
+- Precondition: tidak ada.
+- Input & Validasi: date opsional format Y-m-d dengan bawaan hari ini dan dikunci agar tidak melewati hari ini; q opsional maksimal 32 karakter; page minimal 1.
+- Proses / Business Rules: enam angka inti memakai DailyReportQuery::getKpis sehingga beranda dan halaman Laporan selalu sepakat; kalimat naratif dibentuk murni dari angka tanpa LLM supaya dapat diuji; empat hitungan tambahan dihitung pada rentang hari Jakarta yang sama; hari lampau di-cache 600 detik sedangkan hari ini selalu dihitung ulang.
+- Output / Response: HTTP 200 dengan date, dateLabel, isToday, summary, narrative, activity, paginator, dan refreshedAt.
+- Error & Edge Cases: hari tanpa data menghasilkan seluruh angka nol dan naratif "Belum ada paket..." bukan error; tanggal masa depan dikunci ke hari ini.
+- Side Effects: cache dashboard_summary_{tanggal} selama 600 detik untuk tanggal lampau.
+- Postcondition: tidak ada perubahan state.
+- Traceability: routes/api.php, Admin/DashboardController@index, Queries/DashboardQuery::summary, Support/DisplayTime, tests/Feature/AdminDashboardTest.php, resources/js/pages/admin/Dashboard.tsx.
+- Acceptance Criteria:
+  - Given satu paket dijadwalkan hari ini, When beranda diminta, Then total_shipments minimal 1 dan narrative tidak kosong.
+  - Given tanggal tanpa data, When beranda diminta, Then seluruh KPI nol dan daftar aktivitas kosong.
+- Status: Live
+
+---
+
+### FR-RPT-008 — Riwayat aktivitas beranda dan ekspor PDF
+
+- Deskripsi: Sistem HARUS menampilkan jejak audit perubahan status paket satu hari (waktu, resi, pembeli, status lama ke status baru beserta tone, dan pelaku) pada beranda, serta mengunduh ringkasan beranda sebagai berkas PDF.
+- Aktor & Otorisasi: admin hub dengan middleware staff.role:ADMIN.
+- Trigger: GET /api/admin/dashboard untuk riwayat aktivitas dan GET /api/admin/dashboard/export untuk PDF.
+- Precondition: tidak ada.
+- Input & Validasi: date, q, dan page mengikuti DashboardController; ekspor hanya menerima date.
+- Proses / Business Rules: aktivitas dibaca dari status_logs pada rentang hari Jakarta, diurutkan changed_at menurun, dan memuat relasi paket, pembeli, staf pengubah, serta label status; pencarian resi memakai LIKE dengan escape karakter khusus. Ekspor merender Blade resources/views/admin/dashboard-report.blade.php melalui dompdf ke ukuran A4 dengan 100 baris aktivitas pertama.
+- Output / Response: HTTP 200 dengan activity dan paginator 15 baris; ekspor mengembalikan application/pdf bernama laporan-operasi-{tanggal}.pdf.
+- Error & Edge Cases: hari tanpa perubahan status menampilkan pesan kosong; hari tanpa data tetap menghasilkan PDF berisi KPI nol dan bagian aktivitas kosong.
+- Side Effects: ekspor menulis berkas PDF ke respons unduhan, tidak menyimpan di server.
+- Postcondition: tidak ada perubahan state.
+- Traceability: Admin/DashboardExportController, Queries/DashboardQuery::paginateActivity, Queries/DashboardQuery::presentActivity, resources/views/admin/dashboard-report.blade.php, composer.json (dompdf/dompdf), tests/Feature/AdminDashboardTest.php.
+- Acceptance Criteria:
+  - Given paket yang baru dibuat dan dikonfirmasi, When aktivitas diminta, Then baris dengan resi itu muncul.
+  - Given permintaan ekspor, When PDF diminta, Then respons berjenis application/pdf dan isinya diawali %PDF.
+- Status: Live
+

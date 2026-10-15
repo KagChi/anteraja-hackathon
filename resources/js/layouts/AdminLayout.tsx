@@ -16,6 +16,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+    { label: "Dashboard", icon: "dashboard", href: "/admin/dashboard" },
     { label: "Shipment", icon: "local_shipping", href: "/admin/shipment" },
     { label: "Validasi GPS", icon: "my_location", href: "/admin/gps" },
     { label: "Radius GPS", icon: "tune", href: "/admin/geofence" },

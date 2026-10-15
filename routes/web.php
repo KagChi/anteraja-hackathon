@@ -37,7 +37,7 @@ Route::get("login", function (Request $request) {
     return Inertia::render("Auth/Login");
 })->name("login");
 
-Route::redirect("/admin", "/admin/shipment");
+Route::redirect("/admin", "/admin/dashboard");
 
 // The two installable PWAs: Anteraja Frozen for the sender, Anteraja Kurir for
 // the courier. Each app is one client-side React SPA talking to the JSON API
@@ -62,6 +62,8 @@ Route::get("{app}.webmanifest", function (string $app) {
 })->whereIn("app", ["client", "courier"])->name("pwa.manifest");
 
 Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(function () {
+    // Beranda: ringkasan operasi otomatis dan riwayat aktivitas, with a PDF export.
+    Route::get("dashboard", fn () => Inertia::render("admin/Dashboard"))->name("dashboard");
     // Filters travel in the query string so a Laporan drill-down and a shared
     // link both land on the queue with the same view applied.
     Route::get("shipment", fn (Request $request) => Inertia::render("admin/Shipment", [

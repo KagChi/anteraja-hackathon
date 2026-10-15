@@ -16,11 +16,11 @@ FRD tempat detail lengkapnya berada.
 | WA — Percakapan WhatsApp | docs/frd/08-whatsapp.md | 3 |
 | TRACK — Pelacakan Publik dan Tautan Tamu | docs/frd/09-pelacakan.md | 7 |
 | ORD — Katalog dan Pemesanan Pelanggan | docs/frd/10-katalog-pesanan.md | 5 |
-| RPT — Pelaporan, Ekspor, dan Media | docs/frd/11-pelaporan.md | 6 |
+| RPT — Pelaporan, Ekspor, dan Media | docs/frd/11-pelaporan.md | 8 |
 | LAND — Landing Page dan Blog | docs/frd/12-landing-blog.md | 3 |
-| PWA — Aplikasi Web Terpasang | docs/frd/13-pwa.md | 6 |
+| MOB — Shell Mobile Native | docs/frd/13-mobile-native.md | 6 |
 
-Total: 80 requirement fungsional.
+Total: 82 requirement fungsional.
 
 ## AUTH — Autentikasi dan Sesi
 
@@ -147,6 +147,8 @@ Total: 80 requirement fungsional.
 | FR-RPT-004 | Ekspor riwayat | CSV riwayat paket terminal | Live |
 | FR-RPT-005 | Ekspor antrean shipment | CSV antrean dengan filter yang sama seperti layar | Live |
 | FR-RPT-006 | Pratinjau foto bukti | Menyajikan foto dari disk privat untuk konsol | Live |
+| FR-RPT-007 | Ringkasan operasi otomatis beranda | KPI + ikhtisar bahasa Indonesia per tanggal untuk beranda | Live |
+| FR-RPT-008 | Riwayat aktivitas dan ekspor PDF | Jejak audit status paket satu hari plus unduhan PDF beranda | Live |
 
 ## LAND — Landing Page dan Blog
 

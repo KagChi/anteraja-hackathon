@@ -12,7 +12,7 @@ Empat permukaan, satu backend Laravel:
 
 | Permukaan | Teknologi | Masuk lewat |
 | --- | --- | --- |
-| Dashboard admin | React + Inertia (desktop) | `/login` → `/admin/shipment` |
+| Dashboard admin | React + Inertia (desktop) | `/login` → `/admin/dashboard` |
 | Aplikasi Pelanggan (pengirim) | PWA (React SPA + bearer token) | `/client` — pasang dari browser |
 | Aplikasi Kurir | PWA (React SPA + bearer token) | `/courier` — pasang dari browser |
 | Otomasi WhatsApp | n8n + WAHA (dua workflow, lihat `deploy/n8n/README.md`) | webhook |
@@ -84,6 +84,16 @@ Cabang yang didemokan: *penerima minta jadwal lain → admin memperbarui jadwal 
 kurir menerima tugas → kurir melaporkan kemasan bocor → admin memutuskan
 pengembalian → kurir dan penerima menerima informasi keputusan*.
 
+## Beranda admin
+
+`/admin/dashboard` (tujuan bawaan `/admin`) menampilkan **ringkasan operasi
+otomatis**: enam KPI hari yang sama dengan halaman Laporan, ikhtisar bahasa
+Indonesia yang dihitung server (tanpa LLM), dan penyegaran otomatis tiap 60
+detik. Di bawahnya ada **Log History** — tab *Aktivitas Paket* (jejak audit
+`status_logs`: siapa mengubah status apa) dan tab *Pesan WhatsApp* (riwayat
+percakapan yang dulu hanya ada di API). Tombol **Ekspor PDF** mengunduh rekap A4
+satu hari yang dirender server lewat `dompdf`.
+
 ## Penerima paket
 
 Pembeli pada akun pelanggan adalah **pengirim**; tujuan pengantaran disimpan
@@ -116,8 +126,8 @@ dashboard.
 
 Isi pesan selalu berdiri sendiri: nomor resi, produk, jadwal, status, langkah
 selanjutnya — tanpa satu pun URL. Setiap pesan masuk dan setiap balasan dicatat
-di tabel `whatsapp_messages` dan bisa dilihat di **Riwayat → Riwayat Pesan
-WhatsApp**.
+di tabel `whatsapp_messages` dan bisa dilihat di **Dashboard → Log History →
+tab Pesan WhatsApp**.
 
 ### Mode uji tanpa WhatsApp asli
 
@@ -139,7 +149,7 @@ php artisan report:send-daily
 ## Test
 
 ```bash
-php artisan test                                    # 201 test, semua harus lulus
+php artisan test                                    # 205 test, semua harus lulus
 node deploy/n8n/tests/inbound-scenarios.mjs         # 66 skenario pesan
 bun run lint && bun run typecheck && bun run build  # biome + tsc + bundel produksi
 ```

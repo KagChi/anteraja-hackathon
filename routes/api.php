@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DashboardExportController;
 use App\Http\Controllers\Admin\ExceptionController;
 use App\Http\Controllers\Admin\ExceptionDecisionController;
 use App\Http\Controllers\Admin\ReportController;
@@ -79,6 +81,10 @@ Route::get('media/preview', MediaPreviewController::class)
 
 // Admin Panel API Routes (Protected by staff.role:ADMIN)
 Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->group(function () {
+    // 0. Beranda: ringkasan operasi otomatis, riwayat aktivitas, dan ekspor PDF.
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('dashboard/export', DashboardExportController::class)->name('dashboard.export');
+
     // 1. Shipments
     Route::get('shipments', [ShipmentController::class, 'index'])->name('shipments.index');
     Route::get('shipments/create', [ShipmentController::class, 'create'])->name('shipments.create');
