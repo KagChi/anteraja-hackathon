@@ -97,7 +97,7 @@
                                 class="text-theme-on-secondary-container" />
                         </native:column>
                         <native:column class="gap-0.5">
-                            <native:text class="text-md text-theme-on-surface">{{ $schedule['courier'] }}</native:text>
+                            <native:text class="text-base text-theme-on-surface">{{ $schedule['courier'] }}</native:text>
                             <native:text class="text-sm text-theme-secondary">{{ $schedule['courier_role'] }}</native:text>
                         </native:column>
                     </native:row>
@@ -113,7 +113,7 @@
                 <native:icon :ios="Ios::InfoCircleFill" :android="Android::Info" :size="20"
                     class="text-theme-primary" />
                 <native:column class="flex-1 gap-0.5">
-                    <native:text class="text-md font-bold text-theme-on-surface">{{ $schedule['notice_title'] }}</native:text>
+                    <native:text class="text-base font-bold text-theme-on-surface">{{ $schedule['notice_title'] }}</native:text>
                     <native:text class="text-sm leading-relaxed text-theme-secondary">{{ $schedule['notice'] }}</native:text>
                 </native:column>
             </native:row>
@@ -154,7 +154,7 @@
                         <native:pressable class="flex-1" @tap="chooseRescheduleDate('{{ $option['value'] }}')"
                             a11y-label="{{ $option['label'] }}">
                             <native:column class="w-full items-center justify-center rounded-xl p-3 {{ $rescheduleDate === $option['value'] ? 'bg-theme-primary' : 'bg-theme-surface-container-low' }}">
-                                <native:text class="text-md {{ $rescheduleDate === $option['value'] ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
+                                <native:text class="text-base {{ $rescheduleDate === $option['value'] ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
                                     {{ $option['label'] }}
                                 </native:text>
                             </native:column>
@@ -168,7 +168,7 @@
                 @foreach ($schedule['available_slots'] as $slot)
                     <native:pressable class="w-full rounded-lg p-3 {{ $rescheduleSlot === $slot ? 'bg-theme-primary' : 'bg-theme-surface-container-low' }}"
                         @tap="chooseRescheduleSlot('{{ $slot }}')" a11y-label="{{ $slot }}">
-                        <native:text class="text-md {{ $rescheduleSlot === $slot ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
+                        <native:text class="text-base {{ $rescheduleSlot === $slot ? 'text-theme-on-primary' : 'text-theme-on-surface' }}">
                             {{ $slot }} WIB
                         </native:text>
                     </native:pressable>

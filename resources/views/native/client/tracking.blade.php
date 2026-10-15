@@ -34,19 +34,19 @@
 
                 <native:column class="w-full gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Produk</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $order['product'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $order['product'] }}</native:text>
                     <native:text class="text-sm text-theme-secondary">{{ $order['product_meta'] }}</native:text>
                 </native:column>
 
                 <native:row class="w-full gap-4">
                     <native:column class="flex-1 gap-0.5">
                         <native:text class="text-sm text-theme-secondary">Estimasi Tiba</native:text>
-                        <native:text class="text-md text-theme-on-surface">{{ $order['eta_date'] }}</native:text>
+                        <native:text class="text-base text-theme-on-surface">{{ $order['eta_date'] }}</native:text>
                         <native:text class="text-sm text-theme-secondary">{{ $order['eta_time'] }}</native:text>
                     </native:column>
                     <native:column class="flex-1 gap-0.5">
                         <native:text class="text-sm text-theme-secondary">Penerima</native:text>
-                        <native:text class="text-md text-theme-on-surface">{{ $order['recipient'] }}</native:text>
+                        <native:text class="text-base text-theme-on-surface">{{ $order['recipient'] }}</native:text>
                         <native:text class="text-sm text-theme-secondary">{{ $order['recipient_area'] }}</native:text>
                     </native:column>
                 </native:row>
@@ -58,7 +58,7 @@
                             class="text-theme-secondary" />
                         <native:column class="gap-0.5">
                             <native:text class="text-sm text-theme-secondary">Kurir Pengantar</native:text>
-                            <native:text class="text-md text-theme-on-surface">{{ $order['courier'] }}</native:text>
+                            <native:text class="text-base text-theme-on-surface">{{ $order['courier'] }}</native:text>
                         </native:column>
                     </native:row>
                     <native:column class="rounded bg-theme-surface-container-lowest px-2 py-0.5">
@@ -106,7 +106,7 @@
                         </native:column>
                         <native:column class="flex-1 gap-0.5">
                             <native:row class="w-full items-center justify-between gap-2">
-                                <native:text class="text-md {{ ($node['active'] ?? false) ? 'font-bold text-theme-primary' : 'text-theme-on-surface' }}">
+                                <native:text class="text-base {{ ($node['active'] ?? false) ? 'font-bold text-theme-primary' : 'text-theme-on-surface' }}">
                                     {{ $node['label'] }}
                                 </native:text>
                                 <native:text class="text-sm text-theme-secondary">{{ $node['time'] }}</native:text>

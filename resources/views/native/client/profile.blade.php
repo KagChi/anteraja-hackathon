@@ -42,7 +42,7 @@
                 </native:column>
                 <native:column class="flex-1 gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Alamat Utama</native:text>
-                    <native:text class="text-md text-theme-on-surface select-text">{{ $profile['address'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface select-text">{{ $profile['address'] }}</native:text>
                 </native:column>
             </native:row>
         </native:column>
@@ -55,7 +55,7 @@
                 <native:row class="w-full items-center gap-3">
                     <native:icon :ios="Ios::BubbleLeftAndTextBubbleRight" :android="Android::SupportAgent" :size="18"
                         class="text-theme-primary" />
-                    <native:text class="flex-1 text-md text-theme-on-surface">{{ $support['label'] }}</native:text>
+                    <native:text class="flex-1 text-base text-theme-on-surface">{{ $support['label'] }}</native:text>
                     <native:icon :ios="Ios::ArrowRight" :android="Android::ArrowForward" :size="16"
                         class="text-theme-primary" />
                 </native:row>
@@ -63,7 +63,7 @@
 
             <native:row class="w-full items-center gap-3">
                 <native:icon :ios="Ios::Envelope" :android="Android::Mail" :size="18" class="text-theme-secondary" />
-                <native:text class="flex-1 text-md text-theme-on-surface select-text">{{ $profile['email'] }}</native:text>
+                <native:text class="flex-1 text-base text-theme-on-surface select-text">{{ $profile['email'] }}</native:text>
             </native:row>
         </native:column>
 

@@ -23,6 +23,9 @@ return [
             'primary-container' => '#E01274',
             'on-primary-container' => '#FFFBFF',
             'primary-fixed' => '#FFD9E1',
+            // Content placed ON the fixed containers: the light pink and green
+            // panels the screens tint their notices with.
+            'on-primary-fixed' => '#3F001B',
             'inverse-primary' => '#FFB1C6',
 
             // Muted action / informational.
@@ -39,6 +42,7 @@ return [
             'tertiary-container' => '#008725',
             'on-tertiary-container' => '#F7FFF1',
             'tertiary-fixed' => '#86FC86',
+            'on-tertiary-fixed' => '#002204',
 
             // Surfaces — depth comes from tone, not shadow.
             'surface' => '#FFFFFF',

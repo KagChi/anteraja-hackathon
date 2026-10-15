@@ -42,7 +42,7 @@
 
                     <native:column class="w-full gap-0.5">
                         <native:text class="text-sm text-theme-secondary">Penerima</native:text>
-                        <native:text class="text-md text-theme-on-surface">
+                        <native:text class="text-base text-theme-on-surface">
                             {{ $order['recipient'] }} • {{ $order['recipient_area'] }}
                         </native:text>
                     </native:column>
@@ -52,7 +52,7 @@
                             {{ $order['eta_date'] }} • {{ $order['eta_time'] }}
                         </native:text>
                         <native:row class="items-center gap-1">
-                            <native:text class="text-md font-bold text-theme-primary">Lacak</native:text>
+                            <native:text class="text-base font-bold text-theme-primary">Lacak</native:text>
                             <native:icon :ios="Ios::ArrowRight" :android="Android::ArrowForward" :size="16"
                                 class="text-theme-primary" />
                         </native:row>
@@ -61,7 +61,7 @@
                 </native:column>
             </native:pressable>
         @empty
-            <native:text class="text-md text-theme-secondary">Belum ada pengiriman berjalan.</native:text>
+            <native:text class="text-base text-theme-secondary">Belum ada pengiriman berjalan.</native:text>
         @endforelse
 
         @endif

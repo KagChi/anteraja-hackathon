@@ -12,7 +12,7 @@
                     class="text-theme-on-primary" />
             </native:column>
             <native:text class="text-2xl font-bold text-theme-on-surface">Daftar Anteraja Frozen</native:text>
-            <native:text class="text-md text-theme-secondary">
+            <native:text class="text-base text-theme-secondary">
                 Akun dipakai untuk memesan, mengonfirmasi jadwal, dan melacak kiriman beku Anda.
             </native:text>
         </native:column>

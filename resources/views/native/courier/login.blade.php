@@ -8,7 +8,7 @@
             <native:icon :ios="Ios::TruckBox" :android="Android::LocalShipping" :size="30" class="text-theme-on-primary" />
         </native:column>
         <native:text class="text-2xl font-bold text-theme-on-surface">Anteraja Kurir</native:text>
-        <native:text class="text-md text-theme-secondary">Masuk dengan akun kurir Anda.</native:text>
+        <native:text class="text-base text-theme-secondary">Masuk dengan akun kurir Anda.</native:text>
     </native:column>
 
     <native:column class="w-full gap-4">

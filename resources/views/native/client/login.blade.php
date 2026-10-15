@@ -8,7 +8,7 @@
             <native:icon :ios="Ios::Snowflake" :android="Android::AcUnit" :size="30" class="text-theme-on-primary" />
         </native:column>
         <native:text class="text-2xl font-bold text-theme-on-surface">Anteraja Frozen</native:text>
-        <native:text class="text-md text-theme-secondary">Masuk untuk melacak paket beku Anda.</native:text>
+        <native:text class="text-base text-theme-secondary">Masuk untuk melacak paket beku Anda.</native:text>
     </native:column>
 
     <native:column class="w-full gap-4">

@@ -13,7 +13,7 @@
                 <native:icon :ios="Ios::Bag" :android="Android::ShoppingCart" :size="26"
                     class="text-theme-secondary" />
                 <native:text class="text-lg font-bold text-theme-on-surface">Keranjang masih kosong</native:text>
-                <native:text class="text-md text-theme-secondary">
+                <native:text class="text-base text-theme-secondary">
                     Pilih produk beku di katalog, lalu kembali ke halaman ini untuk mengisi data pengantaran.
                 </native:text>
                 <native:button class="w-full" variant="primary" label="Buka Katalog" @tap="openCatalog"
@@ -36,12 +36,12 @@
                                     class="text-theme-primary" />
                             </native:column>
                             <native:column class="flex-1 gap-0.5">
-                                <native:text class="text-md font-bold text-theme-on-surface">{{ $line['name'] }}</native:text>
+                                <native:text class="text-base font-bold text-theme-on-surface">{{ $line['name'] }}</native:text>
                                 <native:text class="text-sm text-theme-secondary">
                                     {{ $line['price_label'] }} • {{ $line['weight_label'] }}
                                 </native:text>
                             </native:column>
-                            <native:text class="text-md font-bold text-theme-on-surface">
+                            <native:text class="text-base font-bold text-theme-on-surface">
                                 {{ $line['line_total_label'] }}
                             </native:text>
                         </native:row>
@@ -54,7 +54,7 @@
                                 </native:column>
                             </native:pressable>
 
-                            <native:text class="text-md font-bold text-theme-on-surface">{{ $line['quantity'] }}</native:text>
+                            <native:text class="text-base font-bold text-theme-on-surface">{{ $line['quantity'] }}</native:text>
 
                             <native:pressable @tap="increment({{ $line['id'] }})" a11y-label="Tambah {{ $line['name'] }}">
                                 <native:column class="h-8 w-8 items-center justify-center rounded-lg bg-theme-surface-container">
@@ -63,14 +63,17 @@
                                 </native:column>
                             </native:pressable>
 
-                            <native:pressable class="ml-auto" @tap="removeLine({{ $line['id'] }})"
-                                a11y-label="Hapus {{ $line['name'] }} dari keranjang">
-                                <native:row class="items-center gap-1 px-2 py-1">
-                                    <native:icon :ios="Ios::Xmark" :android="Android::Close" :size="14"
-                                        class="text-theme-secondary" />
-                                    <native:text class="text-sm text-theme-secondary">Hapus</native:text>
-                                </native:row>
-                            </native:pressable>
+                            {{-- EDGE has no ml-auto: the trailing action gets its own row. --}}
+                            <native:row class="flex-1 justify-end">
+                                <native:pressable @tap="removeLine({{ $line['id'] }})"
+                                    a11y-label="Hapus {{ $line['name'] }} dari keranjang">
+                                    <native:row class="items-center gap-1 px-2 py-1">
+                                        <native:icon :ios="Ios::Xmark" :android="Android::Close" :size="14"
+                                            class="text-theme-secondary" />
+                                        <native:text class="text-sm text-theme-secondary">Hapus</native:text>
+                                    </native:row>
+                                </native:pressable>
+                            </native:row>
                         </native:row>
 
                         <native:divider />
@@ -78,7 +81,7 @@
                 @endforeach
 
                 <native:row class="w-full items-center justify-between">
-                    <native:text class="text-md text-theme-secondary">Total produk</native:text>
+                    <native:text class="text-base text-theme-secondary">Total produk</native:text>
                     <native:text class="text-xl font-bold text-theme-primary">{{ $totalLabel }}</native:text>
                 </native:row>
                 <native:text class="text-sm text-theme-secondary">

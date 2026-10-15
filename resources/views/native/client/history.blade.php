@@ -46,7 +46,7 @@
                             {{ $order['eta_date'] }} • {{ $order['eta_time'] }}
                         </native:text>
                         <native:row class="items-center gap-1">
-                            <native:text class="text-md font-bold text-theme-primary">Lihat Detail</native:text>
+                            <native:text class="text-base font-bold text-theme-primary">Lihat Detail</native:text>
                             <native:icon :ios="Ios::ArrowRight" :android="Android::ArrowForward" :size="16"
                                 class="text-theme-primary" />
                         </native:row>

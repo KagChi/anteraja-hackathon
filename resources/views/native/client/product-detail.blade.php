@@ -16,7 +16,7 @@
                 <native:icon :ios="Ios::Magnifyingglass" :android="Android::Search" :size="26"
                     class="text-theme-secondary" />
                 <native:text class="text-lg font-bold text-theme-on-surface">Produk tidak ditemukan</native:text>
-                <native:text class="text-md text-theme-secondary">
+                <native:text class="text-base text-theme-secondary">
                     Produk ini sudah tidak dijual. Silakan pilih produk lain di katalog.
                 </native:text>
                 <native:button class="w-full" variant="primary" label="Kembali ke katalog" @tap="openCatalog"
@@ -43,7 +43,7 @@
 
                 <native:divider />
 
-                <native:text class="text-md leading-relaxed text-theme-on-surface">
+                <native:text class="text-base leading-relaxed text-theme-on-surface">
                     {{ $product['description'] }}
                 </native:text>
             </native:column>
@@ -79,7 +79,10 @@
                         </native:column>
                     </native:pressable>
 
-                    <native:text class="ml-auto text-sm text-theme-secondary">maks 20</native:text>
+                    {{-- EDGE has no ml-auto: a spacer row pushes the note to the end. --}}
+                    <native:row class="flex-1 justify-end">
+                        <native:text class="text-sm text-theme-secondary">maks 20</native:text>
+                    </native:row>
                 </native:row>
             </native:column>
 

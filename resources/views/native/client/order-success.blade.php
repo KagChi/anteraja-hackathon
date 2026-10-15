@@ -20,7 +20,7 @@
         <native:column class="w-full gap-3 rounded-xl bg-theme-surface-container-lowest p-4">
             <native:row class="w-full items-center justify-between gap-2">
                 <native:text class="text-sm text-theme-secondary uppercase">Nomor resi</native:text>
-                <native:text class="text-md font-bold text-theme-on-surface select-text">{{ $resi }}</native:text>
+                <native:text class="text-base font-bold text-theme-on-surface select-text">{{ $resi }}</native:text>
             </native:row>
 
             @if ($receipt !== null)
@@ -28,31 +28,31 @@
 
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary">Status</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $receipt['status'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $receipt['status'] }}</native:text>
                 </native:row>
 
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary">Layanan</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $receipt['service'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $receipt['service'] }}</native:text>
                 </native:row>
 
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary">Jadwal</native:text>
-                    <native:text class="flex-1 text-right text-md text-theme-on-surface">
+                    <native:text class="flex-1 text-right text-base text-theme-on-surface">
                         {{ $receipt['scheduled_label'] }}
                     </native:text>
                 </native:row>
 
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary">Penerima</native:text>
-                    <native:text class="flex-1 text-right text-md text-theme-on-surface">
+                    <native:text class="flex-1 text-right text-base text-theme-on-surface">
                         {{ $receipt['recipient'] }}
                     </native:text>
                 </native:row>
 
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary">Total produk</native:text>
-                    <native:text class="text-md font-bold text-theme-primary">{{ $receipt['total_label'] }}</native:text>
+                    <native:text class="text-base font-bold text-theme-primary">{{ $receipt['total_label'] }}</native:text>
                 </native:row>
             @endif
         </native:column>
@@ -63,10 +63,10 @@
 
                 @foreach ($receipt['items'] as $item)
                     <native:row class="w-full items-center justify-between gap-2" native:key="item-{{ $loop->index }}">
-                        <native:text class="flex-1 text-md text-theme-on-surface">
+                        <native:text class="flex-1 text-base text-theme-on-surface">
                             {{ $item['quantity'] }}× {{ $item['name'] }}
                         </native:text>
-                        <native:text class="text-md text-theme-secondary">{{ $item['line_total_label'] }}</native:text>
+                        <native:text class="text-base text-theme-secondary">{{ $item['line_total_label'] }}</native:text>
                     </native:row>
                 @endforeach
             </native:column>

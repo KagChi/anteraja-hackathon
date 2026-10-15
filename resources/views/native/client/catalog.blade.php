@@ -15,7 +15,7 @@
 
             <native:column class="w-full gap-1 rounded-xl bg-theme-surface-container-low p-4">
                 <native:text class="text-sm text-theme-secondary uppercase">Katalog Produk Beku</native:text>
-                <native:text class="text-md text-theme-on-surface">
+                <native:text class="text-base text-theme-on-surface">
                     {{ count($products) }} produk tersedia. Harga dan berat diambil dari sistem hub.
                 </native:text>
             </native:column>
@@ -57,7 +57,7 @@
                                         {{ $product['weight_label'] }} • {{ $product['unit'] }}
                                     </native:text>
                                 </native:column>
-                                <native:text class="text-md font-bold text-theme-primary">
+                                <native:text class="text-base font-bold text-theme-primary">
                                     {{ $product['price_label'] }}
                                 </native:text>
                             </native:row>
@@ -89,7 +89,7 @@
                     </native:row>
                 </native:column>
             @empty
-                <native:text class="text-md text-theme-secondary">Belum ada produk yang tersedia.</native:text>
+                <native:text class="text-base text-theme-secondary">Belum ada produk yang tersedia.</native:text>
             @endforelse
 
         @endif
@@ -101,7 +101,7 @@
     <native:row class="w-full items-center justify-between gap-3 bg-theme-surface-container-low p-4">
         <native:column class="gap-0.5">
             <native:text class="text-sm text-theme-secondary">{{ $cartCount }} item di keranjang</native:text>
-            <native:text class="text-md font-bold text-theme-on-surface">Siap dipesan</native:text>
+            <native:text class="text-base font-bold text-theme-on-surface">Siap dipesan</native:text>
         </native:column>
 
         <native:row class="items-center gap-2">
@@ -117,7 +117,7 @@
                 <native:row class="items-center gap-1.5 rounded-lg bg-theme-primary px-4 py-2">
                     <native:icon :ios="Ios::ArrowRight" :android="Android::ArrowForward" :size="16"
                         class="text-theme-on-primary" />
-                    <native:text class="text-md font-bold text-theme-on-primary">Checkout</native:text>
+                    <native:text class="text-base font-bold text-theme-on-primary">Checkout</native:text>
                 </native:row>
             </native:pressable>
         </native:row>

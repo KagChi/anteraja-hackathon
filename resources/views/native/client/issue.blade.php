@@ -19,7 +19,7 @@
             <native:column class="w-full gap-3 rounded-xl bg-theme-surface-container-lowest p-4">
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:text class="text-sm text-theme-secondary uppercase">No. Resi Pengiriman</native:text>
-                    <native:text class="text-md font-bold text-theme-on-surface select-text">
+                    <native:text class="text-base font-bold text-theme-on-surface select-text">
                         {{ $order['resi'] }}
                     </native:text>
                 </native:row>
@@ -29,17 +29,17 @@
                 <native:row class="w-full gap-4">
                     <native:column class="flex-1 gap-0.5">
                         <native:text class="text-sm text-theme-secondary">Penerima</native:text>
-                        <native:text class="text-md text-theme-on-surface">{{ $order['recipient'] }}</native:text>
+                        <native:text class="text-base text-theme-on-surface">{{ $order['recipient'] }}</native:text>
                     </native:column>
                     <native:column class="flex-1 gap-0.5">
                         <native:text class="text-sm text-theme-secondary">Kurir Bertugas</native:text>
-                        <native:text class="text-md text-theme-on-surface">{{ $order['courier'] }}</native:text>
+                        <native:text class="text-base text-theme-on-surface">{{ $order['courier'] }}</native:text>
                     </native:column>
                 </native:row>
 
                 <native:column class="w-full gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Produk Beku</native:text>
-                    <native:text class="text-md font-bold text-theme-on-surface">{{ $order['product'] }}</native:text>
+                    <native:text class="text-base font-bold text-theme-on-surface">{{ $order['product'] }}</native:text>
                 </native:column>
             </native:column>
 
@@ -47,7 +47,7 @@
             <native:column class="w-full gap-4 rounded-xl bg-theme-surface-container-lowest p-4">
                 <native:row class="w-full items-center justify-between gap-2">
                     <native:column class="rounded bg-theme-error-container px-3 py-0.5">
-                        <native:text class="text-md text-theme-on-error-container">{{ $issue['status_badge'] }}</native:text>
+                        <native:text class="text-base text-theme-on-error-container">{{ $issue['status_badge'] }}</native:text>
                     </native:column>
                     <native:column class="rounded bg-theme-surface-container px-3 py-0.5">
                         <native:text class="text-sm text-theme-secondary">{{ $issue['temp_badge'] }}</native:text>
@@ -61,13 +61,13 @@
 
                 <native:column class="w-full gap-1 rounded-lg bg-theme-surface-container-low p-4">
                     <native:text class="text-sm font-bold text-theme-primary">{{ $issue['decision_label'] }}</native:text>
-                    <native:text class="text-md leading-relaxed text-theme-on-surface">{{ $issue['decision'] }}</native:text>
+                    <native:text class="text-base leading-relaxed text-theme-on-surface">{{ $issue['decision'] }}</native:text>
                 </native:column>
             </native:column>
 
             {{-- Why the cold chain decided it. --}}
             <native:column class="w-full gap-1 rounded-xl bg-theme-surface-container-lowest p-4">
-                <native:text class="text-md text-theme-tertiary">{{ $issue['quality_label'] }}</native:text>
+                <native:text class="text-base text-theme-tertiary">{{ $issue['quality_label'] }}</native:text>
                 <native:text class="text-sm leading-relaxed text-theme-secondary">{{ $issue['quality'] }}</native:text>
             </native:column>
 
@@ -84,7 +84,7 @@
                         </native:column>
                         <native:column class="flex-1 gap-0.5">
                             <native:row class="w-full items-center justify-between gap-2">
-                                <native:text class="text-md {{ ($node['active'] ?? false) ? 'font-bold text-theme-primary' : 'text-theme-on-surface' }}">
+                                <native:text class="text-base {{ ($node['active'] ?? false) ? 'font-bold text-theme-primary' : 'text-theme-on-surface' }}">
                                     {{ $node['label'] }}
                                 </native:text>
                                 <native:text class="text-sm text-theme-secondary">{{ $node['time'] }}</native:text>

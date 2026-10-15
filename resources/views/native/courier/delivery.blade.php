@@ -69,7 +69,7 @@
             </native:row>
 
             @if ($gpsDistance !== null)
-                <native:text class="text-md font-bold text-theme-on-surface">{{ $gpsDistance }}</native:text>
+                <native:text class="text-base font-bold text-theme-on-surface">{{ $gpsDistance }}</native:text>
             @else
                 <native:text class="text-sm text-theme-secondary">
                     Menunggu sinyal GPS. Titik terkumpul: {{ $fixCount }}.
@@ -131,7 +131,7 @@
                 <native:column class="flex-1 gap-0.5">
                     <native:text class="text-sm text-theme-secondary">Penerima</native:text>
                     <native:text class="text-xl font-bold text-theme-on-surface">{{ $delivery['recipient'] }}</native:text>
-                    <native:text class="text-md text-theme-on-surface">{{ $delivery['phone'] }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $delivery['phone'] }}</native:text>
                 </native:column>
                 <native:button variant="secondary" label="Panggil" @tap="callRecipient"
                     :ios-icon="Ios::PhoneFill" :android-icon="Android::Call" />
@@ -144,7 +144,7 @@
                     <native:icon :ios="Ios::MappinAndEllipse" :android="Android::PinDrop" :size="16" class="text-theme-secondary" />
                     <native:text class="text-sm text-theme-secondary">Alamat Tujuan</native:text>
                 </native:row>
-                <native:text class="text-md leading-relaxed text-theme-on-surface">{{ $delivery['address'] }}</native:text>
+                <native:text class="text-base leading-relaxed text-theme-on-surface">{{ $delivery['address'] }}</native:text>
             </native:column>
 
             <native:row class="w-full items-start gap-2 rounded-lg bg-theme-error-container p-3">
@@ -161,7 +161,7 @@
         {{-- Route. The web embedded a decorative map; native hands this to
              the system maps app instead. --}}
         <native:column class="w-full gap-2 rounded-xl bg-theme-surface-container-lowest p-4">
-            <native:text class="text-md text-theme-on-surface">{{ $delivery['map_label'] }}</native:text>
+            <native:text class="text-base text-theme-on-surface">{{ $delivery['map_label'] }}</native:text>
             <native:button variant="secondary" label="Buka Navigasi Rute" @tap="openRoute"
                 :ios-icon="Ios::MapFill" :android-icon="Android::Navigation" />
         </native:column>
@@ -173,7 +173,7 @@
             :ios-icon="Ios::Shippingbox" :android-icon="Android::Inventory" />
 
         <native:pressable class="items-center py-2" @tap="openSheet" a11y-label="Laporkan kendala">
-            <native:text class="text-md text-theme-secondary underline">Laporkan Kendala</native:text>
+            <native:text class="text-base text-theme-secondary underline">Laporkan Kendala</native:text>
         </native:pressable>
 
         @endif
@@ -187,7 +187,7 @@
             @foreach ($issues as $issue)
                 <native:pressable class="w-full rounded-lg bg-theme-surface-container-low p-3"
                     @tap="reportIssue('{{ $issue }}')" a11y-label="{{ $issue }}">
-                    <native:text class="text-md text-theme-on-surface">{{ $issue }}</native:text>
+                    <native:text class="text-base text-theme-on-surface">{{ $issue }}</native:text>
                 </native:pressable>
             @endforeach
             <native:button variant="secondary" label="Batal" @tap="closeSheet" />
