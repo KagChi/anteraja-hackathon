@@ -8,6 +8,11 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 5
+  # Recreate, not RollingUpdate: the cluster runs close to its CPU request
+  # ceiling, so the extra surge pod a rolling update needs cannot schedule and
+  # the rollout stalls. One replica, so a brief gap is acceptable.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: anteraja-hackathon
