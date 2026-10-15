@@ -506,13 +506,13 @@ export default function Dashboard() {
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-surface-container">
                                     {messageRows.map((row) => (
                                         <tr key={row.id} className="transition-colors hover:bg-surface-container-low">
-                                            <td className="whitespace-nowrap px-space-lg align-top font-body-sm text-body-sm text-secondary">
+                                            <td className="whitespace-nowrap px-space-lg py-space-sm align-top font-body-sm text-body-sm text-secondary">
                                                 {row.at}
                                             </td>
-                                            <td className="whitespace-nowrap px-space-lg align-top">
+                                            <td className="whitespace-nowrap px-space-lg py-space-sm align-top">
                                                 <span
                                                     className={cx(
                                                         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-label-sm text-label-sm",
@@ -528,7 +528,7 @@ export default function Dashboard() {
                                                     {row.direction === "IN" ? "Masuk" : "Keluar"}
                                                 </span>
                                             </td>
-                                            <td className="whitespace-nowrap px-space-lg align-top font-data-mono text-body-sm text-on-surface">
+                                            <td className="whitespace-nowrap px-space-lg py-space-sm align-top font-data-mono text-body-sm text-on-surface">
                                                 {row.phone}
                                             </td>
                                             <td className="px-space-lg py-space-sm align-top font-body-sm text-body-sm text-on-surface">
@@ -541,10 +541,10 @@ export default function Dashboard() {
                                                     </span>
                                                 ) : null}
                                             </td>
-                                            <td className="whitespace-nowrap px-space-lg align-top font-label-sm text-label-sm text-secondary uppercase">
+                                            <td className="whitespace-nowrap px-space-lg py-space-sm align-top font-label-sm text-label-sm text-secondary uppercase">
                                                 {row.status}
                                             </td>
-                                            <td className="whitespace-nowrap px-space-lg align-top">
+                                            <td className="whitespace-nowrap px-space-lg py-space-sm align-top">
                                                 {row.tracking_number ? (
                                                     <button
                                                         type="button"
