@@ -12,8 +12,10 @@ use App\NativeComponents\Courier\Profile;
 use App\NativeComponents\Courier\Proof;
 use App\NativeComponents\Courier\Start;
 use App\NativeComponents\Courier\Tasks;
+use App\Http\Controllers\Courier\MapController;
 use App\Support\MobileToken;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
 use Native\Mobile\UI\Theme;
@@ -143,6 +145,38 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertSee('Rina Putri')
             ->assertSee('Buka Navigasi Rute')
             ->assertSee('Serahkan Paket');
+    }
+
+    /** The one web view in the shell: the Leaflet map, in php mode. */
+    public function test_the_delivery_screen_embeds_the_leaflet_map(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->assertElement('webview', fn (array $node): bool => ($node['props']['php'] ?? null) === true
+                && str_contains((string) ($node['props']['src'] ?? ''), '/courier/map/'.self::TASK));
+    }
+
+    /** The screen seeds the map's cache so the page can draw before a fix. */
+    public function test_the_delivery_screen_publishes_the_map_context(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK]);
+
+        $context = Cache::get(MapController::cacheKey(self::TASK));
+
+        $this->assertIsArray($context);
+        $this->assertSame(-6.229746, $context['destination_latitude']);
+        $this->assertSame(106.848529, $context['destination_longitude']);
+        $this->assertSame(30, $context['radius_m']);
+    }
+
+    /** A device fix is published for the map page to poll. */
+    public function test_the_delivery_screen_publishes_the_latest_fix(): void {
+        Native::test(Delivery::class, params: ['resi' => self::TASK])
+            ->call('onLocationUpdated', true, -6.229876, 106.848529, 9.0, 1760000000000);
+
+        $context = Cache::get(MapController::cacheKey(self::TASK));
+
+        $this->assertIsArray($context);
+        $this->assertSame(-6.229876, $context['latitude']);
+        $this->assertSame(106.848529, $context['longitude']);
+        $this->assertSame(9.0, $context['accuracy_m']);
     }
 
     public function test_the_delivery_screen_opens_the_issue_sheet(): void {
@@ -347,13 +381,16 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertSee('Coba Lagi');
     }
 
-    /** The web view is gone; nothing may reintroduce it. */
+    /**
+     * Every screen except the delivery map is native UI. The delivery screen
+     * deliberately embeds one web view — the Leaflet map — because NativePHP
+     * has no native map element (see the map tests below for that exception).
+     */
     public function test_no_screen_renders_a_web_view(): void {
         $screens = [
             Tasks::class,
             History::class,
             Profile::class,
-            Delivery::class,
             Proof::class,
             Issue::class,
             Login::class,

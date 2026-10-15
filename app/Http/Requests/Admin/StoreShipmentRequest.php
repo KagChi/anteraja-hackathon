@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use Carbon\Carbon;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class StoreShipmentRequest extends FormRequest
@@ -24,9 +25,11 @@ final class StoreShipmentRequest extends FormRequest
         return [
             'buyer_id' => ['nullable', 'required_without:buyer', 'integer', 'exists:buyers,id'],
             'buyer' => ['nullable', 'required_without:buyer_id', 'array'],
-            'buyer.name' => ['required_with:buyer', 'string', 'max:120'],
-            'buyer.phone' => ['required_with:buyer', 'string', 'max:20'],
-            'buyer.address' => ['required_with:buyer', 'string'],
+            // With a registered buyer the block carries only the pinned point,
+            // so the identity fields are required only when creating one.
+            'buyer.name' => ['required_without:buyer_id', 'string', 'max:120'],
+            'buyer.phone' => ['required_without:buyer_id', 'string', 'max:20'],
+            'buyer.address' => ['required_without:buyer_id', 'string'],
             'buyer.area' => ['nullable', 'string', 'max:120'],
             'buyer.address_type' => ['nullable', 'string', 'in:RESIDENTIAL,COMMERCIAL'],
             'buyer.latitude' => ['nullable', 'numeric', 'between:-90,90'],
@@ -55,5 +58,29 @@ final class StoreShipmentRequest extends FormRequest
             'koli_count' => ['nullable', 'integer', 'min:1'],
             'handling_instructions' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    /**
+     * Every shipment must pin its destination: the recipient when one is named,
+     * otherwise the buyer the parcel is delivered to. The courier's geofence is
+     * measured against that point, so a shipment without it is not accepted.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $recipient = $this->input('recipient');
+            $namesRecipient = is_array($recipient) && $recipient !== [];
+
+            $latitudeKey = $namesRecipient ? 'recipient.latitude' : 'buyer.latitude';
+            $longitudeKey = $namesRecipient ? 'recipient.longitude' : 'buyer.longitude';
+
+            if (! $this->filled($latitudeKey)) {
+                $validator->errors()->add($latitudeKey, 'Pin titik lokasi tujuan di peta.');
+            }
+
+            if (! $this->filled($longitudeKey)) {
+                $validator->errors()->add($longitudeKey, 'Pin titik lokasi tujuan di peta.');
+            }
+        });
     }
 }

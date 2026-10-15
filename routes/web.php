@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Product;
+use App\Http\Controllers\Courier\MapController;
 use App\Http\Resources\Client\ProductResource;
 
 // The marketing landing page: the anteraja.id home page rebuilt around the
@@ -38,6 +39,17 @@ Route::get("login", function (Request $request) {
 })->name("login");
 
 Route::redirect("/admin", "/admin/shipment");
+
+// The courier app's Leaflet map. NativePHP has no native map element, so the
+// delivery screen embeds a php-mode webview that renders these pages from the
+// device's own PHP runtime. The page polls the fix route, which reads the file
+// cache the native Delivery component writes as the device streams GPS.
+Route::get("courier/map/{resi}", [MapController::class, "show"])
+    ->where("resi", "[A-Za-z0-9-]{4,32}")
+    ->name("courier.map");
+Route::get("courier/map/{resi}/fix", [MapController::class, "fix"])
+    ->where("resi", "[A-Za-z0-9-]{4,32}")
+    ->name("courier.map.fix");
 
 Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(function () {
     // Filters travel in the query string so a Laporan drill-down and a shared

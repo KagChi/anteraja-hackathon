@@ -12,8 +12,12 @@ use App\Support\DisplayTime;
 use App\Support\MobileApi;
 use App\Support\MobileToken;
 use Carbon\Carbon;
+use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\Element;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Events\Geolocation\LocationReceived;
+use Native\Mobile\Facades\Geolocation;
+use Throwable;
 
 /**
  * Checkout: what is being sent, when it should arrive, and to whom.
@@ -52,6 +56,20 @@ final class Checkout extends NativeComponent {
     public string $scheduleWindow = '13:00-15:00';
 
     public string $notes = '';
+
+    public ?float $latitude = null;
+
+    public ?float $longitude = null;
+
+    public ?float $locationAccuracy = null;
+
+    public string $pinNotice = '';
+
+    public bool $pinning = false;
+
+    public string $manualLatitude = '';
+
+    public string $manualLongitude = '';
 
     public bool $busy = false;
 
@@ -160,6 +178,89 @@ final class Checkout extends NativeComponent {
         $this->load();
     }
 
+    /**
+     * Pin the destination from the device's own fix.
+     *
+     * The parcel is delivered to the recipient, who is often not the account
+     * holder, so this seeds the point and the manual fields below let the
+     * sender correct it for a door they are not standing at.
+     */
+    public function pinMyLocation(): void {
+        $this->actionError = null;
+        $this->pinNotice = '';
+
+        if (! function_exists('nativephp_call')) {
+            $this->pinNotice = 'Lokasi perangkat tidak tersedia di sini.';
+
+            return;
+        }
+
+        $this->pinning = true;
+
+        try {
+            Geolocation::getCurrentPosition(fineAccuracy: true)->get();
+        } catch (Throwable) {
+            $this->pinning = false;
+            $this->pinNotice = 'Gagal membaca lokasi. Coba lagi.';
+        }
+    }
+
+    #[On(LocationReceived::class)]
+    public function onLocationReceived(
+        bool $success,
+        ?float $latitude = null,
+        ?float $longitude = null,
+        ?float $accuracy = null,
+    ): void {
+        $this->pinning = false;
+
+        if (! $success || $latitude === null || $longitude === null) {
+            $this->pinNotice = 'Izin lokasi ditolak. Aktifkan GPS lalu coba lagi.';
+
+            return;
+        }
+
+        $this->latitude = $latitude;
+        $this->longitude = $longitude;
+        $this->locationAccuracy = $accuracy;
+        $this->pinNotice = 'Titik lokasi tersimpan.';
+    }
+
+    /** Fallback for sending to a door the sender is not standing at. */
+    public function applyManualLocation(): void {
+        $this->actionError = null;
+
+        $latRaw = str_replace(',', '.', trim($this->manualLatitude));
+        $lngRaw = str_replace(',', '.', trim($this->manualLongitude));
+
+        if (! is_numeric($latRaw) || ! is_numeric($lngRaw)) {
+            $this->pinNotice = 'Isi lintang dan bujur dengan angka.';
+
+            return;
+        }
+
+        $lat = (float) $latRaw;
+        $lng = (float) $lngRaw;
+
+        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            $this->pinNotice = 'Koordinat di luar jangkauan. Lintang -90..90, bujur -180..180.';
+
+            return;
+        }
+
+        $this->latitude = $lat;
+        $this->longitude = $lng;
+        $this->locationAccuracy = null;
+        $this->pinNotice = 'Titik lokasi diatur manual.';
+    }
+
+    public function clearLocation(): void {
+        $this->latitude = null;
+        $this->longitude = null;
+        $this->locationAccuracy = null;
+        $this->pinNotice = 'Titik lokasi dihapus.';
+    }
+
     public function submit(): void {
         if ($this->busy) {
             return;
@@ -180,6 +281,12 @@ final class Checkout extends NativeComponent {
             return;
         }
 
+        if ($this->latitude === null || $this->longitude === null) {
+            $this->actionError = 'Pin titik lokasi penerima dulu sebelum membuat pesanan.';
+
+            return;
+        }
+
         [$windowStart, $windowEnd] = $this->windowBounds();
 
         $items = array_map(
@@ -195,6 +302,8 @@ final class Checkout extends NativeComponent {
                 'address' => trim($this->recipientAddress),
                 'area' => trim($this->recipientArea) !== '' ? trim($this->recipientArea) : null,
                 'address_type' => str_contains($this->addressType, 'Kantor') ? 'COMMERCIAL' : 'RESIDENTIAL',
+                'latitude' => $this->latitude,
+                'longitude' => $this->longitude,
             ],
             'service_type' => str_contains($this->serviceType, 'Instant') ? 'INSTANT_FROZEN' : 'REGULER',
             'scheduled_date' => $this->scheduledDateIso(),
@@ -308,6 +417,11 @@ final class Checkout extends NativeComponent {
             'typeOptions' => $this->addressTypeOptions(),
             'error' => $this->error,
             'actionError' => $this->actionError,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'locationAccuracy' => $this->locationAccuracy,
+            'pinNotice' => $this->pinNotice,
+            'pinning' => $this->pinning,
         ]);
     }
 }

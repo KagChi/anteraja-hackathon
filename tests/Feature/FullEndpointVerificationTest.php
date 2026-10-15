@@ -75,6 +75,8 @@ final class FullEndpointVerificationTest extends TestCase
                 'name' => 'Verifikasi Pembeli',
                 'phone' => '081234567899',
                 'address' => 'Jl. Verifikasi No. 10',
+                'latitude' => -6.229746,
+                'longitude' => 106.848529,
             ],
             'items' => [
                 ['product_id' => $product->id, 'quantity' => 1],

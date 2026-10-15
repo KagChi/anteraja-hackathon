@@ -116,6 +116,8 @@ components:
           example: 081299990001
     CreateShipmentRequest:
       type: object
+      description: 'Titik lokasi tujuan wajib dipin: koordinat penerima bila blok
+        recipient diisi, selain itu koordinat pembeli.'
       required:
       - buyer_name
       - buyer_phone
@@ -545,6 +547,8 @@ components:
           - name
           - phone
           - address
+          - latitude
+          - longitude
           properties:
             name:
               type: string
@@ -567,12 +571,12 @@ components:
             latitude:
               type: number
               format: float
-              nullable: true
-              description: Koordinat tujuan; inilah yang dipakai validasi radius kurir.
+              description: Titik lokasi tujuan yang dipin pelanggan; validasi radius
+                kurir diukur dari sini. Wajib.
             longitude:
               type: number
               format: float
-              nullable: true
+              description: Pasangan lintang; wajib.
         service_type:
           type: string
           enum:

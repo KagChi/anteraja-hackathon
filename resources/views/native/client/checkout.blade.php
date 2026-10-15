@@ -150,6 +150,75 @@
                     native:model="notes" />
             </native:column>
 
+            {{-- The point the courier's geofence is measured against. There is no
+                 native map, so the sender seeds it from the device and can still
+                 correct it by hand when the parcel goes to someone else's door. --}}
+            <native:column class="w-full gap-3 rounded-xl bg-theme-surface-container-lowest p-4">
+                <native:text class="text-sm text-theme-secondary uppercase">Titik lokasi penerima</native:text>
+                <native:text class="text-sm leading-snug text-theme-secondary">
+                    Kurir memakai titik ini untuk memastikan paket tiba di alamat yang benar.
+                </native:text>
+
+                <native:row class="w-full items-center gap-3 rounded-lg bg-theme-surface-container p-3">
+                    <native:icon :ios="Ios::Location" :android="Android::LocationOn" :size="20"
+                        class="text-theme-primary" />
+                    <native:column class="flex-1 gap-0.5">
+                        @if ($latitude !== null && $longitude !== null)
+                            <native:text class="text-base font-bold text-theme-on-surface">
+                                {{ number_format($latitude, 5) }}, {{ number_format($longitude, 5) }}
+                            </native:text>
+                            <native:text class="text-sm text-theme-secondary">
+                                {{ $locationAccuracy !== null ? 'Akurasi ±'.number_format($locationAccuracy, 0).' m' : 'Diatur manual' }}
+                            </native:text>
+                        @else
+                            <native:text class="text-base font-bold text-theme-secondary">Belum dipin</native:text>
+                            <native:text class="text-sm text-theme-secondary">
+                                Pin lokasi tujuan sebelum membuat pesanan.
+                            </native:text>
+                        @endif
+                    </native:column>
+                </native:row>
+
+                <native:button class="w-full" variant="primary"
+                    :label="$pinning ? 'Mencari lokasi…' : 'Pin lokasi saya'"
+                    @tap="pinMyLocation" :ios-icon="Ios::LocationFill" :android-icon="Android::MyLocation" />
+
+                @if ($latitude !== null && $longitude !== null)
+                    <native:pressable @tap="clearLocation" a11y-label="Hapus titik lokasi">
+                        <native:row class="items-center justify-center gap-1 py-1">
+                            <native:icon :ios="Ios::Xmark" :android="Android::Close" :size="14"
+                                class="text-theme-secondary" />
+                            <native:text class="text-sm text-theme-secondary">Hapus titik</native:text>
+                        </native:row>
+                    </native:pressable>
+                @endif
+
+                @if ($pinNotice !== '')
+                    <native:text class="text-sm text-theme-secondary">{{ $pinNotice }}</native:text>
+                @endif
+
+                <native:divider />
+
+                <native:text class="text-sm text-theme-secondary">
+                    Kirim ke alamat orang lain? Isi koordinat manual (opsional).
+                </native:text>
+
+                <native:outlined-text-input
+                    label="Lintang"
+                    placeholder="-6.22974"
+                    keyboard="decimal"
+                    native:model="manualLatitude" />
+
+                <native:outlined-text-input
+                    label="Bujur"
+                    placeholder="106.84852"
+                    keyboard="decimal"
+                    native:model="manualLongitude" />
+
+                <native:button class="w-full" variant="secondary" label="Gunakan koordinat manual"
+                    @tap="applyManualLocation" :ios-icon="Ios::Pencil" :android-icon="Android::Edit" />
+            </native:column>
+
             @if ($actionError !== null)
                 @include('native.partials.action-error', ['message' => $actionError])
             @endif

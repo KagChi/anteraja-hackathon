@@ -9,6 +9,7 @@ use App\Support\ApiResult;
 use App\Support\CourierPayload;
 use App\Support\GeoDistance;
 use App\Support\MobileApi;
+use App\Http\Controllers\Courier\MapController;
 use App\Services\Gps\FakeGpsDetector;
 use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\Element;
@@ -17,6 +18,7 @@ use Native\Mobile\Events\Geolocation\LocationReceived;
 use Native\Mobile\Events\Geolocation\LocationUpdated;
 use Native\Mobile\Facades\Browser;
 use Native\Mobile\Facades\Geolocation;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -86,6 +88,57 @@ final class Delivery extends NativeComponent {
         $this->delivery = CourierPayload::delivery(is_array($payload) ? $payload : []);
         $this->arrived = ($this->delivery['stage'] ?? '') === 'ARRIVED';
         $this->loadIssueOptions();
+        $this->rememberMapContext();
+    }
+
+    /**
+     * Seed the map webview's cache with the destination and geofence, so the
+     * embedded Leaflet page can draw something before the first GPS fix lands.
+     */
+    private function rememberMapContext(): void {
+        $gps = $this->delivery['gps'] ?? [];
+        $context = $this->mapContext();
+
+        $context['destination_latitude'] = $gps['destination_latitude'] ?? null;
+        $context['destination_longitude'] = $gps['destination_longitude'] ?? null;
+        $context['radius_m'] = (int) ($gps['radius_m'] ?? 100);
+
+        $this->putMapContext($context);
+    }
+
+    /** Push the latest device fix into the cache the map page polls. */
+    private function cacheFix(): void {
+        if ($this->resi === '' || $this->latitude === null || $this->longitude === null) {
+            return;
+        }
+
+        $context = $this->mapContext();
+        $context['latitude'] = $this->latitude;
+        $context['longitude'] = $this->longitude;
+        $context['accuracy_m'] = $this->accuracy;
+        $context['at'] = now()->toIso8601String();
+
+        $this->putMapContext($context);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapContext(): array {
+        $existing = Cache::get(MapController::cacheKey($this->resi));
+
+        return is_array($existing) ? $existing : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function putMapContext(array $context): void {
+        if ($this->resi === '') {
+            return;
+        }
+
+        Cache::put(MapController::cacheKey($this->resi), $context, now()->addMinutes(30));
     }
 
     private function loadIssueOptions(): void {
@@ -150,6 +203,8 @@ final class Delivery extends NativeComponent {
         if (count($this->fixWindow) > FakeGpsDetector::MAX_FIX_WINDOW) {
             $this->fixWindow = array_slice($this->fixWindow, -FakeGpsDetector::MAX_FIX_WINDOW);
         }
+
+        $this->cacheFix();
     }
 
     #[On(LocationReceived::class)]
@@ -352,7 +407,18 @@ final class Delivery extends NativeComponent {
             'fixCount' => count($this->fixWindow),
             'gpsVariant' => $this->gpsVariant(),
             'gpsCanReview' => $this->gpsCanReview(),
+            'mapUrl' => '/courier/map/'.rawurlencode($this->resi),
+            'hasMap' => $this->hasMap(),
         ]);
+    }
+
+    /** The map only makes sense once the recipient point is known. */
+    private function hasMap(): bool {
+        $gps = $this->delivery['gps'] ?? null;
+
+        return is_array($gps)
+            && $gps['destination_latitude'] !== null
+            && $gps['destination_longitude'] !== null;
     }
 
     /** Badge tone for the verdict: clean, flagged, or refused. */

@@ -2,6 +2,7 @@ import { Head } from "@inertiajs/react";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { CourierPickerDialog } from "@/components/CourierPickerDialog";
 import { Dialog } from "@/components/Dialog";
+import { LocationPicker, type PickedPoint } from "@/components/LocationPicker";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { ShipmentDetailModal } from "@/components/ShipmentDetailModal";
 import { DELIVERY_SLOTS, STATUS_TONE } from "@/data/admin";
@@ -539,6 +540,10 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
     // parcel is meant for someone else — family at another address.
     const [recipientGiven, setRecipientGiven] = useState(false);
     const [recipient, setRecipient] = useState({ name: "", phone: "", address: "", area: "" });
+    // The destination pin the hub drops on the map. It belongs to whichever
+    // block receives the parcel: the recipient when one is named, otherwise the
+    // buyer. The courier's geofence is measured against it.
+    const [pin, setPin] = useState<PickedPoint | null>(null);
     const [items, setItems] = useState<ItemDraft[]>([{ id: 1, product_id: "", quantity: "1" }]);
     const [scheduledDate, setScheduledDate] = useState(todayIso());
     const [slot, setSlot] = useState(DELIVERY_SLOTS[2]);
@@ -569,6 +574,32 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
         };
     }, []);
 
+    // A registered buyer brings their stored point along; the desk only nudges
+    // it when the parcel is going somewhere else.
+    useEffect(() => {
+        if (buyerMode !== "existing" || buyerId === "" || recipientGiven) return;
+
+        const selected = options?.buyers.find((option) => String(option.id) === buyerId);
+        if (selected?.latitude != null && selected?.longitude != null) {
+            setPin({ latitude: selected.latitude, longitude: selected.longitude });
+        }
+    }, [buyerMode, buyerId, recipientGiven, options]);
+
+    // The geocoded address only fills blanks: anything the desk typed wins.
+    function applyResolvedAddress(address: string, area: string | null) {
+        const fill = <T extends { address: string; area: string }>(previous: T): T => ({
+            ...previous,
+            address: previous.address.trim() === "" ? address : previous.address,
+            area: previous.area.trim() === "" && area !== null ? area : previous.area
+        });
+
+        if (recipientGiven) {
+            setRecipient(fill);
+        } else {
+            setBuyer(fill);
+        }
+    }
+
     function updateItem(id: number, patch: Partial<Omit<ItemDraft, "id">>) {
         setItems((previous) => previous.map((item) => (item.id === id ? { ...item, ...patch } : item)));
     }
@@ -585,6 +616,11 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
             return;
         }
 
+        if (pin === null) {
+            setError("Pin titik lokasi tujuan di peta sebelum menyimpan.");
+            return;
+        }
+
         setSaving(true);
         setError(null);
         setErrors({});
@@ -592,13 +628,19 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
         try {
             const response = await api.shipments.store({
                 ...(buyerMode === "existing"
-                    ? { buyer_id: Number(buyerId) }
+                    ? {
+                          buyer_id: Number(buyerId),
+                          // The pin rides on the buyer only when the parcel is
+                          // going to the buyer themselves.
+                          ...(recipientGiven ? {} : { buyer: { latitude: pin.latitude, longitude: pin.longitude } })
+                      }
                     : {
                           buyer: {
                               name: buyer.name.trim(),
                               phone: buyer.phone.trim(),
                               address: buyer.address.trim(),
-                              ...(buyer.area.trim() === "" ? {} : { area: buyer.area.trim() })
+                              ...(buyer.area.trim() === "" ? {} : { area: buyer.area.trim() }),
+                              ...(recipientGiven ? {} : { latitude: pin.latitude, longitude: pin.longitude })
                           }
                       }),
                 ...(recipientGiven
@@ -607,7 +649,9 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                               name: recipient.name.trim(),
                               phone: recipient.phone.trim(),
                               address: recipient.address.trim(),
-                              ...(recipient.area.trim() === "" ? {} : { area: recipient.area.trim() })
+                              ...(recipient.area.trim() === "" ? {} : { area: recipient.area.trim() }),
+                              latitude: pin.latitude,
+                              longitude: pin.longitude
                           }
                       }
                     : {}),
@@ -668,7 +712,13 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                             <button
                                 key={mode}
                                 type="button"
-                                onClick={() => setBuyerMode(mode)}
+                                onClick={() => {
+                                    // Switching who receives the parcel starts a
+                                    // fresh pin rather than carrying the old point
+                                    // to the wrong person.
+                                    setBuyerMode(mode);
+                                    setPin(null);
+                                }}
                                 aria-pressed={buyerMode === mode}
                                 className={cx(
                                     "h-8 rounded-md px-space-md font-label-md text-label-md transition-colors",
@@ -771,7 +821,10 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                             id="recipient-same-as-buyer"
                             type="checkbox"
                             checked={!recipientGiven}
-                            onChange={(event) => setRecipientGiven(!event.target.checked)}
+                            onChange={(event) => {
+                                setRecipientGiven(!event.target.checked);
+                                setPin(null);
+                            }}
                             className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
                         />
                         <span className="font-body-sm text-body-sm text-secondary">
@@ -838,6 +891,22 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                                 />
                             </label>
                         </div>
+                    ) : null}
+                </section>
+
+                <section className="flex flex-col gap-space-sm">
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">
+                        Titik lokasi {recipientGiven ? "penerima" : "tujuan"}
+                    </span>
+                    <span className="font-body-sm text-body-sm text-secondary">
+                        Pin titik tempat kurir menyerahkan paket. Radius GPS kurir diukur dari titik ini, jadi pastikan
+                        pin tepat di pintu penerima.
+                    </span>
+                    <LocationPicker value={pin} onChange={setPin} onResolvedAddress={applyResolvedAddress} />
+                    {fieldError(recipientGiven ? "recipient.latitude" : "buyer.latitude") ? (
+                        <span className="font-body-sm text-body-sm text-error">
+                            {fieldError(recipientGiven ? "recipient.latitude" : "buyer.latitude")}
+                        </span>
                     ) : null}
                 </section>
 

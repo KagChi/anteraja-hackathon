@@ -57,8 +57,8 @@ final class StoreOrderRequest extends FormRequest
             'recipient.address' => ['required', 'string', 'min:5', 'max:255'],
             'recipient.area' => ['nullable', 'string', 'max:120'],
             'recipient.address_type' => ['nullable', new Enum(AddressType::class)],
-            'recipient.latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'recipient.longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:recipient.latitude'],
+            'recipient.latitude' => ['required', 'numeric', 'between:-90,90'],
+            'recipient.longitude' => ['required', 'numeric', 'between:-180,180'],
 
             'service_type' => ['required', new Enum(ServiceType::class)],
             'scheduled_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.Carbon::now(DisplayTime::DISPLAY_TIMEZONE)->toDateString()],
@@ -81,6 +81,8 @@ final class StoreOrderRequest extends FormRequest
             'scheduled_date.after_or_equal' => 'Tanggal pengiriman tidak boleh di masa lalu.',
             'window_end.after' => 'Jam selesai harus setelah jam mulai.',
             'items.required' => 'Pilih minimal satu produk untuk dikirim.',
+            'recipient.latitude.required' => 'Titik lokasi penerima wajib dipin di peta.',
+            'recipient.longitude.required' => 'Titik lokasi penerima wajib dipin di peta.',
         ];
     }
 }

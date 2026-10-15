@@ -87,6 +87,13 @@ delivery steps over WhatsApp, and the customer follows the parcel in the
 Pesanan, Riwayat and tracking screens. The courier drives to the recipient's
 coordinates, which is what the geofence validates.
 
+Checkout pins that destination before the order is accepted. There is no native
+map element, so the sender seeds the point from the device's own GPS fix — and,
+because the parcel often goes to someone else's door, can correct it with manual
+latitude/longitude fields. `POST /api/client/orders` rejects an order whose
+recipient has no coordinates, so a parcel can never reach the hub without a
+point for the courier's geofence to measure.
+
 `GET /api/client/orders` and the tracking screens read the recipient from the
 package, so the Pesanan list shows who the parcel is going to rather than the
 account holder.

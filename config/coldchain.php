@@ -29,7 +29,7 @@ return [
     'client' => [
         'link_ttl_days' => 30,
         'resend_auto_approve' => true,
-        'reschedule_max_days' => 14,
+        'reschedule_max_days' => 30,
         'min_lead_hours' => 2,
         'unanswered_after_minutes' => 120,
         'slots' => [

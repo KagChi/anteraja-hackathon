@@ -97,7 +97,8 @@
           "id": "anterajaWaha",
           "name": "Anteraja WAHA"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -177,6 +178,35 @@
           "name": "Anteraja App Hook"
         }
       }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first().json || {};\n\n// The WAHA failure is wrapped differently depending on how it failed, so flatten\n// the whole item and look for the recipient problem anywhere in it.\nlet flat = '';\ntry { flat = JSON.stringify(item); } catch (error) { flat = String(item); }\n\nconst unreachable = /no lid|lid for user|not registered|invalid.*(number|wid)|not.*whatsapp/i.test(flat);\n\nreturn [{ json: {\n  delivered: false,\n  reason: unreachable ? 'recipient_not_on_whatsapp' : 'send_failed',\n  message: unreachable ? 'Nomor tujuan tidak terdaftar di WhatsApp.' : 'Pengiriman WhatsApp gagal.'\n} }];\n"
+      },
+      "id": "wf-rangkum-gagal",
+      "name": "Rangkum Gagal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "wf-respond-gagal",
+      "name": "Balas Gagal",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        140
+      ]
     }
   ],
   "connections": {
@@ -228,6 +258,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Rangkum Gagal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -247,6 +284,17 @@
         [
           {
             "node": "Simpan State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rangkum Gagal": {
+      "main": [
+        [
+          {
+            "node": "Balas Gagal",
             "type": "main",
             "index": 0
           }

@@ -394,7 +394,7 @@ Angka yang TIDAK boleh dianggap metrik karena belum ada datanya:
 | Asumsi | Bukti | Konsekuensi bila salah |
 | --- | --- | --- |
 | Pembeli bisa dijangkau lewat WhatsApp | seluruh alur konfirmasi bertumpu padanya | paket macet di AWAITING_CONFIRMATION sampai pengingat admin |
-| Koordinat penerima tersedia untuk validasi radius | GeofenceEvaluator memakai buyers.latitude dan longitude | tanpa koordinat, geofence diam dan validasi lokasi hilang |
+| Koordinat tujuan tersedia untuk validasi radius | Checkout pelanggan dan form shipment mewajibkan titik lokasi dipin sebelum paket dibuat; GeofenceEvaluator mengukur dari recipient_latitude dan recipient_longitude | tanpa koordinat, geofence diam dan validasi lokasi hilang |
 | Aplikasi kurir mengirim jendela fix GPS | Requests/Courier/Concerns/ValidatesGpsSignals.php | tanpa jendela fix, deteksi hanya memakai sinyal yang ada |
 | Waktu Jakarta adalah satu-satunya zona tampilan | Support/DisplayTime.php | jadwal bisa terbaca salah bila hub lain zona waktu |
 | Satu paket hanya punya satu pengganti | unique index uq_packages_one_replacement | penggantian kedua akan gagal di database |

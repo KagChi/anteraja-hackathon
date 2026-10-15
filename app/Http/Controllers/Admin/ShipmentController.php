@@ -11,12 +11,14 @@ use App\Http\Requests\Admin\IndexShipmentRequest;
 use App\Http\Requests\Admin\StoreShipmentRequest;
 use App\Models\Buyer;
 use App\Models\ConditionCheck;
+use App\Models\LocationCheck;
 use App\Models\Package;
 use App\Models\PackageStatusRef;
 use App\Models\Product;
 use App\Models\Staff;
 use App\Queries\ShipmentIndexQuery;
 use App\Services\Client\ClientLinkService;
+use App\Services\Gps\GeofenceEvaluator;
 use App\Support\DisplayTime;
 use App\Support\MediaStorage;
 use App\Support\PackageTimelineBuilder;
@@ -130,7 +132,7 @@ final class ShipmentController extends Controller
         ], 201);
     }
 
-    public function show(string $trackingNumber, PackageTimelineBuilder $timelineBuilder): JsonResponse
+    public function show(string $trackingNumber, PackageTimelineBuilder $timelineBuilder, GeofenceEvaluator $geofence): JsonResponse
     {
         $package = Package::where('tracking_number', $trackingNumber)
             ->with([
@@ -158,6 +160,11 @@ final class ShipmentController extends Controller
             $statusLabel = "Kendala ({$categoryLabel})";
         }
 
+        // Where the parcel is meant to land and the last place the courier's
+        // device reported from — the two points the detail map draws.
+        $latestFix = LocationCheck::where('package_id', $package->id)->orderByDesc('id')->first();
+        $hasDestination = $package->recipient_latitude !== null && $package->recipient_longitude !== null;
+
         return response()->json([
             'package' => $package,
             'timeline' => $timeline,
@@ -172,6 +179,23 @@ final class ShipmentController extends Controller
             'issuePhotoUrl' => $checkWithIssue?->issueReport?->photo_url !== null
                 ? MediaStorage::temporaryUrl($checkWithIssue->issueReport->photo_url)
                 : null,
+            'location' => [
+                'destination' => $hasDestination ? [
+                    'latitude' => $package->recipient_latitude,
+                    'longitude' => $package->recipient_longitude,
+                ] : null,
+                'radius_m' => $geofence->radiusFor($package->service_type),
+                'latest_fix' => $latestFix === null ? null : [
+                    'latitude' => $latestFix->latitude,
+                    'longitude' => $latestFix->longitude,
+                    'level' => $latestFix->level?->value,
+                    'level_label' => $latestFix->level?->label(),
+                    'action' => $latestFix->action?->value,
+                    'action_label' => $latestFix->action?->label(),
+                    'inside' => $latestFix->inside_geofence,
+                    'at' => $latestFix->created_at?->toIso8601String(),
+                ],
+            ],
         ]);
     }
 }

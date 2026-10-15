@@ -50,6 +50,8 @@ export interface BuyerOption {
     phone: string | null;
     address: string;
     area: string | null;
+    latitude: number | null;
+    longitude: number | null;
 }
 
 /** Which action the queue offers for a row; mirrors Package::availableAdminActions(). */
@@ -146,6 +148,23 @@ export interface PackageDetail {
     delivery: DeliveryRecord | null;
 }
 
+export interface ShipmentLocationFix {
+    latitude: number;
+    longitude: number;
+    level: string | null;
+    level_label: string | null;
+    action: string | null;
+    action_label: string | null;
+    inside: boolean | null;
+    at: string | null;
+}
+
+export interface ShipmentLocation {
+    destination: { latitude: number; longitude: number } | null;
+    radius_m: number;
+    latest_fix: ShipmentLocationFix | null;
+}
+
 export interface ShipmentDetailResponse {
     package: PackageDetail;
     timeline: TimelineEntry[];
@@ -156,6 +175,7 @@ export interface ShipmentDetailResponse {
     tone: Tone;
     proofPhotoUrl: string | null;
     issuePhotoUrl: string | null;
+    location: ShipmentLocation;
 }
 
 export interface IssueReportPayload {
@@ -312,6 +332,10 @@ export interface GpsCheckRow {
     reasons: GpsReason[];
     distance_m: number | null;
     radius_m: number | null;
+    latitude: number | null;
+    longitude: number | null;
+    destination_latitude: number | null;
+    destination_longitude: number | null;
     inside: boolean | null;
     accuracy_m: number | null;
     applied: boolean;
@@ -330,6 +354,10 @@ export interface GpsLockRow {
     status_label: string;
     tone: Tone;
     reasons: GpsReason[];
+    latitude: number | null;
+    longitude: number | null;
+    destination_latitude: number | null;
+    destination_longitude: number | null;
     decision_reason: string | null;
     decided_by: string | null;
     decided_at: string | null;
@@ -402,11 +430,24 @@ export interface NewBuyerPayload {
     phone: string;
     address: string;
     area?: string;
+    /**
+     * The destination pin. Optional in the type because the buyer block carries
+     * it only when the buyer is the destination; the API rejects a shipment
+     * whose destination has no point.
+     */
+    latitude?: number;
+    longitude?: number;
+}
+
+/** A registered buyer re-pinned for this shipment; the identity is on record. */
+export interface ExistingBuyerPin {
+    latitude: number;
+    longitude: number;
 }
 
 export interface CreateShipmentPayload {
     buyer_id?: number;
-    buyer?: NewBuyerPayload;
+    buyer?: NewBuyerPayload | ExistingBuyerPin;
     /** Omitted when the parcel goes to the buyer themselves. */
     recipient?: NewBuyerPayload;
     items: Array<{ product_id: number; quantity: number }>;

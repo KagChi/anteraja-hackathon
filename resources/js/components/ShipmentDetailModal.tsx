@@ -1,6 +1,7 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 import { CourierPickerDialog } from "@/components/CourierPickerDialog";
 import { Dialog } from "@/components/Dialog";
+import { LeafletMap, type MapCircle, type MapMarker } from "@/components/LeafletMap";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import {
     DECISION_REASON_DEFAULT,
@@ -467,6 +468,40 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
     // instead of letting the picker fail on submit.
     const canAssignCourier = ASSIGNABLE_STATUSES.includes(detail?.package.status ?? "");
 
+    // The detail map: destination (the recipient point), its geofence, and the
+    // last place the courier's device reported from.
+    const destination = detail?.location?.destination ?? null;
+    const latestFix = detail?.location?.latest_fix ?? null;
+    const mapMarkers: MapMarker[] = [
+        ...(destination
+            ? [
+                  {
+                      lat: destination.latitude,
+                      lng: destination.longitude,
+                      tone: "info" as Tone,
+                      popup: "Titik penerima"
+                  }
+              ]
+            : []),
+        ...(latestFix
+            ? [
+                  {
+                      lat: latestFix.latitude,
+                      lng: latestFix.longitude,
+                      tone: (latestFix.inside === false ? "danger" : "success") as Tone,
+                      popup: `Posisi kurir terakhir${
+                          latestFix.action_label ? ` · ${latestFix.action_label}` : ""
+                      }${latestFix.inside === false ? " · di luar radius" : ""}`
+                  }
+              ]
+            : [])
+    ];
+    const mapCircle: MapCircle | null =
+        destination && detail?.location
+            ? { lat: destination.latitude, lng: destination.longitude, radiusM: detail.location.radius_m }
+            : null;
+    const hasMapData = destination !== null || latestFix !== null;
+
     return (
         <>
             <Dialog
@@ -636,6 +671,32 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                                 )}
                             </section>
                         </div>
+
+                        <section className="flex flex-col gap-space-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="font-label-sm text-label-sm text-secondary uppercase tracking-wider">
+                                    Lokasi Pengiriman
+                                </h3>
+                                {latestFix ? (
+                                    <span className="font-label-sm text-label-sm text-secondary">
+                                        Posisi terakhir {latestFix.level_label ?? ""}
+                                        {latestFix.at ? ` · ${latestFix.at}` : ""}
+                                    </span>
+                                ) : null}
+                            </div>
+                            <LeafletMap
+                                markers={mapMarkers}
+                                circle={mapCircle}
+                                heightClass="h-64"
+                                emptyLabel="Penerima belum punya koordinat, jadi lokasinya belum bisa dipetakan."
+                            />
+                            {!hasMapData ? null : (
+                                <p className="font-label-sm text-label-sm text-secondary">
+                                    Titik biru adalah penerima; lingkaran putus-putus adalah radius yang diizinkan
+                                    {detail?.location ? ` (${detail.location.radius_m} m)` : ""}.
+                                </p>
+                            )}
+                        </section>
 
                         {actionError ? <ErrorNotice message={actionError} /> : null}
 

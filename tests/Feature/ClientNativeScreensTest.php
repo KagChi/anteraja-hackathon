@@ -181,7 +181,21 @@ final class ClientNativeScreensTest extends TestCase {
             ->set('recipientAddress', 'Jl. Kenanga No. 3, Coblong')
             ->set('recipientArea', 'Bandung');
 
+        // The destination has to be pinned before the order is accepted.
+        $screen->call('submit')->assertSet('actionError', 'Pin titik lokasi penerima dulu sebelum membuat pesanan.');
+
+        $screen->call('onLocationReceived', true, -6.9175, 107.6191)
+            ->assertSet('latitude', -6.9175)
+            ->assertSet('longitude', 107.6191);
+
         $screen->call('submit')->assertNavigatedTo('/client/order-success?resi=AJ-FRZ-0012400');
+
+        Http::assertSent(static function ($request): bool {
+            return $request->method() === 'POST'
+                && str_ends_with((string) parse_url($request->url(), PHP_URL_PATH), '/api/client/orders')
+                && (float) ($request['recipient']['latitude'] ?? 0) === -6.9175
+                && (float) ($request['recipient']['longitude'] ?? 0) === 107.6191;
+        });
 
         $this->assertSame(0, ClientCart::count());
     }

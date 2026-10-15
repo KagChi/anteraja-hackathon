@@ -95,6 +95,8 @@ final class AdminConsoleE2ETest extends TestCase
                 'phone' => $phone,
                 'address' => 'Jl. End To End No. 1, Tebet, Jakarta Selatan',
                 'area' => 'Tebet, Jakarta Selatan',
+                'latitude' => -6.229746,
+                'longitude' => 106.848529,
             ],
             'items' => [['product_id' => $this->product->id, 'quantity' => 2]],
             'scheduled_date' => $this->deliveryDate,

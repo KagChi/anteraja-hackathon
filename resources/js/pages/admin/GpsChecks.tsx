@@ -1,11 +1,20 @@
 import { Head } from "@inertiajs/react";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/Dialog";
+import { LeafletMap, type MapCircle, type MapMarker } from "@/components/LeafletMap";
 import { MaterialIcon } from "@/components/MaterialIcon";
 import { STATUS_TONE } from "@/data/admin";
 import { AdminLayout } from "@/layouts";
 import { ApiError, api, type GpsChecksResponse, type GpsLockRow } from "@/lib/api";
 import { cx } from "@/lib/cx";
+
+/** Escape API text before it goes into a Leaflet popup, which renders as HTML. */
+function escapeHtml(value: string): string {
+    return value.replace(
+        /[&<>"']/g,
+        (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char
+    );
+}
 
 /**
  * Validasi GPS.
@@ -91,6 +100,37 @@ export default function GpsChecks() {
     const summary = data?.summary;
     const checks = data?.checks ?? [];
     const locks = data?.locks ?? [];
+
+    // Every verdict that carried a device fix, plotted with the same tone the
+    // table uses. The geofence comes from the most recent check that recorded a
+    // destination and a radius.
+    const mapMarkers: MapMarker[] = checks
+        .filter((check) => check.latitude !== null && check.longitude !== null)
+        .map((check) => {
+            const distance =
+                check.distance_m === null ? "" : `<br/>${check.distance_m.toLocaleString("id-ID")} m dari penerima`;
+
+            return {
+                lat: check.latitude as number,
+                lng: check.longitude as number,
+                tone: check.tone,
+                popup: `<strong>${escapeHtml(check.tracking)}</strong><br/>${escapeHtml(check.courier)} · ${escapeHtml(
+                    check.action_label ?? "-"
+                )}<br/>${escapeHtml(check.level_label ?? "-")}${distance}`
+            };
+        });
+
+    const fenceCheck = checks.find(
+        (check) =>
+            check.destination_latitude !== null && check.destination_longitude !== null && check.radius_m !== null
+    );
+    const mapCircle: MapCircle | null = fenceCheck
+        ? {
+              lat: fenceCheck.destination_latitude as number,
+              lng: fenceCheck.destination_longitude as number,
+              radiusM: fenceCheck.radius_m as number
+          }
+        : null;
 
     const kpis = [
         {
@@ -197,6 +237,27 @@ export default function GpsChecks() {
                     </div>
                 ))}
             </div>
+
+            <section className="mb-space-xl flex flex-col gap-space-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface">Peta Pemeriksaan Lokasi</h2>
+                    <div className="flex items-center gap-3 font-label-sm text-label-sm text-secondary">
+                        <span className="flex items-center gap-1.5">
+                            <span className="h-2.5 w-2.5 rounded-full border border-white bg-error" />
+                            Di luar radius
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                            <span className="h-2.5 w-2.5 rounded-full border border-white bg-tertiary-container" />
+                            Normal
+                        </span>
+                    </div>
+                </div>
+                <LeafletMap
+                    markers={mapMarkers}
+                    circle={mapCircle}
+                    emptyLabel="Belum ada pemeriksaan lokasi yang membawa koordinat."
+                />
+            </section>
 
             <section className="mb-space-xl flex flex-col gap-space-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">

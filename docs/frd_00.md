@@ -508,7 +508,7 @@ data yang diharapkan halaman, bukan instruksi perubahan UI.
 
 | Halaman | Data yang dimuat | Aksi | Validasi di klien | Keadaan kosong dan error |
 | --- | --- | --- | --- | --- |
-| admin/Shipment | GET /api/admin/shipments dengan filter q, status, courier, schedule, date, source, per_page | buat shipment, assign kurir, reschedule, buka modal detail, ekspor CSV | form shipment: produk wajib minimal satu, tanggal tidak boleh lampau, jam selesai setelah jam mulai | tabel kosong menampilkan pesan tanpa baris; 422 menampilkan pesan pertama dari errors |
+| admin/Shipment | GET /api/admin/shipments dengan filter q, status, courier, schedule, date, source, per_page | buat shipment, assign kurir, reschedule, buka modal detail, ekspor CSV | form shipment: produk wajib minimal satu, titik lokasi tujuan wajib dipin di peta, tanggal tidak boleh lampau, jam selesai setelah jam mulai | tabel kosong menampilkan pesan tanpa baris; 422 menampilkan pesan pertama dari errors |
 | admin/Report | GET /api/admin/reports dengan date dan category | pilih tanggal, filter kategori, ekspor CSV | tanggal format Y-m-d | hari tanpa data menampilkan KPI nol dan daftar kendala kosong |
 | admin/History | GET /api/admin/history dengan q dan status | cari, filter status, ekspor CSV | q maksimal 100 karakter | hasil kosong menampilkan tabel tanpa baris |
 | admin/GpsChecks | GET /api/admin/gps-checks dengan status dan level | pilih tab, filter level, putuskan permintaan tinjauan | alasan keputusan wajib minimal 10 karakter | daftar checks dan locks kosong; ringkasan menampilkan angka nol |
@@ -533,7 +533,7 @@ data yang diharapkan halaman, bukan instruksi perubahan UI.
 | Client Landing | GET /api/client/catalog | tuju katalog, daftar, atau masuk | - | katalog kosong menampilkan keadaan kosong |
 | Client Catalog dan ProductDetail | GET /api/client/catalog dan /{slug} | pilih jumlah, tambah ke keranjang | jumlah 1 sampai 20 per produk | slug tidak dikenal menampilkan kartu tidak ditemukan |
 | Client Register | POST /api/client/auth/register | daftar lalu lanjut checkout | nama 2 sampai 120, telepon unik maksimal 20, password minimal 8 dan terkonfirmasi, alamat 5 sampai 255 | pesan "Nomor HP ini sudah terdaftar" dan "Konfirmasi password tidak sama" |
-| Client Checkout | GET /api/client/catalog dan /api/client/me, POST /api/client/orders | kirim pesanan | items 1 sampai 20 baris, quantity 1 sampai 20, tanggal tidak lampau, jam selesai setelah mulai, koordinat longitude wajib bila latitude ada | tamu diarahkan ke register; produk tidak tersedia menghasilkan 422 PRODUCT_UNAVAILABLE |
+| Client Checkout | GET /api/client/catalog dan /api/client/me, POST /api/client/orders | kirim pesanan | items 1 sampai 20 baris, quantity 1 sampai 20, tanggal tidak lampau, jam selesai setelah mulai, titik lokasi penerima wajib dipin (latitude dan longitude) | tamu diarahkan ke register; produk tidak tersedia menghasilkan 422 PRODUCT_UNAVAILABLE |
 | Client OrderSuccess | struk dari POST orders | buka beranda pesanan | - | struk kedaluwarsa atau kosong menampilkan keadaan kosong |
 | Client Orders dan History | GET /api/client/orders dengan tab | pindah tab, cari, buka layar lanjutan | q maksimal 100, per_page 1 sampai 50 | tab kosong menampilkan daftar kosong; resi tidak dikenal menampilkan kartu tidak ditemukan |
 | Client Tracking | GET .../tracking | telepon kurir bila status pengantaran, buka jadwal atau kendala | - | gangguan panggilan API menampilkan keadaan coba lagi |

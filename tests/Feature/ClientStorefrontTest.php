@@ -177,6 +177,8 @@ final class ClientStorefrontTest extends TestCase
                 'name' => 'Pelanggan Checkout',
                 'phone' => '081299900011',
                 'address' => 'Jl. Tebet Barat Dalam No. 5',
+                'latitude' => -6.229746,
+                'longitude' => 106.848529,
             ],
             'service_type' => 'REGULER',
             'scheduled_date' => Carbon::now('Asia/Jakarta')->addDay()->toDateString(),
@@ -184,6 +186,27 @@ final class ClientStorefrontTest extends TestCase
             'window_end' => '15:00',
             'items' => [],
         ])->assertStatus(422)->assertJsonValidationErrors('items');
+    }
+
+    /** The customer app must pin the destination before an order is accepted. */
+    public function test_checkout_requires_a_pinned_destination(): void
+    {
+        $buyer = $this->makeBuyer();
+        $token = $buyer->createToken('client-mobile', ['client'])->plainTextToken;
+        $nugget = Product::where('slug', 'nugget-ayam-1kg')->firstOrFail();
+
+        $this->withToken($token)->postJson('/api/client/orders', [
+            'recipient' => [
+                'name' => 'Pelanggan Tanpa Pin',
+                'phone' => '081299900012',
+                'address' => 'Jl. Tanpa Pin No. 2',
+            ],
+            'service_type' => 'REGULER',
+            'scheduled_date' => Carbon::now('Asia/Jakarta')->addDay()->toDateString(),
+            'window_start' => '13:00',
+            'window_end' => '15:00',
+            'items' => [['product_id' => $nugget->id, 'quantity' => 1]],
+        ])->assertStatus(422)->assertJsonValidationErrors('recipient.latitude');
     }
 
     private function makeBuyer(): Buyer

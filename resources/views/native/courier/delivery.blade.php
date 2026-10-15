@@ -158,10 +158,29 @@
             </native:row>
         </native:column>
 
-        {{-- Route. The web embedded a decorative map; native hands this to
-             the system maps app instead. --}}
-        <native:column class="w-full gap-2 rounded-xl bg-theme-surface-container-lowest p-4">
-            <native:text class="text-base text-theme-on-surface">{{ $delivery['map_label'] }}</native:text>
+        {{-- Route. There is no native map element, so the live Leaflet map runs
+             in a php-mode webview served by the device's own PHP runtime; the
+             courier component caches each fix and the page polls it. The system
+             maps app stays a tap away for turn-by-turn guidance. --}}
+        <native:column class="w-full gap-3 rounded-xl bg-theme-surface-container-lowest p-4">
+            <native:row class="w-full items-center gap-2">
+                <native:icon :ios="Ios::MapFill" :android="Android::Map" :size="18"
+                    class="text-theme-secondary" />
+                <native:text class="text-sm text-theme-secondary uppercase tracking-wider">
+                    Peta Lokasi
+                </native:text>
+            </native:row>
+
+            @if ($hasMap)
+                <native:webview php src="{{ $mapUrl }}" class="w-full h-64 rounded-xl" />
+            @else
+                <native:text class="text-sm leading-snug text-theme-secondary">
+                    Titik penerima belum punya koordinat, jadi peta belum bisa ditampilkan.
+                </native:text>
+            @endif
+
+            <native:text class="text-sm text-theme-secondary">{{ $delivery['map_label'] }}</native:text>
+
             <native:button variant="secondary" label="Buka Navigasi Rute" @tap="openRoute"
                 :ios-icon="Ios::MapFill" :android-icon="Android::Navigation" />
         </native:column>

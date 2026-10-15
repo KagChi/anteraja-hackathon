@@ -51,6 +51,18 @@ final class CreatePackage
             if (! empty($data['buyer_id'])) {
                 $buyerId = (int) $data['buyer_id'];
                 $buyer = Buyer::find($buyerId);
+
+                // The console pins a destination on every shipment, even for a
+                // registered buyer. Writing that point back keeps the next
+                // shipment — and the geofence — starting from the corrected
+                // coordinates.
+                $pinned = is_array($data['buyer'] ?? null) ? $data['buyer'] : [];
+                if ($buyer !== null && isset($pinned['latitude'], $pinned['longitude'])) {
+                    $buyer->update([
+                        'latitude' => (float) $pinned['latitude'],
+                        'longitude' => (float) $pinned['longitude'],
+                    ]);
+                }
             } else {
                 $buyerData = $data['buyer'] ?? [];
                 $phone = $buyerData['phone'] ?? '';

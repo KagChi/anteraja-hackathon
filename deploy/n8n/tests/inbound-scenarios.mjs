@@ -224,6 +224,12 @@ scenario('the lookup call carries the shared token', () => {
   contains(lookup.parameters.url, '/api/internal/whatsapp/lookup', 'url');
 });
 
+scenario('the state lookup reads the phone from the normalized message, not the log reply', () => {
+  const state = nodeOf(INBOUND, 'Ambil State');
+  contains(state.parameters.options.queryReplacement, "$('Normalisasi')", 'phone source');
+  absent(state.parameters.options.queryReplacement, '$json.phone', 'never the log reply');
+});
+
 scenario('the reply is addressed by the resolved chat id', () => {
   contains(nodeOf(INBOUND, 'Balas WAHA').parameters.jsonBody, 'chat_id', 'chat id');
 });
@@ -277,8 +283,8 @@ scenario('"siap menerima" confirms and advances the state', () => {
   contains(out.reply.text, 'sudah dikonfirmasi', 'reply');
 });
 
-scenario('"ya" and "oke" alone also confirm', () => {
-  for (const word of ['ya', 'oke', 'bisa', 'setuju']) {
+scenario('"ya", "oke" and "setuju" alone confirm', () => {
+  for (const word of ['ya', 'oke', 'setuju']) {
     eq(decide({ text: word, state: SCHEDULE_STATE }).decision.intent, 'confirm', 'intent for ' + word);
   }
 });
@@ -329,13 +335,13 @@ scenario('a bare time means tomorrow, not today', () => {
   eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
 });
 
-scenario('a bare time that still fits today stays today', () => {
+scenario('a bare time with no date is never read as today', () => {
   const out = decide({
     text: '17:00-19:00',
     state: SCHEDULE_STATE,
     llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: '09:00-11:00' },
   });
-  eq(out.decision.app_body.date, '2026-10-15', 'the stub has no usable slot left today');
+  eq(out.decision.app_body.date, '2026-10-15', 'tomorrow');
 });
 
 scenario('"besok" wins over a date the model guessed', () => {
@@ -407,9 +413,9 @@ scenario('the prompt is anchored with today so the model can resolve a bare day'
   contains(system, '2026-10-15', 'tomorrow is in the prompt');
 });
 
-scenario('a date the model could not resolve asks for it, never blames the two-hour lead', () => {
+scenario('a window with no date asks for the date, never blames the two-hour lead', () => {
   const out = decide({
-    text: 'tanggal 23 jam 13.00',
+    text: 'ubah jadwal',
     state: SCHEDULE_STATE,
     llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: '13:00-15:00' },
   });
@@ -421,7 +427,7 @@ scenario('a date the model could not resolve asks for it, never blames the two-h
 
 scenario('a date already gone is refused as past, not as too soon', () => {
   const out = decide({
-    text: 'tanggal 2 jam 13.00',
+    text: 'ubah jadwal',
     state: SCHEDULE_STATE,
     llm: { intent: 'request_reschedule', proposed_date: '2026-10-02', proposed_slot: '13:00-15:00' },
   });
@@ -430,14 +436,82 @@ scenario('a date already gone is refused as past, not as too soon', () => {
   absent(out.reply.text, 'kurang dari 2 jam', 'not the two-hour message');
 });
 
-scenario('a date past the booking window is refused before the API has to', () => {
+
+scenario('a bare day with a time reschedules even when the model left it null', () => {
   const out = decide({
-    text: 'tanggal 30 jam 13.00',
+    text: 'tanggal 30 jam 09:00-11:00',
     state: SCHEDULE_STATE,
-    llm: { intent: 'request_reschedule', proposed_date: '2026-11-30', proposed_slot: '13:00-15:00' },
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: null },
   });
-  eq(out.decision.app_url, null, 'no app call');
-  contains(out.reply.text, '14 hari', 'names the limit');
+  contains(out.decision.app_url, '/schedule/reschedule', 'app url');
+  eq(out.decision.app_body.date, '2026-10-30', 'the day the customer named');
+  eq(out.decision.app_body.slot, '09:00-11:00', 'the window the customer named');
+  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+});
+
+scenario('a bare day overrides a model that guessed today', () => {
+  const out = decide({
+    text: 'tanggal 30 jam 09:00-11:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-14', proposed_slot: '09:00-11:00' },
+  });
+  eq(out.decision.app_body.date, '2026-10-30', 'not the model\'s today');
+  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+});
+
+scenario('a bare day that already passed this month rolls to next month', () => {
+  const out = decide({
+    text: 'tanggal 2 jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: null },
+  });
+  eq(out.decision.app_body.date, '2026-11-02', 'the next 2nd');
+  eq(out.decision.app_body.slot, '13:00-15:00', 'the hour the customer named');
+});
+
+scenario('a named day and month reads as that exact date', () => {
+  const out = decide({
+    text: 'tanggal 23 oktober jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: null },
+  });
+  eq(out.decision.app_body.date, '2026-10-23', 'day and month');
+  eq(out.decision.app_body.slot, '13:00-15:00', 'hour');
+});
+
+scenario('a polite "bisa" never overrides a date and a window', () => {
+  const out = decide({
+    text: 'tanggal 16 jam 09:00-11:00 bisa?',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'confirm_schedule' },
+  });
+  eq(out.decision.intent, 'reschedule', 'the window is the intent');
+  eq(out.decision.app_body.date, '2026-10-16', 'the day named');
+  eq(out.decision.app_body.slot, '09:00-11:00', 'the window named');
+  contains(out.decision.app_url, '/schedule/reschedule', 'app url');
+});
+
+scenario('a bare window with "bisa" is a request, not a confirmation', () => {
+  const out = decide({ text: '09:00-11:00 bisa?', state: SCHEDULE_STATE });
+  eq(out.decision.intent, 'reschedule', 'intent');
+  eq(out.decision.app_body.date, '2026-10-15', 'tomorrow');
+  eq(out.decision.app_body.slot, '09:00-11:00', 'slot');
+});
+
+scenario('"bisa" with nothing named still confirms when the model reads it so', () => {
+  const out = decide({ text: 'bisa', state: SCHEDULE_STATE, llm: { intent: 'confirm_schedule' } });
+  eq(out.decision.intent, 'confirm', 'intent');
+  contains(out.decision.app_url, '/schedule/confirm', 'app url');
+});
+
+scenario('"minggu depan" means a week from today', () => {
+  const out = decide({
+    text: 'minggu depan 09:00-11:00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: null },
+  });
+  eq(out.decision.app_body.date, '2026-10-21', 'a week out');
+  eq(out.decision.app_body.slot, '09:00-11:00', 'slot');
 });
 
 scenario('the rescheduled notice is answered like a first request', () => {
@@ -861,6 +935,30 @@ scenario('the message history is wired for both directions', () => {
   contains(nodeOf(INBOUND, 'Catat Pesan Masuk').parameters.url, '/api/internal/whatsapp/messages', 'inbound url');
   contains(nodeOf(INBOUND, 'Catat Balasan').parameters.url, '/api/internal/whatsapp/messages', 'reply url');
   contains(nodeOf(OUTBOUND, 'Catat Pesan Keluar').parameters.url, '/api/internal/whatsapp/messages', 'outbound url');
+});
+
+scenario('a send WAHA rejects is answered, not left to 500 the webhook', () => {
+  eq(nodeOf(OUTBOUND, 'Kirim ke WAHA').onError, 'continueErrorOutput', 'error output enabled');
+
+  const errorBranch = ((OUTBOUND.connections['Kirim ke WAHA'] || {}).main || [])[1] || [];
+  eq(errorBranch[0].node, 'Rangkum Gagal', 'error branch');
+  eq(((OUTBOUND.connections['Rangkum Gagal'] || {}).main || [])[0][0].node, 'Balas Gagal', 'failure responder');
+});
+
+scenario('an unreachable recipient is named as such, not as a generic failure', () => {
+  const out = run(code(OUTBOUND, 'Rangkum Gagal'), {
+    input: { error: { message: 'Error: No LID for user\ns (https://static.whatsapp.net/x.js:85)' } },
+  });
+  eq(out.delivered, false, 'not delivered');
+  eq(out.reason, 'recipient_not_on_whatsapp', 'named reason');
+});
+
+scenario('any other send failure stays a generic failure', () => {
+  const out = run(code(OUTBOUND, 'Rangkum Gagal'), {
+    input: { error: { message: 'ECONNREFUSED 10.42.0.5:3000' } },
+  });
+  eq(out.delivered, false, 'not delivered');
+  eq(out.reason, 'send_failed', 'generic reason');
 });
 
 
