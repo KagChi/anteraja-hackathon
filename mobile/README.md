@@ -139,11 +139,26 @@ record.
 
 Both apps are light only, and neither has a theme toggle. The light palette in
 `config/native-ui.php` (white surfaces, dark type, Anteraja magenta for
-actions) is the only one the screens draw, and the build pins the platform
-chrome to match: `NATIVEPHP_APPEARANCE` defaults to `light`, the status bar
-icons are dark (`status_bar_style`), and the Android theme colours are the
-same magenta in both the day and the `values-night` resource, so a device set
-to dark gets the light chrome rather than a dark frame around light screens.
+actions) is the only one the screens draw.
+
+Pinning a device or emulator set to dark is two separate levers per platform:
+
+- **iOS** — `NATIVEPHP_APPEARANCE=light` (`.env.mobile.example`) is written to
+  the Info.plist as `UIUserInterfaceStyle`, so the system chrome (sheets,
+  keyboard, window background) stays light.
+- **Android** — `native:install` regenerates `nativephp/android` from the
+  vendor template every build, whose theme parents on
+  `DayNight.DarkActionBar` and whose `MainActivity` feeds
+  `isSystemInDarkTheme()` to the Material3 color scheme. Both are pinned light
+  by `scripts/force-light-appearance.sh`, which `scripts/build-apk.sh` runs
+  right after `native:install`. It reparents `values/themes.xml` and
+  `values-night/themes.xml` to the Light variant and rewrites the Compose
+  `isDark` read to `false`, failing the build if the template has moved rather
+  than shipping an app that honours dark mode.
+
+`status_bar_style='dark'` separately keeps the status/navigation bar icons dark
+on the light surface, and the Android theme colours are the same magenta day
+and night.
 
 ## Building an APK
 
