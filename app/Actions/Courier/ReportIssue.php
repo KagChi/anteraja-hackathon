@@ -37,6 +37,7 @@ final class ReportIssue
 
                 $allowedStatuses = [
                     PackageStatus::COURIER_ASSIGNED,
+                    PackageStatus::CONFIRMED,
                     PackageStatus::CHECKED,
                     PackageStatus::IN_DELIVERY,
                 ];
@@ -56,7 +57,11 @@ final class ReportIssue
 
                 $now = Carbon::now();
 
-                if ($locked->status === PackageStatus::COURIER_ASSIGNED) {
+                // Both states are the courier's hands before departure: the
+                // parcel is assigned, or the recipient has already confirmed
+                // the window. Reporting a problem takes it through CHECKED to
+                // ISSUE_REPORTED, which is the only path the status matrix has.
+                if (in_array($locked->status, [PackageStatus::COURIER_ASSIGNED, PackageStatus::CONFIRMED], true)) {
                     $this->transitioner->transition($locked, PackageStatus::CHECKED, $courier, 'Pemeriksaan menemukan kendala');
                 }
 
