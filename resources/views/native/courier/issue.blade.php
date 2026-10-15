@@ -42,7 +42,7 @@
             {{-- What went wrong. --}}
             <native:select
                 label="Jenis Kendala"
-                native:model.blur="issueType"
+                native:model="issueType"
                 :options="$typeOptions" />
 
             {{-- What the hub needs to act on it. --}}
@@ -51,7 +51,7 @@
                     label="Catatan Kendala"
                     supporting="Berikan rincian kondisi paket secara jelas"
                     :max-lines="5"
-                    native:model.blur="note" />
+                    native:model="note" />
                 <native:text class="text-sm text-theme-secondary">
                     {{ mb_strlen($note) }}/{{ $form['note_limit'] }}
                 </native:text>

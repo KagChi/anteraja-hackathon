@@ -41,7 +41,7 @@
                     label="Nama Penerima Fisik"
                     supporting="Pastikan nama sesuai dengan identitas penerima paket di lokasi."
                     placeholder="Masukkan nama orang yang menerima paket"
-                    native:model.blur="recipientName" />
+                    native:model="recipientName" />
             </native:column>
 
             {{-- Relationship to the recipient. --}}
@@ -92,7 +92,7 @@
                     label="Catatan Tambahan"
                     supporting="Opsional"
                     :placeholder="$form['notes_placeholder']"
-                    native:model.blur="notes" />
+                    native:model="notes" />
             </native:column>
         </native:column>
 

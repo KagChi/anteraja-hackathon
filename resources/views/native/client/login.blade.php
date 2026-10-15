@@ -16,7 +16,7 @@
             label="Nomor HP"
             placeholder="0812xxxxxxx"
             keyboard="phone"
-            native:model.blur="phone" />
+            native:model="phone" />
 
         <native:outlined-text-input
             label="Password"
@@ -24,7 +24,7 @@
             keyboard="password"
             secure
             revealable
-            native:model.blur="password" />
+            native:model="password" />
 
         @if ($error !== null)
             <native:row class="w-full items-start gap-2 rounded-lg bg-theme-error-container p-3">

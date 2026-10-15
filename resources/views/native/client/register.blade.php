@@ -21,14 +21,14 @@
             <native:outlined-text-input
                 label="Nama lengkap"
                 placeholder="Nama penerima"
-                native:model.blur="name" />
+                native:model="name" />
 
             <native:outlined-text-input
                 label="Nomor HP"
                 placeholder="0812xxxxxxx"
                 keyboard="phone"
                 supporting="Nomor ini menjadi ID akun Anda"
-                native:model.blur="phone" />
+                native:model="phone" />
 
             <native:outlined-text-input
                 label="Password"
@@ -36,7 +36,7 @@
                 keyboard="password"
                 secure
                 revealable
-                native:model.blur="password" />
+                native:model="password" />
 
             <native:outlined-text-input
                 label="Ulangi password"
@@ -44,7 +44,7 @@
                 keyboard="password"
                 secure
                 revealable
-                native:model.blur="passwordConfirmation" />
+                native:model="passwordConfirmation" />
         </native:column>
 
         <native:column class="w-full gap-4 rounded-xl bg-theme-surface-container-lowest p-4">
@@ -54,16 +54,16 @@
                 label="Alamat lengkap"
                 placeholder="Jalan, nomor rumah, kelurahan"
                 :max-lines="3"
-                native:model.blur="address" />
+                native:model="address" />
 
             <native:outlined-text-input
                 label="Area / kota"
                 placeholder="Contoh: Tebet, Jakarta Selatan"
-                native:model.blur="area" />
+                native:model="area" />
 
             <native:select
                 label="Jenis alamat"
-                native:model.blur="addressType"
+                native:model="addressType"
                 :options="$typeOptions" />
         </native:column>
 

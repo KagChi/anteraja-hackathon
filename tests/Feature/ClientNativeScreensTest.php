@@ -395,6 +395,25 @@ final class ClientNativeScreensTest extends TestCase {
         $this->assertSame('client-test-token', MobileToken::get(MobileToken::CLIENT));
     }
 
+    /**
+     * The login fields must sync on every keystroke, not on focus loss.
+     * `native:model.blur` waits for a blur, and on Android the tap on Masuk
+     * is dispatched before that blur reaches PHP, so the first attempt would
+     * carry the previous (empty) password and fail as "wrong password".
+     */
+    public function test_the_login_fields_sync_live_not_on_blur(): void {
+        Native::test(Login::class)
+            ->assertElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'live')
+            ->assertMissingElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur');
+    }
+
+    /** Register submits password + confirmation in one tap, so it must not wait for a blur either. */
+    public function test_the_register_fields_sync_live_not_on_blur(): void {
+        Native::test(Register::class)
+            ->assertMissingElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur')
+            ->assertMissingElement('select', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur');
+    }
+
     public function test_the_login_screen_refuses_empty_credentials(): void {
         Native::test(Login::class)
             ->call('submit')

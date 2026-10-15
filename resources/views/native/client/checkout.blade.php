@@ -101,45 +101,45 @@
                 <native:outlined-text-input
                     label="Nama penerima"
                     placeholder="Nama orang yang menerima"
-                    native:model.blur="recipientName" />
+                    native:model="recipientName" />
 
                 <native:outlined-text-input
                     label="Nomor HP penerima"
                     placeholder="0812xxxxxxx"
                     keyboard="phone"
                     supporting="Kurir menghubungi nomor ini saat tiba"
-                    native:model.blur="recipientPhone" />
+                    native:model="recipientPhone" />
 
                 <native:outlined-text-input
                     label="Alamat lengkap"
                     placeholder="Jalan, nomor rumah, patokan"
                     :max-lines="3"
-                    native:model.blur="recipientAddress" />
+                    native:model="recipientAddress" />
 
                 <native:outlined-text-input
                     label="Area / kota"
                     placeholder="Contoh: Tebet, Jakarta Selatan"
-                    native:model.blur="recipientArea" />
+                    native:model="recipientArea" />
 
                 <native:select
                     label="Jenis alamat"
-                    native:model.blur="addressType"
+                    native:model="addressType"
                     :options="$typeOptions" />
 
                 <native:select
                     label="Layanan"
                     supporting="Instant Frozen hanya untuk area Jabodetabek"
-                    native:model.blur="serviceType"
+                    native:model="serviceType"
                     :options="$serviceOptions" />
 
                 <native:select
                     label="Tanggal pengantaran"
-                    native:model.blur="scheduleDate"
+                    native:model="scheduleDate"
                     :options="$dateOptions" />
 
                 <native:select
                     label="Jendela waktu"
-                    native:model.blur="scheduleWindow"
+                    native:model="scheduleWindow"
                     :options="$windowOptions" />
 
                 <native:outlined-text-input
@@ -147,7 +147,7 @@
                     placeholder="Contoh: titip ke sekuriti lobi"
                     supporting="Opsional, maksimal 300 karakter"
                     :max-lines="3"
-                    native:model.blur="notes" />
+                    native:model="notes" />
             </native:column>
 
             @if ($actionError !== null)

@@ -302,6 +302,18 @@ final class CourierNativeScreensTest extends TestCase {
         $this->assertSame('courier-test-token', MobileToken::get(MobileToken::COURIER));
     }
 
+    /**
+     * The login fields must sync on every keystroke, not on focus loss.
+     * `native:model.blur` waits for a blur, and on Android the tap on Masuk
+     * is dispatched before that blur reaches PHP, so the first attempt would
+     * carry the previous (empty) password and fail as "wrong password".
+     */
+    public function test_the_login_fields_sync_live_not_on_blur(): void {
+        Native::test(Login::class)
+            ->assertElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'live')
+            ->assertMissingElement('outlined_text_input', fn (array $n): bool => ($n['props']['sync_mode'] ?? null) === 'blur');
+    }
+
     public function test_the_start_gate_opens_login_without_a_token(): void {
         Native::test(Start::class)->assertNavigatedTo('/courier/login');
     }
