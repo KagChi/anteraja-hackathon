@@ -120,7 +120,7 @@ BR-022, BR-025, BR-026.
   - RETURN: transisi ISSUE_REPORTED ke RETURNED; kurir menerima instruksi menarik paket ke DC untuk klaim retur; pembeli menerima pesan bahwa pengiriman dibatalkan dan paket dikembalikan.
   - RESEND: transisi ISSUE_REPORTED ke RETURNED lalu pembuatan paket pengganti melalui ReplacementPackageFactory; kurir menerima instruksi bahwa paket asal kembali dan menerima nomor resi pengganti; pembeli menerima pesan bahwa pengiriman ulang disiapkan beserta resi pengganti.
   - PROCEED: transisi ISSUE_REPORTED ke IN_DELIVERY; kurir menerima instruksi melanjutkan pengantaran; pembeli menerima pesan bahwa pengiriman dilanjutkan.
-  - RESCHEDULE: transisi ISSUE_REPORTED ke AWAITING_CONFIRMATION sambil mengosongkan courier_id dan courier_accepted_at; konfirmasi PENDING baru dibuat; kurir lama diberi tahu bahwa penugasan dibatalkan; pembeli menerima template schedule_request.
+  - RESCHEDULE: transisi ISSUE_REPORTED ke AWAITING_CONFIRMATION sambil mengosongkan courier_id dan courier_accepted_at; konfirmasi PENDING baru dibuat; pembeli menerima template schedule_request.
   - RECHECK: transisi ISSUE_REPORTED ke CHECKED; kurir menerima instruksi memeriksa ulang kondisi fisik; pembeli menerima pesan bahwa paket sedang diperiksa ulang.
 - Output / Response: handler tidak mengembalikan respons HTTP; hasilnya terlihat pada status paket, baris notifikasi, dan bila RESEND juga paket baru.
 - Error & Edge Cases: pengiriman notifikasi ke kurir dilewati bila paket tidak punya kurir. Paket pengganti yang gagal dibuat karena index unik tidak ditangani khusus di handler RESEND, sehingga dapat muncul sebagai error database (lihat temuan di docs/frd_00.md bagian 11.6).

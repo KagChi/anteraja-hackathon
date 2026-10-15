@@ -139,6 +139,18 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
         }
     }
 
+    async function requestConfirmation(tracking: string) {
+        setActionError(null);
+
+        try {
+            const response = await api.shipments.requestConfirmation(tracking);
+            setNotice(response.message);
+            await load();
+        } catch (caught) {
+            setActionError(caught instanceof ApiError ? caught.message : "Permintaan konfirmasi gagal dikirim.");
+        }
+    }
+
     const rows = data?.shipments ?? [];
     const paginator = data?.paginator;
     const pageCount = paginator?.last_page ?? 1;
@@ -381,6 +393,16 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
                                             >
                                                 <MaterialIcon name="person_add" className="text-[18px]" />
+                                            </button>
+                                        ) : row.availableAction === "request_confirmation" ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => void requestConfirmation(row.tracking)}
+                                                aria-label={`Minta konfirmasi jadwal untuk ${row.tracking}`}
+                                                title="Minta Konfirmasi Jadwal"
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-on-surface transition-colors hover:bg-surface-container hover:text-primary"
+                                            >
+                                                <MaterialIcon name="event_available" className="text-[18px]" />
                                             </button>
                                         ) : (
                                             <button
@@ -1019,8 +1041,7 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                 </section>
 
                 <p className="font-body-sm text-body-sm text-secondary">
-                    Resi dibuat otomatis dan konfirmasi jadwal dikirim ke pembeli. Kurir ditugaskan setelah pembeli
-                    mengonfirmasi.
+                    Resi dibuat otomatis. Tugaskan kurir, lalu kirim permintaan konfirmasi jadwal ke penerima.
                 </p>
 
                 {error ? (

@@ -19,20 +19,20 @@ use Illuminate\Http\Request;
  * Menghubungkan satu nomor WhatsApp dengan paket yang sedang ia tangani, jadi
  * workflow n8n inbound tahu langkah apa yang sedang menunggu.
  *
- * Penerima, kurir, dan admin dikenali dari nomor pengirimnya:
+ * Penerima dan admin dikenali dari nomor pengirimnya:
  *
  * - BUYER: nomor harus sama dengan nomor penerima paket itu — orang yang
  *   menerima kiriman, bukan pelanggan yang mengirimnya. Pelanggan memantau
  *   pesanannya di aplikasi dan tidak ikut percakapan pengantaran.
- * - COURIER: hanya paket yang ditugaskan ke kurir tersebut.
  * - ADMIN: paket yang sedang menunggu keputusan kendala.
+ *
+ * Kurir tidak memakai WhatsApp, jadi tidak ada peran COURIER di sini.
  *
  * Token paket ikut dikembalikan karena workflow memakainya untuk menerapkan
  * balasan penerima; tautan aplikasi pelanggan tidak, sebab penerima tidak
  * punya akun.
  */
-final class WhatsappLookupController extends Controller
-{
+final class WhatsappLookupController extends Controller {
     public function __invoke(
         Request $request,
         OrderPresenter $presenter,
@@ -73,18 +73,6 @@ final class WhatsappLookupController extends Controller
             ->whereIn('phone', PhoneFormatter::candidates($validated['phone']))
             ->first();
 
-        if ($staff !== null && $staff->role === StaffRole::COURIER && $package->courier_id === $staff->id) {
-            return response()->json([
-                'found' => true,
-                'role' => 'COURIER',
-                'courier_name' => $staff->name,
-                'tracking_number' => $package->tracking_number,
-                'template' => $this->courierTemplate($package),
-                'status_label' => $this->statusLabel($package),
-                'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),
-            ]);
-        }
-
         if ($staff !== null && $staff->role === StaffRole::ADMIN) {
             return response()->json([
                 'found' => true,
@@ -105,8 +93,7 @@ final class WhatsappLookupController extends Controller
      * akan dikirim — workflow memakai ini untuk memilih balasannya, jadi
      * domainnya yang menentukan, bukan workflow yang menebak.
      */
-    private function templateFor(OrderPresenter $presenter, Package $package): string
-    {
+    private function templateFor(OrderPresenter $presenter, Package $package): string {
         return match ($presenter->resolveActionRequired($package)) {
             'confirm_schedule' => 'schedule_request',
             'view_issue' => 'issue_options',
@@ -116,21 +103,7 @@ final class WhatsappLookupController extends Controller
         };
     }
 
-    /**
-     * Langkah yang menunggu kurir pada paket ini.
-     */
-    private function courierTemplate(Package $package): string
-    {
-        return match ($package->status) {
-            PackageStatus::COURIER_ASSIGNED => 'task_assigned',
-            PackageStatus::CHECKED => 'condition_check_reminder',
-            PackageStatus::IN_DELIVERY => 'courier_on_route',
-            default => 'none',
-        };
-    }
-
-    private function statusLabel(Package $package): string
-    {
+    private function statusLabel(Package $package): string {
         return (string) __("client.status.{$package->status->value}", [], 'id');
     }
 }

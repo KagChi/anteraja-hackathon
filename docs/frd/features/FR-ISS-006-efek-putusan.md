@@ -46,13 +46,14 @@ Data keputusan yang sama: decision, decision_reason, dan quality_inspection_note
 
 ## 6. Proses langkah demi langkah per keputusan
 
-1. RETURN: transisi ISSUE_REPORTED ke RETURNED; kurir menerima instruksi menarik paket ke DC untuk klaim retur; pembeli menerima pesan bahwa pengiriman dibatalkan dan paket dikembalikan.
-2. RESEND: transisi ke RETURNED, lalu ReplacementPackageFactory membuat paket pengganti; kurir diberi tahu bahwa resi pengganti tersedia; pembeli menerima pesan bahwa pengiriman ulang disiapkan beserta resi barunya.
-3. PROCEED: transisi ke IN_DELIVERY; kurir menerima instruksi melanjutkan pengantaran; pembeli diberi tahu bahwa pengiriman dilanjutkan.
-4. RESCHEDULE: transisi ke AWAITING_CONFIRMATION sambil mengosongkan courier_id dan courier_accepted_at; konfirmasi PENDING baru dibuat; kurir lama diberi tahu bahwa penugasan dibatalkan; pembeli menerima template schedule_request.
-5. RECHECK: transisi ke CHECKED; kurir menerima instruksi memeriksa ulang kondisi fisik; pembeli diberi tahu bahwa paket sedang diperiksa ulang.
+1. RETURN: transisi ISSUE_REPORTED ke RETURNED; pembeli menerima pesan bahwa pengiriman dibatalkan dan paket dikembalikan. Kurir tidak dikirimi WhatsApp — instruksinya muncul di aplikasi kurir.
+2. RESEND: transisi ke RETURNED, lalu ReplacementPackageFactory membuat paket pengganti; pembeli menerima pesan bahwa pengiriman ulang disiapkan beserta resi barunya.
+3. PROCEED: transisi ke IN_DELIVERY; pembeli diberi tahu bahwa pengiriman dilanjutkan.
+4. RESCHEDULE: transisi ke AWAITING_CONFIRMATION sambil mengosongkan courier_id dan courier_accepted_at; konfirmasi PENDING baru dibuat; pembeli menerima template schedule_request.
+5. RECHECK: transisi ke CHECKED; pembeli diberi tahu bahwa paket sedang diperiksa ulang.
 
-Pada semua handler, notifikasi ke kurir dilewati bila paket tidak punya kurir.
+Tidak ada handler yang mengirim WhatsApp ke kurir; semua instruksi kurir dibaca
+dari aplikasi Anteraja Kurir.
 
 ## 7. Output
 
@@ -63,7 +64,6 @@ baris notifications, baris status_logs, dan pada RESEND dari paket baru.
 
 | Kasus | Keterangan |
 | --- | --- |
-| Paket tanpa kurir | notifikasi kurir dilewati |
 | RESEND saat index unik penggantian dilanggar | QueryException tidak ditangkap di handler, berbeda dengan RequestReplacement; ini temuan |
 | RESCHEDULE | courier_id dan courier_accepted_at dikosongkan bersamaan dengan transisi |
 | PROCEED pada paket tanpa kurir | pembeli tetap menerima notifikasi |
@@ -73,7 +73,6 @@ baris notifications, baris status_logs, dan pada RESEND dari paket baru.
 | Efek | Tempat |
 | --- | --- |
 | Log status | status_logs per transisi |
-| Notifikasi kurir | notifications template issue_decision |
 | Notifikasi pembeli | notifications template schedule_request atau issue_decision_update |
 | Konfirmasi baru | schedule_confirmations untuk RESCHEDULE |
 | Paket pengganti | packages, package_items, schedule_confirmations untuk RESEND |

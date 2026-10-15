@@ -10,6 +10,7 @@ use App\Models\Package;
 use App\Models\Product;
 use App\Models\Staff;
 use App\Models\Delivery;
+use App\Models\Notification;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
@@ -24,8 +25,7 @@ use Tests\TestCase;
  * Inertia pages, so a regression anywhere between them fails here rather than on
  * a phone.
  */
-final class AdminConsoleE2ETest extends TestCase
-{
+final class AdminConsoleE2ETest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $admin;
@@ -36,8 +36,7 @@ final class AdminConsoleE2ETest extends TestCase
 
     private string $deliveryDate;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         $this->withoutVite();
@@ -78,17 +77,15 @@ final class AdminConsoleE2ETest extends TestCase
     }
 
     /** Signs in the console the way the browser does and returns the admin. */
-    private function signIn(): void
-    {
+    private function signIn(): void {
         $this->postJson('/api/auth/login', [
             'email' => $this->admin->email,
             'password' => 'password',
         ])->assertOk()->assertJsonPath('user.role', 'ADMIN');
     }
 
-    /** Creates a shipment through the console and confirms it as the buyer. */
-    private function createConfirmedShipment(string $buyerName, string $phone): Package
-    {
+    /** Creates a shipment through the console; it waits in CREATED. */
+    private function createShipment(string $buyerName, string $phone): Package {
         $create = $this->postJson('/api/admin/shipments', [
             'buyer' => [
                 'name' => $buyerName,
@@ -111,7 +108,18 @@ final class AdminConsoleE2ETest extends TestCase
 
         /** @var Package $package */
         $package = Package::where('tracking_number', $tracking)->firstOrFail();
-        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->status);
+        $this->assertSame(PackageStatus::CREATED, $package->status);
+
+        return $package;
+    }
+
+    /** Creates a shipment, hands it to the courier, and has the buyer confirm. */
+    private function createConfirmedShipment(string $buyerName, string $phone): Package {
+        $package = $this->createShipment($buyerName, $phone);
+
+        $this->assignCourier($package);
+        $this->postJson("/api/admin/shipments/{$package->tracking_number}/request-confirmation")->assertOk();
+        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->fresh()->status);
 
         // The buyer opens their link and confirms the window.
         $this->postJson("/api/client/{$package->client_token}/schedule/confirm")->assertOk();
@@ -120,15 +128,13 @@ final class AdminConsoleE2ETest extends TestCase
         return $package->fresh();
     }
 
-    private function assignCourier(Package $package): void
-    {
+    private function assignCourier(Package $package): void {
         $this->postJson("/api/admin/shipments/{$package->tracking_number}/assign", [
             'courier_id' => $this->courier->id,
         ])->assertOk();
     }
 
-    public function test_the_delivery_journey_completes_end_to_end(): void
-    {
+    public function test_the_delivery_journey_completes_end_to_end(): void {
         // 1. The console signs in against the JSON API.
         $this->signIn();
         $this->getJson('/api/auth/me')
@@ -145,8 +151,8 @@ final class AdminConsoleE2ETest extends TestCase
         $this->assertNotEmpty($index->json('statusOptions'));
         $this->assertNotEmpty($index->json('couriers'));
 
-        // 4. Create a shipment, then have the buyer confirm it.
-        $package = $this->createConfirmedShipment('Pembeli E2E', '081299990001');
+        // 4. Create a shipment; it waits in CREATED with nothing sent yet.
+        $package = $this->createShipment('Pembeli E2E', '081299990001');
         $tracking = $package->tracking_number;
 
         // 5. The queue shows it on its delivery day, waiting for a courier.
@@ -160,10 +166,20 @@ final class AdminConsoleE2ETest extends TestCase
         $this->assignCourier($package);
         $this->assertSame(PackageStatus::COURIER_ASSIGNED, $package->fresh()->status);
 
-        // 7. The courier works the task: accept, depart, arrive, hand over.
+        // 7. The courier accepts, then asks the recipient to confirm the window.
         $this->actingAs($this->courier)
             ->postJson("/api/courier/tasks/{$tracking}/accept")
             ->assertOk();
+
+        $this->actingAs($this->courier)
+            ->postJson("/api/courier/deliveries/{$tracking}/request-confirmation")
+            ->assertOk();
+        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->fresh()->status);
+
+        $this->postJson("/api/client/{$package->client_token}/schedule/confirm")->assertOk();
+        $this->assertSame(PackageStatus::CONFIRMED, $package->fresh()->status);
+
+        // 8. The courier departs, arrives, and hands the parcel over with the PIN.
 
         $this->actingAs($this->courier)
             ->postJson("/api/courier/deliveries/{$tracking}/depart", [
@@ -181,12 +197,20 @@ final class AdminConsoleE2ETest extends TestCase
             ->postJson("/api/courier/deliveries/{$tracking}/arrive")
             ->assertOk();
 
+        // The PIN travelled to the recipient on departure; the courier reads it
+        // back from them, here lifted from the queued message.
+        $pin = (string) Notification::where('package_id', $package->id)
+            ->where('template', 'delivery_pin')
+            ->firstOrFail()
+            ->payload['pin'];
+
         $this->actingAs($this->courier)
             ->post(
                 "/api/courier/deliveries/{$tracking}/proof",
                 [
                     'received_by' => 'Pembeli E2E',
                     'recipient_relation' => 'SELF',
+                    'pin' => $pin,
                     'photo' => UploadedFile::fake()->image('bukti.jpg', 24, 24),
                 ],
                 ['Accept' => 'application/json']
@@ -237,8 +261,7 @@ final class AdminConsoleE2ETest extends TestCase
         $this->get('/admin/shipment')->assertRedirect('/login');
     }
 
-    public function test_the_kendala_journey_completes_end_to_end(): void
-    {
+    public function test_the_kendala_journey_completes_end_to_end(): void {
         $this->signIn();
 
         $package = $this->createConfirmedShipment('Pembeli Kendala E2E', '081299990002');

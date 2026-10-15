@@ -12,9 +12,12 @@
 
 ## 1. Ringkasan
 
-Satu-satunya jalan paket berpindah dari CONFIRMED ke COURIER_ASSIGNED. Aksi ini
-mengunci baris paket, memastikan kurir yang dipilih benar-benar kurir aktif, lalu
-mengirim ringkasan tugas ke kurir tersebut.
+Penugasan datang lebih dulu: paket masih CREATED saat admin memilih kurir, lalu
+konfirmasi tanggal terima diminta setelahnya. Aksi ini mengunci baris paket,
+memastikan kurir yang dipilih benar-benar kurir aktif, dan memindahkan paket ke
+COURIER_ASSIGNED. Kurir tidak memakai WhatsApp, sehingga tugasnya hanya muncul
+di papan tugas aplikasi Anteraja Kurir — tidak ada pesan yang dikirim ke nomor
+kurir.
 
 ## 2. Aktor dan otorisasi
 
@@ -36,7 +39,7 @@ mengirim ringkasan tugas ke kurir tersebut.
 
 | Tahap | Isi |
 | --- | --- |
-| Precondition | paket berstatus CONFIRMED dan courier_id masih null |
+| Precondition | paket berstatus CREATED, CONFIRMED, COURIER_ASSIGNED, CHECKED, atau ISSUE_REPORTED |
 | Postcondition | paket berstatus COURIER_ASSIGNED dengan courier_id terisi dan courier_accepted_at null |
 
 ## 5. Input dan validasi
@@ -51,13 +54,9 @@ mengirim ringkasan tugas ke kurir tersebut.
 1. Controller mencari paket dan kurir, lalu memanggil Action dengan keduanya dan admin.
 2. Action membuka DB::transaction.
 3. Baris paket dikunci dengan lockForUpdate (BR-004).
-4. Bila status bukan CONFIRMED atau courier_id sudah terisi, lempar PackageNotAssignable.
-5. Bila staf yang dipilih bukan kurir aktif menurut isCourier, lempar PackageNotAssignable dengan pesan bahwa staf bukan kurir aktif.
-6. Transisi ke COURIER_ASSIGNED dengan atribut courier_id dan courier_accepted_at null.
-7. Muat relasi items.product agar ringkasan barang dapat disusun.
-8. Susun ringkasan item berupa daftar nama dan kuantitas, dan label jendela memakai DisplayTime::windowLabel.
-9. Antrekan notifikasi template task_assigned untuk kurir berisi tracking_number, scheduled_window, handling_instructions, dan items.
-10. Kembalikan paket.
+4. Bila status tidak ada di daftar yang dapat ditugaskan atau staf bukan kurir aktif, lempar PackageNotAssignable.
+5. Bila paket berstatus CREATED atau CONFIRMED, transisi ke COURIER_ASSIGNED dengan atribut courier_id dan courier_accepted_at null. Bila sudah lebih jauh (COURIER_ASSIGNED, CHECKED, ISSUE_REPORTED), hanya ganti courier_id dan kosongkan courier_accepted_at tanpa transisi.
+6. Kembalikan paket. Tidak ada notifikasi WhatsApp dikirim ke kurir; tugasnya muncul di papan tugas aplikasi kurir.
 
 ## 7. Output
 
@@ -83,9 +82,7 @@ mengirim ringkasan tugas ke kurir tersebut.
 | Efek | Tempat |
 | --- | --- |
 | courier_id dan courier_accepted_at | packages |
-| Log status | status_logs CONFIRMED ke COURIER_ASSIGNED |
-| Notifikasi | notifications template task_assigned untuk kurir |
-| Job | DispatchNotificationToN8n setelah commit |
+| Log status | status_logs CREATED/CONFIRMED ke COURIER_ASSIGNED (hanya saat transisi) |
 
 ## 10. Traceability
 
@@ -102,13 +99,13 @@ mengirim ringkasan tugas ke kurir tersebut.
 
 ## 11. Skenario uji
 
-1. Given paket CONFIRMED tanpa kurir dan satu kurir aktif, When assign dipanggil, Then HTTP 200, paket COURIER_ASSIGNED, dan notifikasi task_assigned terantre.
+1. Given paket CREATED tanpa kurir dan satu kurir aktif, When assign dipanggil, Then HTTP 200, paket COURIER_ASSIGNED, dan tidak ada notifikasi WhatsApp.
 2. Given courier_id milik staf nonaktif, When assign dipanggil, Then HTTP 422 dan paket tidak berubah.
-3. Given paket yang sudah COURIER_ASSIGNED, When assign dipanggil lagi, Then permintaan ditolak dan courier_id tidak berubah.
+3. Given paket yang sudah COURIER_ASSIGNED dengan kurir yang sama, When assign dipanggil lagi, Then paket hanya berganti penugasan tanpa transisi status.
 
 ## 12. Yang perlu dikonfirmasi
 
 1. Pesan kegagalan PackageNotAssignable belum dipetakan ke kode HTTP 422, sehingga frontend mungkin menampilkan error umum. Perlu dipetakan?
 2. Apakah penugasan perlu memperhitungkan beban kerja kurir (jumlah tugas aktif) atau zona alamat?
-3. Notifikasi task_assigned dikirim lewat n8n ke nomor kurir. Bila kurir tidak punya nomor WhatsApp, apakah ada jalur lain?
+3. Kurir melihat tugasnya hanya di papan tugas aplikasi. Apakah perlu kanal lain (mis. push notification perangkat) bila aplikasi tidak dibuka?
 

@@ -9,19 +9,19 @@ Aturan bisnis terkait: BR-001, BR-002, BR-003, BR-005, BR-014.
 
 ### FR-PKG-001 — Membuat paket dari hub
 
-- Deskripsi: Sistem HARUS membuat paket baru berstatus CREATED, menyimpan item produk, membuat konfirmasi jadwal PENDING, lalu memindahkan paket ke AWAITING_CONFIRMATION dan meminta konfirmasi pembeli.
+- Deskripsi: Sistem HARUS membuat paket baru berstatus CREATED dan menyimpan item produknya. Konfirmasi jadwal tidak dibuat di sini: kurir ditugaskan lebih dulu, lalu kurir atau admin meminta konfirmasi tanggal terima (FR-PKG-009).
 - Aktor & Otorisasi: admin hub melalui middleware staff.role:ADMIN.
 - Trigger: POST /api/admin/shipments dari form admin/Shipment.
 - Precondition: pembeli dipilih dari daftar atau dikirim sebagai data baru; minimal satu produk tersedia; jadwal tidak di masa lalu.
 - Input & Validasi: buyer_id atau objek buyer (salah satu wajib, name, phone, address, area, address_type, latitude, longitude); items wajib array minimal satu, product_id harus ada di tabel products dan unik dalam satu permintaan, quantity 1 sampai 999; scheduled_date wajib format Y-m-d dan tidak sebelum hari ini Jakarta; window_start dan window_end format H:i dengan end setelah start; weight_kg 0,01 sampai 999,99; cooler_box_code maksimal 30; package_category maksimal 50; service_type REGULER atau INSTANT_FROZEN; koli_count minimal 1; handling_instructions maksimal 1000.
-- Proses / Business Rules: bila buyer_id kosong, pembeli dicari berdasarkan nomor E.164 dan dibuat bila belum ada. Jadwal diparsing di zona Jakarta lalu disimpan UTC (BR-005). Paket dibuat dengan created_by admin id dan source ADMIN. Karena tracking_number adalah default PostgreSQL, model di-refresh agar nomornya terisi. Item dibuat satu per satu, lalu schedule_confirmations PENDING dibuat, lalu transisi CREATED ke AWAITING_CONFIRMATION melalui PackageStatusTransitioner di dalam satu transaksi (BR-002). Notifikasi template schedule_request diantrekan untuk pembeli.
+- Proses / Business Rules: bila buyer_id kosong, pembeli dicari berdasarkan nomor E.164 dan dibuat bila belum ada. Jadwal diparsing di zona Jakarta lalu disimpan UTC (BR-005). Paket dibuat dengan created_by admin id dan source ADMIN. Karena tracking_number adalah default PostgreSQL, model di-refresh agar nomornya terisi. Item dibuat satu per satu. Paket dibiarkan berstatus CREATED; tidak ada konfirmasi jadwal maupun notifikasi pada langkah ini.
 - Output / Response: HTTP 201 dengan message yang memuat nomor resi dan objek package yang sudah memuat buyer, items.product, dan statusRef.
 - Error & Edge Cases: tidak ada buyer_id dan buyer sekaligus menghasilkan 422; tanggal lampau menghasilkan 422 pada scheduled_date; window_end tidak setelah window_start menghasilkan 422; produk tidak ada menghasilkan 422; pembeli baru dengan nomor yang sudah ada akan memakai baris pembeli yang ada, bukan membuat duplikat.
-- Side Effects: baris packages, package_items, schedule_confirmations; baris status_logs dari CREATED ke AWAITING_CONFIRMATION; satu baris notifications QUEUED berisi tracking_number, scheduled_at, dan scheduled_end_at.
-- Postcondition: paket menunggu jawaban pembeli dan muncul di antrean shipment.
+- Side Effects: baris packages, package_items; baris status_logs INSERT CREATED.
+- Postcondition: paket berstatus CREATED dan muncul di antrean shipment untuk ditugaskan ke kurir.
 - Traceability: routes/api.php, Admin/ShipmentController@store, Actions/Packages/CreatePackage, Requests/Admin/StoreShipmentRequest, Support/PackageStatusTransitioner, Support/NotificationQueue, tests/Feature/AdminShipmentTest.php test_admin_can_create_new_shipment, resources/js/pages/admin/Shipment.tsx.
 - Acceptance Criteria:
-  - Given data pembeli baru, satu produk, dan jadwal besok, When shipment dibuat, Then HTTP 201 dengan resi berawalan AJ-FRZ- dan paket berstatus AWAITING_CONFIRMATION serta notifikasi schedule_request terantre.
+  - Given data pembeli baru, satu produk, dan jadwal besok, When shipment dibuat, Then HTTP 201 dengan resi berawalan AJ-FRZ- dan paket berstatus CREATED tanpa konfirmasi jadwal maupun notifikasi.
   - Given scheduled_date kemarin, When shipment dibuat, Then HTTP 422 pada errors.scheduled_date dan tidak ada baris packages baru.
 - Status: Live
 
@@ -165,3 +165,42 @@ Aturan bisnis terkait: BR-001, BR-002, BR-003, BR-005, BR-014.
   - Given keputusan stakeholder menetapkan pemicunya, When mekanisme itu dibuat, Then transisi ke CLOSED harus tetap melalui PackageStatusTransitioner dan mengisi closed_at.
 - Status: [TIDAK TERVERIFIKASI]
 
+---
+
+### FR-PKG-009 — Meminta konfirmasi jadwal penerimaan
+
+- Deskripsi: Sistem HARUS mengirim permintaan konfirmasi tanggal terima ke penerima setelah kurir ditugaskan, atas permintaan kurir atau admin. Inilah yang memindahkan paket dari COURIER_ASSIGNED ke AWAITING_CONFIRMATION.
+- Aktor & Otorisasi: kurir pemilik paket (lewat aplikasi kurir) atau admin hub (lewat console). Kurir tidak memakai WhatsApp.
+- Trigger: POST /api/courier/deliveries/{tracking_number}/request-confirmation atau POST /api/admin/shipments/{tracking_number}/request-confirmation.
+- Precondition: paket berstatus COURIER_ASSIGNED; untuk jalur kurir, paket ditugaskan ke kurir itu.
+- Input & Validasi: tracking_number pada path. Tidak ada body.
+- Proses / Business Rules: action membuka transaksi dan mengunci baris paket. Bila aktor kurir dan courier_id bukan kurir itu, lempar ScheduleNotActionable. Bila status bukan COURIER_ASSIGNED, lempar ScheduleNotActionable. Bila sudah ada konfirmasi PENDING, kembalikan paket apa adanya (idempoten). Selain itu buat ScheduleConfirmation PENDING berisi proposed_scheduled_at dari scheduled_at paket dan requested_at sekarang, pindahkan paket ke AWAITING_CONFIRMATION dengan aktor, lalu antrekan notifikasi template schedule_request untuk penerima (recipient_type BUYER) berisi tracking_number, scheduled_at, dan scheduled_end_at.
+- Output / Response: HTTP 200 dengan message "Permintaan konfirmasi jadwal resi {resi} dikirim ke penerima." dan objek package.
+- Error & Edge Cases: status di luar COURIER_ASSIGNED menghasilkan 422 ScheduleNotActionable ("Konfirmasi jadwal dapat diminta setelah kurir ditugaskan."). Kurir yang bukan pemilik paket menghasilkan 422/404. Permintaan ganda tidak membuat konfirmasi kedua.
+- Side Effects: baris schedule_confirmations PENDING; baris status_logs COURIER_ASSIGNED ke AWAITING_CONFIRMATION dengan aktor; satu baris notifications QUEUED template schedule_request.
+- Postcondition: paket berstatus AWAITING_CONFIRMATION dan penerima menerima permintaan konfirmasi.
+- Traceability: routes/api.php, Courier/RequestConfirmationController, Admin/ShipmentScheduleConfirmationController, Actions/Packages/RequestScheduleConfirmation, Enums/ConfirmationResponse, Models/ScheduleConfirmation, Support/NotificationQueue, Support/PackageStatusTransitioner.
+- Acceptance Criteria:
+  - Given paket COURIER_ASSIGNED milik kurir, When kurir meminta konfirmasi, Then HTTP 200, paket menjadi AWAITING_CONFIRMATION, dan satu konfirmasi PENDING serta notifikasi schedule_request dibuat.
+  - Given paket CREATED, When konfirmasi diminta, Then permintaan ditolak ScheduleNotActionable dan tidak ada baris schedule_confirmations.
+- Status: Live
+
+---
+
+### FR-PKG-010 — Penugasan kurir sebelum konfirmasi
+
+- Deskripsi: Sistem HARUS mengizinkan admin menugaskan kurir pada paket yang masih CREATED, sehingga urutannya menjadi: buat paket, tugaskan kurir, baru minta konfirmasi jadwal.
+- Aktor & Otorisasi: admin hub.
+- Trigger: POST /api/admin/shipments/{tracking_number}/assign.
+- Precondition: paket berstatus CREATED, CONFIRMED, COURIER_ASSIGNED, CHECKED, atau ISSUE_REPORTED.
+- Input & Validasi: courier_id wajib, ada di tabel staff, dan staf itu kurir aktif.
+- Proses / Business Rules: action mengunci baris paket, memeriksa status ada di daftar yang dapat ditugaskan, dan memastikan staf adalah kurir. Paket CREATED atau CONFIRMED dipindahkan ke COURIER_ASSIGNED sambil mengisi courier_id dan mengosongkan courier_accepted_at; paket yang lebih jauh (CHECKED, ISSUE_REPORTED) hanya berganti courier_id tanpa transisi. Penugasan tidak lagi mengantrekan notifikasi WhatsApp ke kurir: kurir melihat tugas di papan tugas aplikasi.
+- Output / Response: HTTP 200 dengan message penugasan dan objek package.
+- Error & Edge Cases: status di luar daftar menghasilkan PackageNotAssignable; staf bukan kurir aktif menghasilkan PackageNotAssignable. Menugaskan kurir yang sama saat paket masih CREATED/CONFIRMED menjalankan transisi (mengosongkan penerimaan sebelumnya).
+- Side Effects: kolom courier_id dan courier_accepted_at; baris status_logs CREATED ke COURIER_ASSIGNED dengan aktor admin.
+- Postcondition: paket berstatus COURIER_ASSIGNED dan siap dimintakan konfirmasi jadwal.
+- Traceability: routes/api.php, Admin/ShipmentAssignmentController, Actions/Packages/AssignCourier, database/migrations/0001_01_01_000032_add_assign_confirm_transitions.php, database/seeders/ReferenceDataSeeder.php.
+- Acceptance Criteria:
+  - Given paket CREATED tanpa kurir, When admin menugaskan kurir, Then HTTP 200 dan paket menjadi COURIER_ASSIGNED.
+  - Given paket CREATED, When antrean diminta, Then baris paket memuat availableAction assign_courier.
+- Status: Live

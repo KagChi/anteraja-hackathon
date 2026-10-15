@@ -56,7 +56,7 @@ yang ditulis flow outbound.
    - schedule_request atau schedule_rescheduled dan jawaban setuju memanggil POST schedule/confirm.
    - schedule_request atau schedule_rescheduled dan permintaan jadwal lain memanggil POST schedule/reschedule, meminta tanggal dan jam bila belum lengkap.
    - issue_options dengan angka 1 sampai 4 atau kata kunci memanggil POST issue/choice.
-   - on_the_way, courier_arrived, delivered, dan issue_decision memakai balasan apa pun tanpa aksi, hanya menjawab status singkat.
+   - on_the_way, courier_arrived, delivered, dan issue_decision_update memakai balasan apa pun tanpa aksi, hanya menjawab status singkat.
    - Ada paket tanpa langkah tertunda: jawab status paket dan jadwalnya.
    - Tidak ada state: kirim teks bantuan yang meminta nomor resi.
 6. Setelah aksi berhasil, last_template dimajukan menjadi confirmed, reschedule_requested, atau issue_choice_recorded.

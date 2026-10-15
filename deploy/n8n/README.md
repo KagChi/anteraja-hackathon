@@ -108,7 +108,7 @@ outbound saat notifikasi dikirim):
 | `schedule_request`, `schedule_rescheduled` | "siap", "ya", "oke" | `POST /schedule/confirm` |
 | `schedule_request`, `schedule_rescheduled` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
 | `issue_options` | `1`-`4` atau "kirim ulang"/"retur"/"lanjut"/"diskusi" | `POST /issue/choice` |
-| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision*` | apa pun | tidak ada aksi; balasan status singkat sesuai keputusan yang tercatat, plus jadwal bila diketahui |
+| `on_the_way`, `courier_arrived`, `delivered`, `issue_decision_update*` | apa pun | tidak ada aksi; balasan status singkat sesuai keputusan yang tercatat, plus jadwal bila diketahui |
 | ada paket tapi tidak ada langkah tertunda | apa pun | status paket apa adanya, plus jadwal pengantaran |
 | tidak ada state | apa pun | balasan bantuan: minta nomor resi, tanpa menu 1-4 |
 
@@ -153,22 +153,18 @@ Pembeli yang mengetik nomor resi di WhatsApp akan dihubungkan ke paketnya lewat
 workflow tidak menebak sendiri. Baris state hasil resolusi disimpan, sehingga
 pesan berikutnya tidak perlu menyebut resi lagi.
 
-## Balasan kurir dan admin
+## Balasan admin
 
-Balasan dari nomor kurir atau admin bukan pesan pelanggan: perannya dibaca dari
-endpoint lookup (nomor ini milik siapa) atau dari `context.recipient_type` yang
-ditulis flow outbound saat mengirim notifikasi terakhir. Workflow hanya mengenali
-niat balasannya, lalu menyerahkan aksinya ke
+Kurir tidak memakai WhatsApp: tugas dan pembaruan pengantaran hanya lewat
+aplikasi Anteraja Kurir, dan nomor kurir yang membalas dijawab dengan arahan ke
+aplikasi (tanpa aksi). Hanya nomor **admin** yang bertindak lewat balasan.
+Perannya dibaca dari endpoint lookup (nomor ini milik apa) atau dari
+`context.recipient_type` yang ditulis flow outbound saat mengirim notifikasi
+terakhir. Workflow hanya mengenali niat balasannya, lalu menyerahkan aksinya ke
 `POST /api/internal/whatsapp/action` supaya domain aplikasi yang menentukan:
 
 | Peran | Balasan | Aksi aplikasi |
 | --- | --- | --- |
-| Kurir | "terima" | `AcceptTask` (instruksi penanganan dibalas ke kurir) |
-| Kurir | "tolak" + alasan | `RejectTask` (admin diberi tahu) |
-| Kurir | "berangkat" | `StartDelivery` (pembeli menerima pesan pengantaran) |
-| Kurir | "tiba" / "sudah sampai" | `MarkArrived` |
-| Kurir | "selesai" / "sudah diserahkan" | `ConfirmDelivery` (pengiriman ditutup) |
-| Kurir | "bocor" / "basah" / "suhu naik" | `ReportIssue` (pembeli menerima menu opsi) |
 | Admin | "kembalikan" / "kirim ulang" / "lanjut" / "periksa ulang" / "jadwalkan ulang" | `ResolveIssue` (instruksi ke kurir, kabar ke pembeli) |
 
 `message_id` dari WAHA ikut dikirim, jadi balasan dobel menerima jawaban yang

@@ -417,7 +417,8 @@
         "required": [
           "photo",
           "temperature_c",
-          "recipient_type"
+          "recipient_type",
+          "pin"
         ],
         "properties": {
           "photo": {
@@ -478,6 +479,17 @@
             "items": {
               "$ref": "#/components/schemas/GpsSignal"
             }
+          },
+          "pin": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$",
+            "description": "PIN 6 digit yang dikirim ke penerima saat kurir berangkat; diverifikasi sebelum paket menjadi RECEIVED.",
+            "example": "482913"
+          },
+          "receipt_note": {
+            "type": "string",
+            "maxLength": 300,
+            "example": "Diserahkan langsung ke penerima."
           }
         }
       },
@@ -1478,7 +1490,7 @@
           "Admin - Shipments"
         ],
         "summary": "Tugaskan Kurir & Cooler Box",
-        "description": "Menugaskan kurir aktif dan mengalokasikan kode cooler box pendingin (FSM -> COURIER_ASSIGNED).",
+        "description": "Menugaskan kurir aktif pada paket CREATED/CONFIRMED dan mengalokasikan kode cooler box (FSM -> COURIER_ASSIGNED).",
         "parameters": [
           {
             "name": "tracking_number",
@@ -2202,7 +2214,7 @@
           "Courier - Proof & Issues"
         ],
         "summary": "Kirim Bukti Serah Terima (Selesaikan Paket)",
-        "description": "Mengunggah foto bukti privat, mencatat suhu akhir, dan menyelesaikan paket (FSM -> DELIVERED).",
+        "description": "Mengunggah foto bukti privat, memverifikasi PIN penerima, dan menyelesaikan paket (FSM -> RECEIVED).",
         "parameters": [
           {
             "name": "tracking_number",
@@ -2802,9 +2814,7 @@
         "description": "Membuat paket dengan sumber CLIENT_APP, menyimpan data penerima sebagai tujuan pengantaran paket — pembeli tetap pengirimnya dan profilnya tidak ikut berubah — lalu menaruh paket di antrean hub sebagai Menunggu Konfirmasi.",
         "security": [
           {
-            "bearerAuth": [
-
-            ]
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -2855,9 +2865,7 @@
         "description": "Kurir meminta hub meninjau keputusan GPS yang menahan langkah ini. Insiden tetap tercatat; persetujuan hub yang membuat percobaan ulang bisa lewat.",
         "security": [
           {
-            "bearerAuth": [
-
-            ]
+            "bearerAuth": []
           }
         ],
         "parameters": [
@@ -2920,9 +2928,7 @@
         "summary": "Radius geofence per jenis layanan",
         "security": [
           {
-            "sessionAuth": [
-
-            ]
+            "sessionAuth": []
           }
         ],
         "responses": {
@@ -2958,9 +2964,7 @@
         "description": "Nilai di luar batas tiap segmen ditolak. Perubahan langsung berlaku untuk pengiriman berikutnya dan dicatat pada updated_by.",
         "security": [
           {
-            "sessionAuth": [
-
-            ]
+            "sessionAuth": []
           }
         ],
         "requestBody": {
@@ -3010,9 +3014,7 @@
         "description": "Pemeriksaan lokasi yang ditolak atau ditandai, ditambah permintaan tinjauan dari kurir.",
         "security": [
           {
-            "sessionAuth": [
-
-            ]
+            "sessionAuth": []
           }
         ],
         "parameters": [
@@ -3096,9 +3098,7 @@
         "description": "Persetujuan membuat kurir bisa mengulang aksi yang tadi ditahan; penolakan menahannya. Alasan wajib diisi dan tersimpan bersama keputusannya.",
         "security": [
           {
-            "sessionAuth": [
-
-            ]
+            "sessionAuth": []
           }
         ],
         "parameters": [
@@ -3146,6 +3146,76 @@
           },
           "422": {
             "description": "Permintaan sudah diputuskan sebelumnya atau alasan terlalu pendek"
+          }
+        }
+      }
+    },
+    "/admin/shipments/{tracking_number}/request-confirmation": {
+      "post": {
+        "tags": [
+          "Admin - Shipments"
+        ],
+        "summary": "Minta Konfirmasi Jadwal Penerimaan",
+        "description": "Mengirim permintaan konfirmasi tanggal terima ke penerima setelah kurir ditugaskan (FSM -> AWAITING_CONFIRMATION).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permintaan konfirmasi dikirim ke penerima",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paket belum ditugaskan ke kurir"
+          }
+        }
+      }
+    },
+    "/courier/deliveries/{tracking_number}/request-confirmation": {
+      "post": {
+        "tags": [
+          "Courier - Proof & Issues"
+        ],
+        "summary": "Minta Konfirmasi Jadwal Penerimaan",
+        "description": "Kurir meminta penerima mengonfirmasi tanggal terima (FSM -> AWAITING_CONFIRMATION).",
+        "parameters": [
+          {
+            "name": "tracking_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AJ-FRZ-0012345"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permintaan konfirmasi dikirim ke penerima",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSuccess"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Paket tidak ditugaskan ke kurir ini atau belum siap"
           }
         }
       }

@@ -17,16 +17,16 @@ use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
-final class ConfirmDelivery
-{
+final class ConfirmDelivery {
     public function __construct(
         private readonly PackageStatusTransitioner $transitioner,
         private readonly NotificationQueue $notifications,
-    ) {}
+    ) {
+    }
 
-    public function execute(Package $package, Staff $courier, ConfirmDeliveryData $data): Package
-    {
+    public function execute(Package $package, Staff $courier, ConfirmDeliveryData $data): Package {
         try {
             return DB::transaction(function () use ($package, $courier, $data) {
                 /** @var Package $locked */
@@ -52,6 +52,19 @@ final class ConfirmDelivery
                     return $locked;
                 }
 
+                // The hand-over code the recipient read out. A missing hash
+                // means no PIN was ever sent; a mismatch is a wrong code — both
+                // refuse the hand-over. The photo is cleaned up by the catch.
+                if ($locked->delivery_pin_hash === null) {
+                    throw DeliveryNotActionable::invalidState('PIN pengiriman belum tersedia untuk paket ini.');
+                }
+
+                if (! Hash::check($data->pin, $locked->delivery_pin_hash)) {
+                    $locked->increment('delivery_pin_attempts');
+
+                    throw DeliveryNotActionable::invalidState('PIN pengiriman salah. Minta kode terbaru dari penerima.');
+                }
+
                 $now = Carbon::now();
 
                 Delivery::create([
@@ -74,6 +87,13 @@ final class ConfirmDelivery
                 }
 
                 $this->transitioner->transition($locked, PackageStatus::RECEIVED, $courier, "Diserahkan ke {$data->receivedBy} ({$data->recipientRelation->label()})");
+
+                // The code is single-use: once the parcel is handed over the
+                // hash is gone and cannot be replayed.
+                $locked->update([
+                    'delivery_pin_hash' => null,
+                    'delivery_pin_attempts' => 0,
+                ]);
 
                 $this->notifications->queueDelivered($locked, $data->receivedBy, $now);
 

@@ -13,35 +13,19 @@ use App\Models\Staff;
 use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
 
-final class ProceedDecisionHandler
-{
+final class ProceedDecisionHandler {
     public function __construct(
         private readonly PackageStatusTransitioner $transitioner,
         private readonly NotificationQueue $notificationQueue,
-    ) {}
+    ) {
+    }
 
-    public function handle(Package $package, IssueReport $issueReport, ResolveIssueData $data, Staff $admin): void
-    {
+    public function handle(Package $package, IssueReport $issueReport, ResolveIssueData $data, Staff $admin): void {
         $this->transitioner->transition(
             package: $package,
             to: PackageStatus::IN_DELIVERY,
             actor: $admin
         );
-
-        if ($package->courier_id !== null) {
-            $this->notificationQueue->queue(
-                package: $package,
-                type: RecipientType::COURIER,
-                recipientId: $package->courier_id,
-                template: 'issue_decision',
-                payload: [
-                    'tracking_number' => $package->tracking_number,
-                    'decision' => $data->decision->value,
-                    'decision_reason' => $data->decisionReason,
-                    'instructions' => 'Lanjutkan pengantaran paket kepada penerima.',
-                ]
-            );
-        }
 
         $this->notificationQueue->queue(
             package: $package,

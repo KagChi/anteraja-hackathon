@@ -9,20 +9,20 @@ Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-012, BR-020.
 
 ### FR-ASG-001 — Penugasan kurir
 
-- Deskripsi: Sistem HARUS menugaskan satu kurir aktif pada paket berstatus CONFIRMED yang belum punya kurir, memindahkan paket ke COURIER_ASSIGNED, dan memberi tahu kurir tentang tugasnya.
+- Deskripsi: Sistem HARUS menugaskan satu kurir aktif pada paket yang belum punya kurir (umumnya masih CREATED), memindahkan paket ke COURIER_ASSIGNED, dan membuat tugasnya tampil di papan tugas kurir. Kurir tidak memakai WhatsApp, jadi tidak ada pesan yang dikirim ke nomor kurir.
 - Aktor & Otorisasi: admin hub.
 - Trigger: POST /api/admin/shipments/{tracking_number}/assign dari modal detail shipment.
-- Precondition: paket berstatus CONFIRMED dan courier_id masih null.
+- Precondition: paket berstatus CREATED, CONFIRMED, COURIER_ASSIGNED, CHECKED, atau ISSUE_REPORTED.
 - Input & Validasi: courier_id wajib integer dan harus merujuk baris staff berperan COURIER yang is_active true (AssignCourierRequest).
-- Proses / Business Rules: transaksi dengan lockForUpdate pada baris paket (BR-004). Bila status bukan CONFIRMED atau courier_id sudah terisi, lempar PackageNotAssignable. Bila staf yang dipilih bukan kurir aktif, lempar PackageNotAssignable dengan pesan khusus. Transisi ke COURIER_ASSIGNED dijalankan dengan atribut courier_id dan courier_accepted_at null (BR-002 dan BR-003). Notifikasi task_assigned diantrekan untuk kurir berisi resi, jendela, instruksi penanganan, dan ringkasan item.
+- Proses / Business Rules: transaksi dengan lockForUpdate pada baris paket (BR-004). Bila status tidak ada di daftar yang dapat ditugaskan, lempar PackageNotAssignable. Bila staf yang dipilih bukan kurir aktif, lempar PackageNotAssignable dengan pesan khusus. Paket CREATED atau CONFIRMED dipindahkan ke COURIER_ASSIGNED dengan atribut courier_id dan courier_accepted_at null (BR-002 dan BR-003); paket yang lebih jauh hanya berganti courier_id tanpa transisi. Tidak ada notifikasi yang diantrekan.
 - Output / Response: HTTP 200 dengan message yang menyebut nama kurir dan resi, serta objek package yang sudah memuat courier dan statusRef.
-- Error & Edge Cases: courier_id bukan kurir aktif atau bukan staf menghasilkan 422 dari FormRequest; paket berstatus CONFIRMED tetapi sudah punya kurir menghasilkan penolakan PackageNotAssignable; resi tidak dikenal menghasilkan 404.
-- Side Effects: kolom courier_id dan courier_accepted_at paket berubah; baris status_logs baru; satu baris notifications QUEUED template task_assigned.
+- Error & Edge Cases: courier_id bukan kurir aktif atau bukan staf menghasilkan 422 dari FormRequest; status di luar daftar menghasilkan PackageNotAssignable; resi tidak dikenal menghasilkan 404.
+- Side Effects: kolom courier_id dan courier_accepted_at paket berubah; baris status_logs baru saat transisi CREATED/CONFIRMED ke COURIER_ASSIGNED.
 - Postcondition: paket muncul di papan tugas kurir tersebut sebagai tugas baru.
-- Traceability: routes/api.php, Admin/ShipmentAssignmentController, Actions/Packages/AssignCourier, Requests/Admin/AssignCourierRequest, Support/NotificationQueue, tests/Feature/AdminShipmentTest.php test_admin_can_assign_courier, resources/js/components/CourierPickerDialog.tsx.
+- Traceability: routes/api.php, Admin/ShipmentAssignmentController, Actions/Packages/AssignCourier, Requests/Admin/AssignCourierRequest, database/migrations/0001_01_01_000032_add_assign_confirm_transitions.php, tests/Feature/AdminShipmentTest.php test_admin_can_assign_courier, resources/js/components/CourierPickerDialog.tsx.
 - Acceptance Criteria:
-  - Given paket CONFIRMED tanpa kurir dan satu kurir aktif, When assign dipanggil, Then HTTP 200, paket berstatus COURIER_ASSIGNED, dan notifikasi task_assigned terantre.
-  - Given paket COURIER_ASSIGNED yang sudah punya kurir, When assign dipanggil lagi, Then permintaan ditolak dan courier_id tidak berubah.
+  - Given paket CREATED tanpa kurir dan satu kurir aktif, When assign dipanggil, Then HTTP 200, paket berstatus COURIER_ASSIGNED, dan tidak ada notifikasi WhatsApp.
+  - Given paket COURIER_ASSIGNED yang sudah punya kurir yang sama, When assign dipanggil lagi, Then paket hanya berganti penugasan tanpa transisi status.
 - Status: Live
 
 ---

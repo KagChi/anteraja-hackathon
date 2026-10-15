@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Courier;
 
+use App\Enums\ConfirmationResponse;
 use App\Enums\DeliveryStage;
 use App\Enums\GpsAction;
 use App\Enums\GpsLevel;
@@ -20,8 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-final class DeliveryController extends Controller
-{
+final class DeliveryController extends Controller {
     public function show(
         Request $request,
         string $trackingNumber,
@@ -36,6 +36,8 @@ final class DeliveryController extends Controller
 
         $allowedStatuses = [
             PackageStatus::COURIER_ASSIGNED,
+            PackageStatus::AWAITING_CONFIRMATION,
+            PackageStatus::CONFIRMED,
             PackageStatus::CHECKED,
             PackageStatus::IN_DELIVERY,
             PackageStatus::ISSUE_REPORTED,
@@ -75,10 +77,16 @@ final class DeliveryController extends Controller
             ->whereNull('decision')
             ->isNotEmpty();
 
-        $canDepart = in_array($package->status, [PackageStatus::COURIER_ASSIGNED, PackageStatus::CHECKED], true);
+        $hasConfirmed = $package->scheduleConfirmations()
+            ->where('response', ConfirmationResponse::READY->value)
+            ->exists();
+
+        $canRequestConfirmation = $package->status === PackageStatus::COURIER_ASSIGNED && ! $hasConfirmed;
+        $canDepart = in_array($package->status, [PackageStatus::CONFIRMED, PackageStatus::CHECKED], true)
+            || ($package->status === PackageStatus::COURIER_ASSIGNED && $hasConfirmed);
         $canArrive = $package->status === PackageStatus::IN_DELIVERY && $stage !== DeliveryStage::ARRIVED;
         $canProof = $package->status === PackageStatus::IN_DELIVERY;
-        $canReportIssue = in_array($package->status, [PackageStatus::COURIER_ASSIGNED, PackageStatus::CHECKED, PackageStatus::IN_DELIVERY], true) && ! $hasOpenIssue;
+        $canReportIssue = in_array($package->status, [PackageStatus::COURIER_ASSIGNED, PackageStatus::CONFIRMED, PackageStatus::CHECKED, PackageStatus::IN_DELIVERY], true) && ! $hasOpenIssue;
 
         return response()->json([
             'delivery' => [
@@ -96,6 +104,7 @@ final class DeliveryController extends Controller
                 'statusLabel' => $package->statusRef?->label ?? $package->status->value,
                 'stage' => $stage->value,
                 'stageLabel' => $stage->label(),
+                'canRequestConfirmation' => $canRequestConfirmation,
                 'canDepart' => $canDepart,
                 'canArrive' => $canArrive,
                 'canProof' => $canProof,
@@ -114,8 +123,7 @@ final class DeliveryController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function gpsContext(Package $package, GpsValidator $gps, GeofenceEvaluator $geofence): array
-    {
+    private function gpsContext(Package $package, GpsValidator $gps, GeofenceEvaluator $geofence): array {
         $last = $this->latestCheck($package, $gps);
         $pending = GpsLockRequest::query()
             ->where('package_id', $package->id)
@@ -158,8 +166,7 @@ final class DeliveryController extends Controller
         ];
     }
 
-    private function latestCheck(Package $package, GpsValidator $gps): ?LocationCheck
-    {
+    private function latestCheck(Package $package, GpsValidator $gps): ?LocationCheck {
         foreach ([GpsAction::POD, GpsAction::ARRIVE, GpsAction::DEPART] as $action) {
             $check = $gps->latestCheck($package, $action);
             if ($check !== null) {

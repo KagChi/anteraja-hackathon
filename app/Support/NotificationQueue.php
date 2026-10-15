@@ -14,8 +14,7 @@ use App\Models\Package;
 use App\Models\Staff;
 use Carbon\CarbonInterface;
 
-final class NotificationQueue
-{
+final class NotificationQueue {
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -42,8 +41,7 @@ final class NotificationQueue
         return $notification;
     }
 
-    public function queueTaskRejected(Package $package, Staff $courier, ?string $reason): void
-    {
+    public function queueTaskRejected(Package $package, Staff $courier, ?string $reason): void {
         $admins = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->get();
         foreach ($admins as $admin) {
             $this->queue(
@@ -67,8 +65,7 @@ final class NotificationQueue
      *
      * @param  array<string, mixed>  $payload
      */
-    public function queueStaffReport(Staff $staff, string $template, array $payload): Notification
-    {
+    public function queueStaffReport(Staff $staff, string $template, array $payload): Notification {
         $payload['recipient_type'] = RecipientType::ADMIN->value;
         $payload['recipient_name'] ??= $staff->name;
         $payload['recipient_phone'] ??= self::normalizePhone($staff->phone);
@@ -87,8 +84,7 @@ final class NotificationQueue
         return $notification;
     }
 
-    public function queueOnTheWay(Package $package, Staff $courier): void
-    {
+    public function queueOnTheWay(Package $package, Staff $courier): void {
         $this->queue(
             $package,
             RecipientType::BUYER,
@@ -102,8 +98,7 @@ final class NotificationQueue
         );
     }
 
-    public function queueCourierArrived(Package $package, Staff $courier): void
-    {
+    public function queueCourierArrived(Package $package, Staff $courier): void {
         $this->queue(
             $package,
             RecipientType::BUYER,
@@ -116,8 +111,7 @@ final class NotificationQueue
         );
     }
 
-    public function queueDelivered(Package $package, string $receivedBy, CarbonInterface $deliveredAt): void
-    {
+    public function queueDelivered(Package $package, string $receivedBy, CarbonInterface $deliveredAt): void {
         $this->queue(
             $package,
             RecipientType::BUYER,
@@ -131,8 +125,24 @@ final class NotificationQueue
         );
     }
 
-    public function queueIssueReported(Package $package, Staff $courier, string $issueCategory): void
-    {
+    /**
+     * The hand-over code the recipient shows the courier. It travels to the
+     * package's recipient phone (type BUYER) and only there.
+     */
+    public function queueDeliveryPin(Package $package, string $pin): void {
+        $this->queue(
+            $package,
+            RecipientType::BUYER,
+            $package->buyer_id,
+            'delivery_pin',
+            [
+                'tracking_number' => $package->tracking_number,
+                'pin' => $pin,
+            ]
+        );
+    }
+
+    public function queueIssueReported(Package $package, Staff $courier, string $issueCategory): void {
         $label = IssueCategory::fromOrFallback($issueCategory)->label();
 
         $admins = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->get();
@@ -157,8 +167,7 @@ final class NotificationQueue
     /**
      * Menu pilihan penyelesaian kendala (opsi 1-4) untuk penerima.
      */
-    public function queueIssueOptions(Package $package, IssueCategory $category): void
-    {
+    public function queueIssueOptions(Package $package, IssueCategory $category): void {
         $this->queue(
             $package,
             RecipientType::BUYER,
@@ -222,8 +231,7 @@ final class NotificationQueue
         return $payload;
     }
 
-    private static function normalizePhone(?string $phone): ?string
-    {
+    private static function normalizePhone(?string $phone): ?string {
         $phone = $phone === null ? null : trim($phone);
 
         if ($phone === null || $phone === '') {

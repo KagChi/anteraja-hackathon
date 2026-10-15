@@ -5,19 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Client;
 
 use App\Enums\AddressType;
-use App\Enums\ConfirmationResponse;
 use App\Enums\PackageSource;
 use App\Enums\PackageStatus;
-use App\Enums\RecipientType;
 use App\Enums\ServiceType;
 use App\Models\Buyer;
 use App\Models\Package;
 use App\Models\PackageItem;
 use App\Models\Product;
-use App\Models\ScheduleConfirmation;
 use App\Support\DisplayTime;
-use App\Support\NotificationQueue;
-use App\Support\PackageStatusTransitioner;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -32,13 +27,7 @@ use Illuminate\Support\Facades\DB;
  * the recipient, and the courier's geofence measures against the recipient
  * coordinates stored here.
  */
-final class CreateClientOrder
-{
-    public function __construct(
-        private readonly PackageStatusTransitioner $transitioner,
-        private readonly NotificationQueue $notifications,
-    ) {}
-
+final class CreateClientOrder {
     /**
      * @param  array{
      *     recipient: array{name: string, phone: string, address: string, area?: ?string, address_type?: ?string, latitude?: ?float, longitude?: ?float},
@@ -50,8 +39,7 @@ final class CreateClientOrder
      *     items: list<array{product_id: int|string, quantity: int|string}>
      * }  $data
      */
-    public function execute(Buyer $buyer, array $data): Package
-    {
+    public function execute(Buyer $buyer, array $data): Package {
         return DB::transaction(function () use ($buyer, $data): Package {
             $recipient = $data['recipient'];
 
@@ -101,32 +89,9 @@ final class CreateClientOrder
                 ]);
             }
 
-            ScheduleConfirmation::create([
-                'package_id' => $package->id,
-                'response' => ConfirmationResponse::PENDING,
-                'proposed_scheduled_at' => $scheduledAt,
-                'requested_at' => Carbon::now('UTC'),
-            ]);
-
-            $package = $this->transitioner->transition(
-                package: $package,
-                to: PackageStatus::AWAITING_CONFIRMATION,
-                actor: null,
-                attributes: ['handling_instructions' => $data['handling_instructions'] ?? null],
-            );
-
-            $this->notifications->queue(
-                package: $package,
-                type: RecipientType::BUYER,
-                recipientId: $buyer->id,
-                template: 'schedule_request',
-                payload: [
-                    'tracking_number' => $package->tracking_number,
-                    'scheduled_at' => $package->scheduled_at?->toIso8601String(),
-                    'scheduled_end_at' => $package->scheduled_end_at?->toIso8601String(),
-                    'source' => PackageSource::CLIENT_APP->value,
-                ],
-            );
+            // The order waits in CREATED: the hub assigns a courier first, and
+            // the receiving-date confirmation is requested later by the courier
+            // or an admin. Nothing is sent to the recipient at checkout.
 
             return $package;
         });
@@ -136,8 +101,7 @@ final class CreateClientOrder
      * @param  list<array{product_id: int|string, quantity: int|string}>  $items
      * @return list<array{product: Product, quantity: int}>
      */
-    private function resolveItems(array $items): array
-    {
+    private function resolveItems(array $items): array {
         $quantities = [];
         foreach ($items as $item) {
             $productId = (int) $item['product_id'];
@@ -177,8 +141,7 @@ final class CreateClientOrder
      * @param  array{scheduled_date: string, window_start: string, window_end: string}  $data
      * @return array{0: Carbon, 1: Carbon}
      */
-    private function schedule(array $data): array
-    {
+    private function schedule(array $data): array {
         $date = $data['scheduled_date'];
         $start = Carbon::createFromFormat('Y-m-d H:i', "{$date} {$data['window_start']}", DisplayTime::DISPLAY_TIMEZONE);
         $end = Carbon::createFromFormat('Y-m-d H:i', "{$date} {$data['window_end']}", DisplayTime::DISPLAY_TIMEZONE);

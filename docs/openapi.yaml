@@ -303,6 +303,7 @@ components:
       - photo
       - temperature_c
       - recipient_type
+      - pin
       properties:
         photo:
           type: string
@@ -351,6 +352,16 @@ components:
           maxItems: 60
           items:
             $ref: '#/components/schemas/GpsSignal'
+        pin:
+          type: string
+          pattern: '^[0-9]{6}$'
+          description: PIN 6 digit yang dikirim ke penerima saat kurir berangkat;
+            diverifikasi sebelum paket menjadi RECEIVED.
+          example: '482913'
+        receipt_note:
+          type: string
+          maxLength: 300
+          example: Diserahkan langsung ke penerima.
     CourierStoreIssueRequest:
       type: object
       required:
@@ -1056,8 +1067,8 @@ paths:
       tags:
       - Admin - Shipments
       summary: Tugaskan Kurir & Cooler Box
-      description: Menugaskan kurir aktif dan mengalokasikan kode cooler box pendingin
-        (FSM -> COURIER_ASSIGNED).
+      description: Menugaskan kurir aktif pada paket CREATED/CONFIRMED dan mengalokasikan
+        kode cooler box pendingin (FSM -> COURIER_ASSIGNED).
       parameters:
       - name: tracking_number
         in: path
@@ -1080,6 +1091,29 @@ paths:
                 $ref: '#/components/schemas/ApiResponseSuccess'
         '422':
           description: Status paket tidak dapat ditugaskan
+  /admin/shipments/{tracking_number}/request-confirmation:
+    post:
+      tags:
+      - Admin - Shipments
+      summary: Minta Konfirmasi Jadwal Penerimaan
+      description: Mengirim permintaan konfirmasi tanggal terima ke penerima setelah
+        kurir ditugaskan (FSM -> AWAITING_CONFIRMATION).
+      parameters:
+      - name: tracking_number
+        in: path
+        required: true
+        schema:
+          type: string
+          example: AJ-FRZ-0012345
+      responses:
+        '200':
+          description: Permintaan konfirmasi dikirim ke penerima
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSuccess'
+        '422':
+          description: Paket belum ditugaskan ke kurir
   /admin/shipments/{tracking_number}/reschedule:
     post:
       tags:
@@ -1500,6 +1534,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseSuccess'
+  /courier/deliveries/{tracking_number}/request-confirmation:
+    post:
+      tags:
+      - Courier - Delivery
+      summary: Minta Konfirmasi Jadwal Penerimaan
+      description: Kurir meminta penerima mengonfirmasi tanggal terima (FSM -> AWAITING_CONFIRMATION).
+      parameters:
+      - name: tracking_number
+        in: path
+        required: true
+        schema:
+          type: string
+          example: AJ-FRZ-0012354
+      responses:
+        '200':
+          description: Permintaan konfirmasi dikirim ke penerima
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSuccess'
+        '422':
+          description: Paket tidak ditugaskan ke kurir ini atau belum siap
   /courier/deliveries/{tracking_number}/proof:
     get:
       tags:

@@ -7,10 +7,8 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-final class ReferenceDataSeeder extends Seeder
-{
-    public function run(): void
-    {
+final class ReferenceDataSeeder extends Seeder {
+    public function run(): void {
         // 1. Staff Roles
         DB::table('staff_roles')->upsert([
             ['code' => 'ADMIN',   'label' => 'Admin'],
@@ -34,6 +32,8 @@ final class ReferenceDataSeeder extends Seeder
 
         // 3. Package Status Transitions (FSM Guard Matrix)
         $transitions = [
+            ['from_status' => 'CREATED',               'to_status' => 'COURIER_ASSIGNED'],
+            ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'AWAITING_CONFIRMATION'],
             ['from_status' => 'CREATED',               'to_status' => 'AWAITING_CONFIRMATION'],
             ['from_status' => 'AWAITING_CONFIRMATION', 'to_status' => 'CONFIRMED'],
             ['from_status' => 'AWAITING_CONFIRMATION', 'to_status' => 'RESCHEDULE_REQUESTED'],
@@ -41,6 +41,7 @@ final class ReferenceDataSeeder extends Seeder
             ['from_status' => 'CONFIRMED',             'to_status' => 'COURIER_ASSIGNED'],
             ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'CHECKED'],
             ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'CONFIRMED'],
+            ['from_status' => 'CONFIRMED',             'to_status' => 'CHECKED'],
             ['from_status' => 'CHECKED',               'to_status' => 'IN_DELIVERY'],
             ['from_status' => 'CHECKED',               'to_status' => 'ISSUE_REPORTED'],
             ['from_status' => 'ISSUE_REPORTED',        'to_status' => 'IN_DELIVERY'],

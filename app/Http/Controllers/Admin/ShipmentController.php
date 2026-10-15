@@ -24,10 +24,8 @@ use App\Support\MediaStorage;
 use App\Support\PackageTimelineBuilder;
 use Illuminate\Http\JsonResponse;
 
-final class ShipmentController extends Controller
-{
-    public function index(IndexShipmentRequest $request, ShipmentIndexQuery $query): JsonResponse
-    {
+final class ShipmentController extends Controller {
+    public function index(IndexShipmentRequest $request, ShipmentIndexQuery $query): JsonResponse {
         $filters = $request->toFilters();
         $paginated = $query->paginate($filters);
 
@@ -104,8 +102,7 @@ final class ShipmentController extends Controller
         return response()->json($data);
     }
 
-    public function create(): JsonResponse
-    {
+    public function create(): JsonResponse {
         $products = Product::orderBy('name', 'asc')->get();
         $buyers = Buyer::orderBy('name', 'asc')->limit(50)->get();
         $couriers = Staff::where('role', StaffRole::COURIER)
@@ -120,20 +117,18 @@ final class ShipmentController extends Controller
         ]);
     }
 
-    public function store(StoreShipmentRequest $request, CreatePackage $action): JsonResponse
-    {
+    public function store(StoreShipmentRequest $request, CreatePackage $action): JsonResponse {
         /** @var Staff $user */
         $user = $request->user();
         $package = $action->execute($request->validated(), $user);
 
         return response()->json([
-            'message' => "Shipment {$package->tracking_number} dibuat dan konfirmasi dikirim ke pembeli.",
+            'message' => "Shipment {$package->tracking_number} dibuat. Tugaskan kurir, lalu minta konfirmasi jadwal.",
             'package' => $package->load(['buyer', 'items.product', 'statusRef']),
         ], 201);
     }
 
-    public function show(string $trackingNumber, PackageTimelineBuilder $timelineBuilder, GeofenceEvaluator $geofence): JsonResponse
-    {
+    public function show(string $trackingNumber, PackageTimelineBuilder $timelineBuilder, GeofenceEvaluator $geofence): JsonResponse {
         $package = Package::where('tracking_number', $trackingNumber)
             ->with([
                 'buyer',

@@ -12,10 +12,11 @@
 
 ## 1. Ringkasan
 
-Titik masuk paket dari sisi hub. Satu pemanggilan membuat empat hal sekaligus:
-baris paket, baris item, konfirmasi jadwal PENDING, dan notifikasi permintaan
-konfirmasi ke pembeli. Paket sengaja dibuat berstatus CREATED lebih dulu, lalu
-dipindahkan lewat mekanisme transisi, supaya status_logs tetap lengkap dan diaudit.
+Titik masuk paket dari sisi hub. Satu pemanggilan membuat baris paket dan baris
+itemnya saja: paket berhenti di status CREATED, tanpa konfirmasi jadwal maupun
+pesan ke penerima. Kurir ditugaskan lebih dulu oleh admin, baru konfirmasi
+tanggal terima diminta oleh kurir atau admin (FR-PKG-009). Paket sengaja dibuat
+berstatus CREATED lebih dulu supaya status_logs tetap lengkap dan diaudit.
 
 ## 2. Aktor dan otorisasi
 
@@ -72,10 +73,8 @@ dipindahkan lewat mekanisme transisi, supaya status_logs tetap lengkap dan diaud
 3. Buat baris packages dengan buyer_id, created_by id admin, courier_id null, status CREATED, service_type, koli_count, weight_kg, jadwal, cooler_box_code, package_category, dan handling_instructions.
 4. Refresh model agar tracking_number dari default PostgreSQL terisi.
 5. Buat satu baris package_items per item.
-6. Buat schedule_confirmations berisi response PENDING, proposed_scheduled_at, dan requested_at waktu UTC.
-7. Pindahkan paket CREATED ke AWAITING_CONFIRMATION melalui PackageStatusTransitioner dengan aktor admin. Transisi berjalan di dalam transaksi yang sama karena action sudah membuka DB::transaction.
-8. Antrekan notifikasi template schedule_request untuk pembeli berisi tracking_number, scheduled_at, dan scheduled_end_at.
-9. Kembalikan paket.
+6. Kembalikan paket berstatus CREATED. Tidak ada schedule_confirmations, tidak ada
+   transisi status, dan tidak ada notifikasi pada langkah ini.
 
 ## 7. Output
 
@@ -83,10 +82,10 @@ HTTP 201, bentuk respons:
 
 | Field | Tipe | Keterangan |
 | --- | --- | --- |
-| message | string | "Shipment {resi} dibuat dan konfirmasi dikirim ke pembeli." |
+| message | string | "Shipment {resi} dibuat. Tugaskan kurir, lalu minta konfirmasi jadwal." |
 | package | objek | model Package hasil load buyer, items.product, statusRef |
 | package.tracking_number | string | bentuk AJ-FRZ- diikuti 7 digit |
-| package.status | string | AWAITING_CONFIRMATION |
+| package.status | string | CREATED |
 | package.scheduled_at | string | UTC |
 | package.source | string | ADMIN |
 
@@ -109,10 +108,7 @@ HTTP 201, bentuk respons:
 | --- | --- |
 | Baris paket | packages |
 | Baris item | package_items |
-| Baris konfirmasi | schedule_confirmations response PENDING |
-| Baris log status | status_logs CREATED ke AWAITING_CONFIRMATION, changed_by id admin |
-| Notifikasi | notifications template schedule_request status QUEUED |
-| Job pengiriman | DispatchNotificationToN8n setelah commit |
+| Baris log status | status_logs INSERT dengan from_status null dan to_status CREATED, changed_by id admin |
 
 ## 10. Traceability
 
@@ -130,7 +126,7 @@ HTTP 201, bentuk respons:
 
 ## 11. Skenario uji
 
-1. Given pembeli baru, satu produk, dan jadwal besok, When shipment dibuat, Then HTTP 201, resi berawalan AJ-FRZ-, status AWAITING_CONFIRMATION, dan satu notifikasi schedule_request terantre.
+1. Given pembeli baru, satu produk, dan jadwal besok, When shipment dibuat, Then HTTP 201, resi berawalan AJ-FRZ-, status CREATED, dan tidak ada baris schedule_confirmations maupun notifikasi.
 2. Given scheduled_date kemarin, When shipment dibuat, Then HTTP 422 pada errors.scheduled_date dan tidak ada baris packages baru.
 3. Given nomor pembeli yang sudah punya akun, When shipment dibuat dengan objek buyer baru, Then baris buyers tidak bertambah dan paket memakai pembeli yang ada.
 4. Given dua item dengan product_id yang sama, When shipment dibuat, Then HTTP 422 karena aturan distinct.

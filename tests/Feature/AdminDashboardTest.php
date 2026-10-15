@@ -20,8 +20,7 @@ use Tests\TestCase;
  * The numbers come from the same query the Laporan screen uses, so this covers
  * the seam between the two screens plus the PDF download.
  */
-final class AdminDashboardTest extends TestCase
-{
+final class AdminDashboardTest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $admin;
@@ -32,8 +31,7 @@ final class AdminDashboardTest extends TestCase
 
     private string $today;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         $this->withoutVite();
@@ -69,8 +67,7 @@ final class AdminDashboardTest extends TestCase
         );
     }
 
-    private function signIn(): void
-    {
+    private function signIn(): void {
         $this->postJson('/api/auth/login', [
             'email' => $this->admin->email,
             'password' => 'password',
@@ -78,8 +75,7 @@ final class AdminDashboardTest extends TestCase
     }
 
     /** Creates a shipment through the console and confirms it as the buyer. */
-    private function createConfirmedShipment(string $phone): Package
-    {
+    private function createConfirmedShipment(string $phone): Package {
         $create = $this->postJson('/api/admin/shipments', [
             'buyer' => [
                 'name' => 'Pembeli Dashboard',
@@ -101,7 +97,15 @@ final class AdminDashboardTest extends TestCase
 
         /** @var Package $package */
         $package = Package::where('tracking_number', $tracking)->firstOrFail();
-        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->status);
+        $this->assertSame(PackageStatus::CREATED, $package->status);
+
+        // The hub assigns the courier first, then asks the recipient to confirm
+        // the receiving date before the parcel can be delivered.
+        $this->postJson("/api/admin/shipments/{$tracking}/assign", [
+            'courier_id' => $this->courier->id,
+        ])->assertOk();
+        $this->postJson("/api/admin/shipments/{$tracking}/request-confirmation")->assertOk();
+        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->fresh()->status);
 
         $this->postJson("/api/client/{$package->client_token}/schedule/confirm")->assertOk();
         $this->assertSame(PackageStatus::CONFIRMED, $package->fresh()->status);
@@ -109,8 +113,7 @@ final class AdminDashboardTest extends TestCase
         return $package->fresh();
     }
 
-    public function test_the_dashboard_returns_the_summary_and_the_audit_trail(): void
-    {
+    public function test_the_dashboard_returns_the_summary_and_the_audit_trail(): void {
         $this->signIn();
         $package = $this->createConfirmedShipment('081399990001');
 
@@ -140,8 +143,7 @@ final class AdminDashboardTest extends TestCase
         $this->get('/admin/dashboard')->assertOk();
     }
 
-    public function test_the_dashboard_exports_a_pdf_recap(): void
-    {
+    public function test_the_dashboard_exports_a_pdf_recap(): void {
         $this->signIn();
         $this->createConfirmedShipment('081399990002');
 
@@ -155,8 +157,7 @@ final class AdminDashboardTest extends TestCase
         $this->assertStringStartsWith('%PDF', (string) $response->getContent());
     }
 
-    public function test_an_empty_day_reports_zeroes_and_no_activity(): void
-    {
+    public function test_an_empty_day_reports_zeroes_and_no_activity(): void {
         $this->signIn();
 
         $past = Carbon::now(DisplayTime::DISPLAY_TIMEZONE)->subDays(45)->format('Y-m-d');
@@ -169,8 +170,7 @@ final class AdminDashboardTest extends TestCase
         $this->assertSame([], $response->json('activity'));
     }
 
-    public function test_only_an_admin_can_open_the_dashboard(): void
-    {
+    public function test_only_an_admin_can_open_the_dashboard(): void {
         $this->getJson('/api/admin/dashboard')->assertUnauthorized();
 
         $this->actingAs($this->courier)->getJson('/api/admin/dashboard')->assertForbidden();

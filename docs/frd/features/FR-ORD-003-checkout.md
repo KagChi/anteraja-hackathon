@@ -67,10 +67,8 @@ menjadi profil pengiriman pelanggan.
 5. Jendela diparsing di zona Jakarta, disimpan UTC, dan dibatasi pada jam mulai.
 6. Paket dibuat berstatus CREATED dengan created_by null dan source CLIENT_APP.
 7. Refresh agar tracking_number terisi, lalu salin item.
-8. Buat konfirmasi PENDING berisi proposed_scheduled_at.
-9. Transisi CREATED ke AWAITING_CONFIRMATION dengan aktor null.
-10. Antrekan notifikasi schedule_request ke pembeli berisi jadwal dan penanda sumber CLIENT_APP.
-11. Balas HTTP 201 dengan struk pesanan.
+8. Paket dibiarkan berstatus CREATED: tidak ada konfirmasi jadwal maupun notifikasi di sini. Kurir ditugaskan lebih dulu oleh admin, lalu kurir atau admin meminta konfirmasi tanggal terima (FR-PKG-009).
+9. Balas HTTP 201 dengan struk pesanan.
 
 ## 7. Output
 
@@ -78,7 +76,7 @@ menjadi profil pengiriman pelanggan.
 | --- | --- | --- |
 | message | string | menyebut resi baru |
 | data.tracking_number | string | resi AJ-FRZ- |
-| data.status, status_label | string | CREATED lalu AWAITING_CONFIRMATION |
+| data.status, status_label | string | CREATED |
 | data.source, service_type, service_label | string | sumber dan layanan |
 | data.recipient | objek | nama, telepon, alamat, area |
 | data.scheduled_label, scheduled_date, window_start, window_end | string | jadwal |
@@ -102,9 +100,8 @@ menjadi profil pengiriman pelanggan.
 | Efek | Tempat |
 | --- | --- |
 | Profil pengiriman pembeli | buyers |
-| Paket, item, konfirmasi | packages, package_items, schedule_confirmations |
-| Log status | status_logs CREATED lalu AWAITING_CONFIRMATION dengan changed_by null |
-| Notifikasi | schedule_request ke pembeli |
+| Paket dan item | packages, package_items |
+| Log status | status_logs INSERT CREATED dengan changed_by null |
 
 ## 10. Traceability
 
@@ -122,7 +119,7 @@ menjadi profil pengiriman pelanggan.
 
 ## 11. Skenario uji
 
-1. Given pelanggan login dengan satu produk tersedia, When checkout dikirim, Then HTTP 201 dengan resi, paket bersumber CLIENT_APP, dan notifikasi schedule_request terantre.
+1. Given pelanggan login dengan satu produk tersedia, When checkout dikirim, Then HTTP 201 dengan resi, paket bersumber CLIENT_APP berstatus CREATED, dan tidak ada notifikasi schedule_request.
 2. Given produk sudah tidak tersedia, When checkout dikirim, Then HTTP 422 PRODUCT_UNAVAILABLE tanpa paket baru.
 3. Given pelanggan tanpa token, When checkout dikirim, Then HTTP 401.
 

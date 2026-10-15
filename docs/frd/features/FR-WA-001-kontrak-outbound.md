@@ -44,7 +44,7 @@ yang perlu disepakati bila salah satu sisi berubah.
 | --- | --- | --- |
 | notification_id | integer | id baris notifications |
 | template | string | nama template |
-| recipient_type | string | BUYER, COURIER, atau ADMIN |
+| recipient_type | string | BUYER atau ADMIN (kurir tidak memakai WhatsApp) |
 | payload | objek | konteks kirim lengkap |
 
 Field penting di dalam payload: recipient_type, recipient_name, recipient_phone
@@ -61,8 +61,8 @@ ditambah client_url, address, dan buyer_name.
 6. Aplikasi memperbarui status baris notifikasi sesuai jawaban itu.
 
 Template yang dipakai sistem: schedule_request, schedule_rescheduled, on_the_way
-courier_arrived, delivered, issue_options, issue_reported, issue_decision
-issue_decision_update, task_assigned, task_rejected, resend_requested
+courier_arrived, delivered, delivery_pin, issue_options, issue_reported
+issue_decision_update, task_rejected, resend_requested
 buyer_issue_choice, dan confirmation_overdue.
 
 ## 7. Output
@@ -111,5 +111,5 @@ buyer_issue_choice, dan confirmation_overdue.
 ## 12. Yang perlu dikonfirmasi
 
 1. Apakah kontrak ini perlu dibekukan sebagai skema versi, mengingat perubahan nama field akan memutus workflow tanpa peringatan?
-2. Template issue_decision_update dan issue_decision dikirim untuk keputusan yang berbeda; apakah keduanya masih diperlukan, atau bisa disatukan?
+2. Kurir tidak lagi menerima WhatsApp; template issue_decision_update sekarang satu-satunya kabar keputusan kendala ke pembeli. Apakah teksnya perlu membedakan tiap keputusan lebih jauh?
 

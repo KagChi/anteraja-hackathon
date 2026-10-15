@@ -33,6 +33,7 @@ export default function Proof({ params }: ScreenProps) {
     );
     const [recipientName, setRecipientName] = useState("");
     const [relation, setRelation] = useState("");
+    const [pin, setPin] = useState("");
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState<PickedPhoto | null>(null);
     const [state, setState] = useState<"idle" | "done">("idle");
@@ -84,6 +85,11 @@ export default function Proof({ params }: ScreenProps) {
             return;
         }
 
+        if (pin.trim().length !== 6) {
+            setActionError("Masukkan 6 digit PIN yang dikirim ke penerima.");
+            return;
+        }
+
         if (photo === null) {
             setActionError("Foto bukti penyerahan wajib diambil.");
             return;
@@ -96,6 +102,7 @@ export default function Proof({ params }: ScreenProps) {
             const body = new FormData();
             body.append("received_by", recipientName.trim());
             body.append("recipient_relation", relation);
+            body.append("pin", pin.trim());
 
             if (notes.trim() !== "") {
                 body.append("receipt_note", notes.trim());
@@ -190,6 +197,15 @@ export default function Proof({ params }: ScreenProps) {
                     </div>
                 </div>
 
+                <TextField
+                    label="PIN Penerimaan (6 digit)"
+                    value={pin}
+                    onChange={(value) => setPin(value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="Contoh: 123456"
+                    inputMode="numeric"
+                    supporting="Minta kode 6 digit yang dikirim ke WhatsApp penerima, lalu masukkan di sini."
+                />
+
                 <PhotoField
                     label="Foto Bukti Penyerahan"
                     photo={photo}
@@ -260,7 +276,7 @@ export default function Proof({ params }: ScreenProps) {
             ) : (
                 <button
                     type="button"
-                    disabled={recipientName.trim() === "" || busy}
+                    disabled={recipientName.trim() === "" || pin.trim().length !== 6 || busy}
                     onClick={() => void submit()}
                     className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-space-lg font-label-md text-label-md text-on-primary disabled:opacity-60"
                 >

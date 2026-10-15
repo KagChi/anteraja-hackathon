@@ -375,6 +375,7 @@ export interface CourierDelivery {
         statusLabel: string;
         stage: string;
         stageLabel: string;
+        canRequestConfirmation: boolean;
         canDepart: boolean;
         canArrive: boolean;
         canProof: boolean;
@@ -561,6 +562,12 @@ export const courierApi = {
                 "courier",
                 `/courier/deliveries/${encodeURIComponent(resi)}/arrive`,
                 fields
+            ),
+        requestConfirmation: (resi: string) =>
+            post<ActionMessage>(
+                courierHttp,
+                "courier",
+                `/courier/deliveries/${encodeURIComponent(resi)}/request-confirmation`
             ),
         requestReview: (resi: string, action: string, note?: string) =>
             post<ActionMessage>(courierHttp, "courier", `/courier/deliveries/${encodeURIComponent(resi)}/gps-review`, {

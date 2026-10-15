@@ -16,17 +16,14 @@ use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
 use Carbon\Carbon;
 
-final class RescheduleDecisionHandler
-{
+final class RescheduleDecisionHandler {
     public function __construct(
         private readonly PackageStatusTransitioner $transitioner,
         private readonly NotificationQueue $notificationQueue,
-    ) {}
+    ) {
+    }
 
-    public function handle(Package $package, IssueReport $issueReport, ResolveIssueData $data, Staff $admin): void
-    {
-        $oldCourierId = $package->courier_id;
-
+    public function handle(Package $package, IssueReport $issueReport, ResolveIssueData $data, Staff $admin): void {
         $this->transitioner->transition(
             package: $package,
             to: PackageStatus::AWAITING_CONFIRMATION,
@@ -44,21 +41,6 @@ final class RescheduleDecisionHandler
             'proposed_scheduled_at' => $package->scheduled_at,
             'requested_at' => Carbon::now('UTC'),
         ]);
-
-        if ($oldCourierId !== null) {
-            $this->notificationQueue->queue(
-                package: $package,
-                type: RecipientType::COURIER,
-                recipientId: $oldCourierId,
-                template: 'issue_decision',
-                payload: [
-                    'tracking_number' => $package->tracking_number,
-                    'decision' => $data->decision->value,
-                    'decision_reason' => $data->decisionReason,
-                    'instructions' => 'Penugasan dibatalkan untuk penjadwalan ulang oleh pembeli.',
-                ]
-            );
-        }
 
         $this->notificationQueue->queue(
             package: $package,

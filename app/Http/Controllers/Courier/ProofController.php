@@ -17,11 +17,10 @@ use App\Services\Gps\GpsValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 
-final class ProofController extends Controller
-{
-    public function create(Request $request, string $trackingNumber): JsonResponse
-    {
+final class ProofController extends Controller {
+    public function create(Request $request, string $trackingNumber): JsonResponse {
         $package = Package::where('tracking_number', $trackingNumber)
             ->firstOrFail();
 
@@ -67,6 +66,17 @@ final class ProofController extends Controller
             return response()->json([
                 'message' => 'Paket tidak dalam status pengantaran aktif.',
                 'redirect' => "/courier/deliveries/{$package->tracking_number}",
+            ], 422);
+        }
+
+        // The hand-over code travels to the recipient; the courier only proves
+        // the hand-over by typing it back. A missing or wrong code is refused
+        // here so the uploaded photo is never stored for a bad hand-over.
+        if ($package->delivery_pin_hash === null
+            || ! Hash::check((string) $request->input('pin'), $package->delivery_pin_hash)) {
+            return response()->json([
+                'message' => 'PIN pengiriman salah. Minta kode terbaru dari penerima.',
+                'redirect' => "/courier/deliveries/{$package->tracking_number}/proof",
             ], 422);
         }
 

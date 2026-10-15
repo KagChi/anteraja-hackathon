@@ -90,14 +90,15 @@ Geofence.
 Perjalanan utama:
 
 1. Membuat shipment: isi pembeli (baru atau pilih yang ada), item produk, jadwal,
-   berat, dan instruksi penanganan. Aksi membuat paket berstatus CREATED lalu
-   langsung memindahkannya ke AWAITING_CONFIRMATION dan mengirim notifikasi
-   schedule_request ke pembeli (Actions/Packages/CreatePackage.php).
-2. Menunggu pembeli. Kalau lewat dua jam tanpa jawaban, scheduler
-   confirmations:remind-unanswered menaikkan pengingat ke admin
+   berat, dan instruksi penanganan. Aksi membuat paket berstatus CREATED tanpa
+   konfirmasi maupun notifikasi (Actions/Packages/CreatePackage.php).
+2. Menugaskan kurir lebih dulu saat paket masih CREATED
+   (Actions/Packages/AssignCourier.php).
+3. Kurir atau admin meminta konfirmasi tanggal terima: paket menjadi
+   AWAITING_CONFIRMATION dan notifikasi schedule_request dikirim ke penerima
+   (Actions/Packages/RequestScheduleConfirmation.php). Kalau lewat dua jam tanpa
+   jawaban, scheduler confirmations:remind-unanswered menaikkan pengingat ke admin
    (app/Console/Commands/RemindUnansweredConfirmations.php).
-3. Menugaskan kurir saat status CONFIRMED dan belum ada kurir
-   (Actions/Packages/AssignCourier.php, satu-satunya jalan ke COURIER_ASSIGNED).
 4. Menangani kendala: melihat antrean, membaca checklist dan foto, lalu memilih
    satu dari lima keputusan yang diizinkan kategori kendala tersebut
    (Actions/Issues/ResolveIssue.php, Enums/IssueCategory.php).
@@ -277,7 +278,7 @@ atau [TIDAK TERVERIFIKASI].
 | --- | --- | --- | --- | --- |
 | Outbox notifikasi dengan konteks kirim lengkap | satu jalur keluar yang dapat dipertanggungjawabkan | Sistem | Existing-Core | Live |
 | Job pengiriman dengan retry 3 kali dan backoff 10 lalu 30 detik | tahan gangguan n8n | Sistem | Existing-Core | Live |
-| Template notifikasi: schedule_request, schedule_rescheduled, on_the_way, courier_arrived, delivered, issue_options, issue_reported, issue_decision, issue_decision_update, task_assigned, task_rejected, resend_requested, buyer_issue_choice, confirmation_overdue | komunikasi pelanggan | Sistem | Existing-Core | Live |
+| Template notifikasi: schedule_request, schedule_rescheduled, on_the_way, courier_arrived, delivered, delivery_pin, issue_options, issue_reported, issue_decision_update, task_rejected, resend_requested, buyer_issue_choice, confirmation_overdue | komunikasi pelanggan | Sistem | Existing-Core | Live |
 | Terjemahan balasan pelanggan menjadi aksi lewat state anteraja_chat_state | bot yang tidak menebak | Sistem | Existing-Core | Live |
 | Resolusi LID WhatsApp ke nomor telepon | balasan tetap sampai | Sistem | Live |
 | Lookup resi internal dengan shared token | menghubungkan nomor dan paket | n8n | Existing-Supporting | Live |

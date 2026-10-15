@@ -5,29 +5,18 @@ declare(strict_types=1);
 namespace App\Actions\Packages;
 
 use App\Enums\AddressType;
-use App\Enums\ConfirmationResponse;
 use App\Enums\PackageStatus;
-use App\Enums\RecipientType;
 use App\Enums\ServiceType;
 use App\Models\Buyer;
 use App\Models\Package;
 use App\Models\PackageItem;
-use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
 use App\Support\DisplayTime;
-use App\Support\NotificationQueue;
-use App\Support\PackageStatusTransitioner;
 use App\Support\PhoneFormatter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-final class CreatePackage
-{
-    public function __construct(
-        private readonly PackageStatusTransitioner $transitioner,
-        private readonly NotificationQueue $notificationQueue,
-    ) {}
-
+final class CreatePackage {
     /**
      * @param array{
      *     buyer_id?: ?int,
@@ -43,8 +32,7 @@ final class CreatePackage
      *     handling_instructions?: ?string
      * } $data
      */
-    public function execute(array $data, Staff $admin): Package
-    {
+    public function execute(array $data, Staff $admin): Package {
         return DB::transaction(function () use ($data, $admin): Package {
             // 1. Resolve Buyer
             $buyer = null;
@@ -152,33 +140,9 @@ final class CreatePackage
                 ]);
             }
 
-            // 5. Create Schedule Confirmation (PENDING)
-            ScheduleConfirmation::create([
-                'package_id' => $package->id,
-                'response' => ConfirmationResponse::PENDING,
-                'proposed_scheduled_at' => $scheduledAtUtc,
-                'requested_at' => Carbon::now('UTC'),
-            ]);
-
-            // 6. Transition to AWAITING_CONFIRMATION
-            $package = $this->transitioner->transition(
-                package: $package,
-                to: PackageStatus::AWAITING_CONFIRMATION,
-                actor: $admin
-            );
-
-            // 7. Queue notification to buyer
-            $this->notificationQueue->queue(
-                package: $package,
-                type: RecipientType::BUYER,
-                recipientId: $package->buyer_id,
-                template: 'schedule_request',
-                payload: [
-                    'tracking_number' => $package->tracking_number,
-                    'scheduled_at' => $package->scheduled_at?->toIso8601String(),
-                    'scheduled_end_at' => $package->scheduled_end_at?->toIso8601String(),
-                ]
-            );
+            // The parcel waits in CREATED: the hub assigns a courier first, and
+            // the receiving-date confirmation is requested later by the courier
+            // or an admin. Nothing is sent to the recipient at creation.
 
             return $package;
         });

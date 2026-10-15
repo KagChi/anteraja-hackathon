@@ -5,23 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Courier;
 
 use App\Enums\PackageStatus;
-use App\Enums\RecipientType;
 use App\Exceptions\TaskNotActionable;
 use App\Models\Package;
 use App\Models\Staff;
-use App\Support\DisplayTime;
-use App\Support\NotificationQueue;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
-final class AcceptTask
-{
-    public function __construct(
-        private readonly NotificationQueue $notifications,
-    ) {}
-
-    public function execute(Package $package, Staff $courier): Package
-    {
+final class AcceptTask {
+    public function execute(Package $package, Staff $courier): Package {
         /** @var Package|null $accepted */
         $accepted = DB::transaction(function () use ($package, $courier): ?Package {
             /** @var Package $locked */
@@ -42,23 +33,9 @@ final class AcceptTask
             return $locked;
         });
 
-        if ($accepted === null) {
-            // Sudah diterima sebelumnya: tidak ada pengingat kedua.
-            return $package->refresh();
-        }
-
-        // Kurir yang baru menerima tugas diingatkan memeriksa kemasan sebelum
-        // berangkat, lewat kanal yang sama dengan tugasnya.
-        $this->notifications->queue(
-            $accepted,
-            RecipientType::COURIER,
-            $courier->id,
-            'condition_check_reminder',
-            [
-                'window' => DisplayTime::windowLabel($accepted->scheduled_at, $accepted->scheduled_end_at),
-            ]
-        );
-
-        return $accepted;
+        // Sudah diterima sebelumnya: tidak ada pengingat kedua. Kurir yang baru
+        // menerima tugas hanya melihatnya di papan tugas aplikasi; tidak ada
+        // pesan WhatsApp yang dikirim.
+        return $accepted ?? $package->refresh();
     }
 }

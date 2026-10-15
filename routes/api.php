@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\GeofenceController;
 use App\Http\Controllers\Admin\GpsCheckController;
 use App\Http\Controllers\Admin\ShipmentExportController;
 use App\Http\Controllers\Admin\ShipmentRescheduleController;
+use App\Http\Controllers\Admin\ShipmentScheduleConfirmationController;
 use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
 use App\Http\Controllers\Api\Client\CatalogController as ClientCatalogController;
 use App\Http\Controllers\Api\Client\IssueChoiceController as ClientApiIssueChoiceController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\Courier\MarkArrivedController;
 use App\Http\Controllers\Courier\ProfileController;
 use App\Http\Controllers\Courier\ProofController;
 use App\Http\Controllers\Courier\RejectTaskController;
+use App\Http\Controllers\Courier\RequestConfirmationController;
 use App\Http\Controllers\Courier\StartDeliveryController;
 use App\Http\Controllers\Courier\TaskController;
 use App\Http\Controllers\Courier\TaskDistanceController;
@@ -92,6 +94,7 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     Route::get('shipments/export', ShipmentExportController::class)->name('shipments.export');
     Route::get('shipments/{package:tracking_number}', [ShipmentController::class, 'show'])->name('shipments.show');
     Route::post('shipments/{package:tracking_number}/assign', ShipmentAssignmentController::class)->name('shipments.assign');
+    Route::post('shipments/{package:tracking_number}/request-confirmation', ShipmentScheduleConfirmationController::class)->name('shipments.request-confirmation');
     Route::post('shipments/{package:tracking_number}/reschedule', ShipmentRescheduleController::class)->name('shipments.reschedule');
 
     // 2. Exceptions / Kendala
@@ -135,6 +138,7 @@ Route::prefix('courier')->name('api.courier.')->middleware([AuthenticateCourier:
     Route::get('deliveries/{package:tracking_number}', [DeliveryController::class, 'show'])->name('deliveries.show');
     Route::post('deliveries/{package:tracking_number}/depart', StartDeliveryController::class)->name('deliveries.depart');
     Route::post('deliveries/{package:tracking_number}/arrive', MarkArrivedController::class)->name('deliveries.arrive');
+    Route::post('deliveries/{package:tracking_number}/request-confirmation', RequestConfirmationController::class)->name('deliveries.request-confirmation');
 
     // GPS validation: a courier asking the hub to review a blocked attempt.
     Route::post('deliveries/{package:tracking_number}/gps-review', GpsReviewController::class)->name('deliveries.gps-review');

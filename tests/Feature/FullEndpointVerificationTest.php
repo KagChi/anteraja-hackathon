@@ -9,31 +9,30 @@ use App\Enums\StaffRole;
 use App\Models\Buyer;
 use App\Models\Package;
 use App\Models\Product;
+use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-final class FullEndpointVerificationTest extends TestCase
-{
+final class FullEndpointVerificationTest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $admin;
 
     private Staff $courier;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         $this->admin = Staff::where('role', StaffRole::ADMIN)->firstOrFail();
         $this->courier = Staff::where('role', StaffRole::COURIER)->where('email', 'budi@anteraja.id')->firstOrFail();
     }
 
-    public function test_all_auth_endpoints(): void
-    {
+    public function test_all_auth_endpoints(): void {
         // 1. POST /api/auth/login (Admin)
         $loginRes = $this->postJson('/api/auth/login', [
             'email' => 'dimas@anteraja.id',
@@ -57,8 +56,7 @@ final class FullEndpointVerificationTest extends TestCase
         app()['env'] = 'testing';
     }
 
-    public function test_all_admin_endpoints(): void
-    {
+    public function test_all_admin_endpoints(): void {
         $this->actingAs($this->admin);
 
         // 4. GET /api/admin/shipments
@@ -131,8 +129,7 @@ final class FullEndpointVerificationTest extends TestCase
         $this->get('/api/admin/reports/export')->assertOk();
     }
 
-    public function test_all_courier_endpoints(): void
-    {
+    public function test_all_courier_endpoints(): void {
         $this->actingAs($this->courier);
 
         // 18. GET /api/courier/tasks
@@ -153,6 +150,13 @@ final class FullEndpointVerificationTest extends TestCase
         $this->getJson('/api/courier/deliveries/AJ-FRZ-0012354')->assertOk();
 
         // 23. POST /api/courier/deliveries/{package}/depart
+        // The recipient confirmed the window, so the courier may leave.
+        ScheduleConfirmation::create([
+            'package_id' => Package::where('tracking_number', 'AJ-FRZ-0012354')->value('id'),
+            'response' => 'READY',
+            'requested_at' => now(),
+            'responded_at' => now(),
+        ]);
         $this->postJson('/api/courier/deliveries/AJ-FRZ-0012354/depart', [
             'checklist' => ['packaging_damaged' => ['answer' => false]],
             'temperature_c' => -20.0,
@@ -169,9 +173,12 @@ final class FullEndpointVerificationTest extends TestCase
 
         // 26. POST /api/courier/deliveries/{package}/proof
         Storage::fake('local');
+        Package::where('tracking_number', 'AJ-FRZ-0012353')->firstOrFail()
+            ->update(['delivery_pin_hash' => Hash::make('123456')]);
         $this->postJson('/api/courier/deliveries/AJ-FRZ-0012353/proof', [
             'received_by' => 'Rina Putri',
             'recipient_relation' => 'SELF',
+            'pin' => '123456',
             'receipt_note' => 'Verifikasi serah terima',
             'photo' => UploadedFile::fake()->image('proof.jpg'),
         ])->assertOk();
@@ -193,8 +200,7 @@ final class FullEndpointVerificationTest extends TestCase
         $this->getJson('/api/courier/profile')->assertOk();
     }
 
-    public function test_all_client_endpoints(): void
-    {
+    public function test_all_client_endpoints(): void {
         // Sample packages from DemoDataSeeder
         $pkgSchedule = Package::where('tracking_number', 'AJ-FRZ-0012361')->firstOrFail();
         $pkgTracking = Package::where('tracking_number', 'AJ-FRZ-0012362')->firstOrFail();

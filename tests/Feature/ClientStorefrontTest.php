@@ -22,19 +22,16 @@ use Tests\TestCase;
  * The customer storefront: browse the catalog, sign up, and place an order that
  * the hub then sees in its shipment queue.
  */
-final class ClientStorefrontTest extends TestCase
-{
+final class ClientStorefrontTest extends TestCase {
     use DatabaseTransactions;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         RateLimiter::clear('client-auth');
     }
 
-    public function test_the_catalog_lists_the_seeded_frozen_goods(): void
-    {
+    public function test_the_catalog_lists_the_seeded_frozen_goods(): void {
         $response = $this->getJson('/api/client/catalog');
 
         $response->assertOk()->assertJsonStructure([
@@ -48,8 +45,7 @@ final class ClientStorefrontTest extends TestCase
         $this->assertGreaterThanOrEqual(8, count($names));
     }
 
-    public function test_a_product_can_be_opened_by_slug(): void
-    {
+    public function test_a_product_can_be_opened_by_slug(): void {
         $this->getJson('/api/client/catalog/nugget-ayam-1kg')
             ->assertOk()
             ->assertJsonPath('data.slug', 'nugget-ayam-1kg')
@@ -58,8 +54,7 @@ final class ClientStorefrontTest extends TestCase
         $this->getJson('/api/client/catalog/produk-hilang')->assertNotFound();
     }
 
-    public function test_register_creates_a_buyer_and_returns_a_token(): void
-    {
+    public function test_register_creates_a_buyer_and_returns_a_token(): void {
         $response = $this->postJson('/api/client/auth/register', [
             'name' => 'Pelanggan Baru',
             'phone' => '081211100099',
@@ -81,8 +76,7 @@ final class ClientStorefrontTest extends TestCase
         $this->assertTrue(Hash::check('rahasia123', (string) $buyer->password));
     }
 
-    public function test_register_rejects_a_phone_that_already_has_an_account(): void
-    {
+    public function test_register_rejects_a_phone_that_already_has_an_account(): void {
         Buyer::create([
             'name' => 'Sudah Ada',
             'phone' => '+6281211100077',
@@ -100,8 +94,7 @@ final class ClientStorefrontTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors('phone');
     }
 
-    public function test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order(): void
-    {
+    public function test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order(): void {
         $buyer = $this->makeBuyer();
         $token = $buyer->createToken('client-mobile', ['client'])->plainTextToken;
 
@@ -142,7 +135,7 @@ final class ClientStorefrontTest extends TestCase
 
         $this->assertSame(PackageSource::CLIENT_APP, $package->source);
         $this->assertNull($package->created_by);
-        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $package->status);
+        $this->assertSame(PackageStatus::CREATED, $package->status);
         $this->assertSame(ServiceType::INSTANT_FROZEN, $package->service_type);
         $this->assertSame(2, $package->items()->count());
         $this->assertSame(2.5, (float) $package->weight_kg);
@@ -165,8 +158,7 @@ final class ClientStorefrontTest extends TestCase
         $queue->assertOk()->assertJsonFragment(['source' => 'CLIENT_APP', 'sourceBadge' => 'APP']);
     }
 
-    public function test_checkout_requires_a_session_and_a_basket(): void
-    {
+    public function test_checkout_requires_a_session_and_a_basket(): void {
         $this->postJson('/api/client/orders', [])->assertUnauthorized();
 
         $buyer = $this->makeBuyer();
@@ -189,8 +181,7 @@ final class ClientStorefrontTest extends TestCase
     }
 
     /** The customer app must pin the destination before an order is accepted. */
-    public function test_checkout_requires_a_pinned_destination(): void
-    {
+    public function test_checkout_requires_a_pinned_destination(): void {
         $buyer = $this->makeBuyer();
         $token = $buyer->createToken('client-mobile', ['client'])->plainTextToken;
         $nugget = Product::where('slug', 'nugget-ayam-1kg')->firstOrFail();
@@ -209,8 +200,7 @@ final class ClientStorefrontTest extends TestCase
         ])->assertStatus(422)->assertJsonValidationErrors('recipient.latitude');
     }
 
-    private function makeBuyer(): Buyer
-    {
+    private function makeBuyer(): Buyer {
         return Buyer::create([
             'name' => 'Pelanggan Checkout',
             'phone' => '+6281299900022',

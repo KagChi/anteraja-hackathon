@@ -32,7 +32,7 @@ interface ShipmentDetailModalProps {
  * Statuses the assignment endpoint still accepts a courier for; mirrors
  * App\Actions\Packages\AssignCourier::ASSIGNABLE_STATUSES.
  */
-const ASSIGNABLE_STATUSES = ["CONFIRMED", "COURIER_ASSIGNED", "CHECKED", "ISSUE_REPORTED"];
+const ASSIGNABLE_STATUSES = ["CREATED", "CONFIRMED", "COURIER_ASSIGNED", "CHECKED", "ISSUE_REPORTED"];
 
 /** Status chip shared by the header and the kendala panel. */
 function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
@@ -459,6 +459,17 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
         }
     }
 
+    async function requestConfirmation() {
+        setActionError(null);
+
+        try {
+            await api.shipments.requestConfirmation(resi);
+            await afterChange();
+        } catch (caught) {
+            setActionError(caught instanceof ApiError ? caught.message : "Permintaan konfirmasi gagal dikirim.");
+        }
+    }
+
     const photoUrl = detail?.issuePhotoUrl ?? detail?.proofPhotoUrl ?? null;
     const photoCaption = issue ? "Foto pemeriksaan" : "Foto serah terima";
     const photoMeta = issue ? "Laporan kurir" : "Diterima pembeli";
@@ -722,6 +733,13 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                                 disabled={photoUrl === null}
                                 title={photoUrl === null ? "Belum ada bukti" : undefined}
                             />
+                            {detail.package.status === "COURIER_ASSIGNED" ? (
+                                <SecondaryButton
+                                    icon="event_available"
+                                    label="Minta konfirmasi jadwal"
+                                    onClick={() => void requestConfirmation()}
+                                />
+                            ) : null}
                             {detail.package.status === "RESCHEDULE_REQUESTED" ? (
                                 <SecondaryButton
                                     icon="event_repeat"

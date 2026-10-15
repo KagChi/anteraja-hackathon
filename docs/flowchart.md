@@ -98,7 +98,7 @@ flowchart TD
     subgraph F3["Fase 3 - Penugasan kurir"]
         ASSIGN["[Admin] tugaskan kurir<br/>POST /api/admin/shipments/RESI/assign"]
         CA(("COURIER_ASSIGNED"))
-        TASK["[Sistem] notifikasi task_assigned<br/>berisi instruksi handling"]
+        TASK["[Kurir] tugas muncul di aplikasi<br/>tidak ada WhatsApp ke kurir"]
         KACC{"[Kurir] terima tugas?"}
         KYES["[Kurir] terima<br/>courier_accepted_at diisi, status tidak berubah"]
         KNO["[Kurir] tolak<br/>POST /api/courier/tasks/RESI/reject"]
@@ -312,13 +312,14 @@ Ada dua pintu masuk yang sama-sama sah untuk langkah pertama. Pembeli bisa memul
 
 | Fase | Aktor | Aksi | Endpoint | Status sesudah | Notifikasi |
 |---|---|---|---|---|---|
-| 1. Paket dibuat | Pembeli atau Admin | Checkout dari katalog, atau input manual di hub | `POST /api/client/orders`, `POST /api/admin/shipments` | `CREATED` menuju `AWAITING_CONFIRMATION` | `schedule_request` ke pembeli |
-| 2. Konfirmasi jadwal | Pembeli | Pilih siap menerima atau minta jadwal lain | `POST .../schedule/confirm`, `POST .../schedule/reschedule` | `CONFIRMED` atau `RESCHEDULE_REQUESTED` | `reschedule_requested` ke admin bila minta ganti jadwal |
-| 3. Penugasan kurir | Admin | Pilih kurir aktif | `POST /api/admin/shipments/{resi}/assign` | `COURIER_ASSIGNED` | `task_assigned` ke kurir, berisi instruksi handling dan ringkasan produk |
-| 4. Pemeriksaan kondisi | Kurir | Isi checklist kemasan dan suhu | `POST /api/courier/deliveries/{resi}/depart` | `CHECKED` lalu `IN_DELIVERY` | `on_the_way` ke pembeli |
-| 5. Pengantaran | Kurir | Tandai tiba di lokasi | `POST /api/courier/deliveries/{resi}/arrive` | tetap `IN_DELIVERY` | `courier_arrived` ke pembeli |
-| 6. Serah terima | Kurir | Catat nama penerima, relasi, foto, catatan | `POST /api/courier/deliveries/{resi}/proof` | `RECEIVED` | `delivered` ke pembeli |
-| 7. Penutupan | Sistem | Paket masuk rekap harian dan riwayat | `GET /api/admin/reports` | secara desain `CLOSED`, praktiknya berhenti di `RECEIVED` | tidak ada |
+| 1. Paket dibuat | Pembeli atau Admin | Checkout dari katalog, atau input manual di hub | `POST /api/client/orders`, `POST /api/admin/shipments` | `CREATED` | tidak ada |
+| 2. Penugasan kurir | Admin | Pilih kurir aktif | `POST /api/admin/shipments/{resi}/assign` | `COURIER_ASSIGNED` | tidak ada (kurir melihat tugas di aplikasi) |
+| 3. Permintaan konfirmasi jadwal | Kurir atau Admin | Minta penerima mengonfirmasi tanggal terima | `POST /api/courier/deliveries/{resi}/request-confirmation`, `POST /api/admin/shipments/{resi}/request-confirmation` | `AWAITING_CONFIRMATION` | `schedule_request` ke penerima |
+| 4. Konfirmasi jadwal | Penerima | Pilih siap menerima atau minta jadwal lain | `POST .../schedule/confirm`, `POST .../schedule/reschedule` | `CONFIRMED` atau `RESCHEDULE_REQUESTED` | `reschedule_requested` ke admin bila minta ganti jadwal |
+| 5. Pemeriksaan dan keberangkatan | Kurir | Isi checklist kemasan dan suhu | `POST /api/courier/deliveries/{resi}/depart` | `CHECKED` lalu `IN_DELIVERY` | `on_the_way` dan `delivery_pin` ke penerima |
+| 6. Pengantaran | Kurir | Tandai tiba di lokasi | `POST /api/courier/deliveries/{resi}/arrive` | tetap `IN_DELIVERY` | `courier_arrived` ke penerima |
+| 7. Serah terima | Kurir | Catat nama penerima, relasi, foto, catatan, dan PIN penerima | `POST /api/courier/deliveries/{resi}/proof` | `RECEIVED` | `delivered` ke penerima |
+| 8. Penutupan | Sistem | Paket masuk rekap harian dan riwayat | `GET /api/admin/reports` | secara desain `CLOSED`, praktiknya berhenti di `RECEIVED` | tidak ada |
 
 Fase 4 menarik untuk dicatat: satu request kurir melakukan dua transisi berurutan, `COURIER_ASSIGNED` menuju `CHECKED` menuju `IN_DELIVERY`. Kalau status sudah `CHECKED` karena keputusan `RECHECK` admin, transisi pertama dilewati dan yang dijalankan hanya `CHECKED` menuju `IN_DELIVERY`.
 
@@ -378,7 +379,7 @@ Tidak ada transisi status di jalur ini. Paket sengaja dibiarkan di `AWAITING_CON
 
 ```mermaid
 flowchart TD
-    A["COURIER_ASSIGNED<br/>notifikasi task_assigned sudah dikirim ke kurir"]
+    A["COURIER_ASSIGNED<br/>tugas tampil di aplikasi kurir; tidak ada WhatsApp"]
     B{"Kurir menerima tugas?"}
     C["courier_accepted_at diisi<br/>status tetap COURIER_ASSIGNED"]
     D["COURIER_ASSIGNED menuju CONFIRMED<br/>courier_id dan courier_accepted_at dikosongkan"]
@@ -452,11 +453,11 @@ Efek tiap keputusan, semuanya dijalankan di dalam transaksi yang sama dengan pen
 
 | Keputusan | Status paket | Efek | Notifikasi |
 |---|---|---|---|
-| `RETURN` | `RETURNED` | Paket ditarik ke pusat distribusi untuk klaim retur | `issue_decision` ke kurir, `issue_decision_update` ke pembeli |
-| `RESEND` | `RETURNED` pada paket asal, resi pengganti di `AWAITING_CONFIRMATION` | Resi baru dibuat dan ditautkan lewat `resend_of_package_id` | `issue_decision` ke kurir, `issue_decision_update` ke pembeli, `schedule_request` dan `resend_requested` untuk resi baru |
-| `PROCEED` | `IN_DELIVERY` | Pengantaran diteruskan, kompensasi parsial bila disetujui pembeli | `issue_decision` ke kurir, `issue_decision_update` ke pembeli |
-| `RECHECK` | `CHECKED` | Pemeriksaan ulang kondisi fisik di lapangan | `issue_decision` ke kurir, `issue_decision_update` ke pembeli |
-| `RESCHEDULE` | `AWAITING_CONFIRMATION` | Kurir dilepas, pembeli memilih jadwal baru | `issue_decision` ke kurir lama, `schedule_request` ke pembeli |
+| `RETURN` | `RETURNED` | Paket ditarik ke pusat distribusi untuk klaim retur | `issue_decision_update` ke pembeli |
+| `RESEND` | `RETURNED` pada paket asal, resi pengganti di `AWAITING_CONFIRMATION` | Resi baru dibuat dan ditautkan lewat `resend_of_package_id` | `issue_decision_update` ke pembeli, `schedule_request` dan `resend_requested` untuk resi baru |
+| `PROCEED` | `IN_DELIVERY` | Pengantaran diteruskan, kompensasi parsial bila disetujui pembeli | `issue_decision_update` ke pembeli |
+| `RECHECK` | `CHECKED` | Pemeriksaan ulang kondisi fisik di lapangan | `issue_decision_update` ke pembeli |
+| `RESCHEDULE` | `AWAITING_CONFIRMATION` | Kurir dilepas, pembeli memilih jadwal baru | `schedule_request` ke pembeli |
 
 Pilihan pembeli lewat WhatsApp, opsi 1 sampai 4, hanya tersimpan sebagai `buyer_choice` dan diteruskan ke admin sebagai masukan. Keputusan resmi tetap ada di tangan admin, sehingga tidak ada jalur di mana pembeli mengubah status paket sendirian.
 

@@ -783,14 +783,16 @@ scenario('a stored conversation is kept when the resi matches it', () => {
 // ------------------------------------------------------------------- staff
 
 console.log('');
-console.log('Inbound — courier and admin replies');
+console.log('Inbound — admin replies');
 
 const COURIER_PHONE = '6281200000099';
+// Kurir tidak memakai WhatsApp: the state only exists to prove the reply is
+// refused and pointed at the courier app.
 const COURIER_STATE = {
   phone: COURIER_PHONE,
   tracking_number: RESI,
   client_token: null,
-  last_template: 'task_assigned',
+  last_template: 'on_the_way',
   context: { recipient_type: 'COURIER', window: 'Hari ini, 13:00 - 15:00' }
 };
 const ADMIN_STATE = {
@@ -800,15 +802,6 @@ const ADMIN_STATE = {
   last_template: 'issue_reported',
   context: { recipient_type: 'ADMIN' }
 };
-const FOUND_COURIER = {
-  found: true,
-  role: 'COURIER',
-  courier_name: 'Budi Santoso',
-  tracking_number: RESI,
-  template: 'task_assigned',
-  status_label: 'Kurir Ditugaskan',
-  window: 'Hari ini, 13:00 - 15:00'
-};
 const FOUND_ADMIN = {
   found: true,
   role: 'ADMIN',
@@ -817,41 +810,12 @@ const FOUND_ADMIN = {
   status_label: 'Pengiriman Terkendala'
 };
 
-scenario('a courier accepts the task from a WhatsApp reply', () => {
-  const out = decide({ text: 'terima', state: COURIER_STATE });
-
-  eq(out.decision.app_url, 'http://anteraja-hackathon-service/api/internal/whatsapp/action', 'action endpoint');
-  eq(out.decision.app_body.action, 'accept', 'action');
-  eq(out.decision.app_body.resi, RESI, 'resi from the conversation');
-  eq(out.decision.next_template, 'courier_accepted', 'next step');
-  eq(out.decision.intent, 'staff:accept', 'intent');
-});
-
-scenario('the courier keywords map to the actions the app knows', () => {
-  const cases = [
-    ['TOLAK, motor masuk bengkel', 'reject', null],
-    ['berangkat sekarang', 'depart', null],
-    ['sudah tiba di lokasi', 'arrived', null],
-    ['selesai, diterima Bu Rina', 'deliver', null],
-    ['kemasan BOCOR di sisi kiri', 'issue', 'kemasan_bocor'],
-    ['kemasan basah kena hujan', 'issue', 'kemasan_basah'],
-    ['suhu naik, es mulai meleleh', 'issue', 'suhu_naik']
-  ];
-
-  for (const entry of cases) {
-    const out = decide({ text: entry[0], state: COURIER_STATE });
-    eq(out.decision.app_body.action, entry[1], 'action for ' + entry[0]);
-    eq(out.decision.app_body.category, entry[2], 'category for ' + entry[0]);
-    eq(out.decision.app_body.phone, PHONE, 'phone for ' + entry[0]);
-  }
-});
-
-scenario('a courier reply the app cannot place asks for one it can', () => {
-  const out = decide({ text: 'hmm nanti dulu deh', state: COURIER_STATE });
+scenario('a courier reply is refused and pointed at the app', () => {
+  const out = decide({ text: 'berangkat', state: COURIER_STATE });
 
   eq(out.decision.app_url, null, 'no action call');
-  contains(out.reply.text, 'TERIMA', 'lists the commands');
-  contains(out.reply.text, 'BOCOR', 'lists the issue command');
+  eq(out.decision.intent, 'info:courier', 'courier intent');
+  contains(out.reply.text, 'aplikasi Anteraja Kurir', 'points at the app');
 });
 
 scenario('an admin decision reply is handed to the app', () => {
@@ -879,28 +843,12 @@ scenario('an admin reply the app cannot place lists the decisions', () => {
   contains(out.reply.text, 'KEMBALIKAN', 'lists the decisions');
 });
 
-scenario('the lookup tells the flow it is talking to a courier', () => {
-  const out = decide({ text: RESI, state: NO_STATE, lookup: FOUND_COURIER });
-
-  eq(out.context.role, 'COURIER', 'role from the app');
-  eq(out.context.tracking_number, RESI, 'resi attached');
-  eq(out.decision.intent, 'staff:unknown', 'the resi alone is not an action');
-  contains(out.reply.text, 'TERIMA', 'courier help instead of a buyer menu');
-});
-
 scenario('an admin holding an open issue is recognised from the resi', () => {
   const out = decide({ text: RESI, state: NO_STATE, lookup: FOUND_ADMIN });
 
   eq(out.context.role, 'ADMIN', 'role from the app');
   contains(out.reply.text, 'KEMBALIKAN', 'admin help');
   absent(out.reply.text, MENU, 'never the buyer options menu');
-});
-
-scenario('the courier action carries the WhatsApp message id', () => {
-  const out = decide({ text: 'BERANGKAT', state: COURIER_STATE, id: 'wamid-42' });
-
-  eq(out.decision.app_body.message_id, 'wamid-42', 'message id forwarded');
-  eq(out.decision.app_body.text, 'BERANGKAT', 'raw text forwarded');
 });
 
 scenario('a buyer conversation is never treated as staff', () => {
@@ -1026,37 +974,12 @@ scenario('a recheck decision reaches the buyer', () => {
   eq(out.template, 'issue_decision_update:RECHECK', 'stored template');
 });
 
-scenario('courier steps reach the courier', () => {
-  const assigned = render('task_assigned', {
-    scheduled_window: 'Besok 13:00-15:00',
-    handling_instructions: 'Simpan dalam cold box, jangan dibalik.',
-    items: [
-      { name: 'Nugget Ayam', quantity: 2 },
-      { name: 'Es Krim Vanilla', quantity: 1 }
-    ]
-  });
-  eq(assigned.should_send, true, 'should_send for task_assigned');
-  eq(assigned.chat_id, '6289636887928@c.us', 'courier chat id');
-  contains(assigned.text, 'Nomor Resi: AJ-FRZ-0012345', 'names the resi');
-  contains(assigned.text, 'Nugget Ayam x2', 'lists the items');
-  contains(assigned.text, 'Instruksi penanganan: Simpan dalam cold box', 'carries the handling instructions');
-  contains(assigned.text, 'Balas *TERIMA*', 'asks the courier to answer');
-  contains(assigned.text, '*TOLAK*', 'offers the refusal');
-  eq(assigned.template, 'task_assigned', 'stored template');
-
-  const reminder = render('condition_check_reminder');
-  eq(reminder.should_send, true, 'should_send for condition_check_reminder');
-  contains(reminder.text, 'checklist pemeriksaan kemasan', 'asks for the checklist');
-
-  const decision = render('issue_decision', {
-    decision_reason: 'Segel terbuka saat pemeriksaan.',
-    instructions: 'Tarik paket ke DC untuk klaim retur.'
-  }, 'RETURN');
-  eq(decision.should_send, true, 'should_send for issue_decision');
-  contains(decision.text, 'Keputusan: Paket dikembalikan ke pengirim', 'names the decision');
-  contains(decision.text, 'Alasan: Segel terbuka', 'carries the reason');
-  contains(decision.text, 'Instruksi: Tarik paket ke DC', 'carries the instruction');
-  eq(decision.template, 'issue_decision:RETURN', 'stored template');
+scenario('the delivery PIN reaches the recipient', () => {
+  const out = render('delivery_pin', { pin: '482913' });
+  eq(out.should_send, true, 'should_send for delivery_pin');
+  contains(out.text, '482913', 'names the PIN');
+  contains(out.text, 'kurir', 'explains who to give it to');
+  eq(out.template, 'delivery_pin', 'stored template');
 });
 
 scenario('admin steps reach the admin dashboard owner', () => {
@@ -1141,7 +1064,7 @@ scenario('a report with no numbers still renders zeroes', () => {
 scenario('every operational message stands alone without a link', () => {
   const templates = [
     'schedule_request', 'schedule_rescheduled', 'issue_options', 'on_the_way', 'courier_arrived', 'delivered',
-    'task_assigned', 'condition_check_reminder', 'issue_decision', 'reschedule_requested',
+    'delivery_pin', 'reschedule_requested',
     'confirmation_overdue', 'issue_reported', 'task_rejected', 'buyer_issue_choice', 'resend_requested',
     'daily_report'
   ];

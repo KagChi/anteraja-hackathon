@@ -21,8 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
-final class Package extends Model
-{
+final class Package extends Model {
     use HasFactory;
 
     protected $table = 'packages';
@@ -56,6 +55,9 @@ final class Package extends Model
         'recipient_address_type',
         'recipient_latitude',
         'recipient_longitude',
+        'delivery_pin_hash',
+        'delivery_pin_sent_at',
+        'delivery_pin_attempts',
     ];
 
     /**
@@ -63,13 +65,13 @@ final class Package extends Model
      */
     protected $hidden = [
         'client_token',
+        'delivery_pin_hash',
     ];
 
     /**
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
+    protected function casts(): array {
         return [
             'buyer_id' => 'integer',
             'created_by' => 'integer',
@@ -87,6 +89,8 @@ final class Package extends Model
             'recipient_address_type' => AddressType::class,
             'recipient_latitude' => 'float',
             'recipient_longitude' => 'float',
+            'delivery_pin_sent_at' => 'immutable_datetime',
+            'delivery_pin_attempts' => 'integer',
         ];
     }
 
@@ -100,8 +104,7 @@ final class Package extends Model
      *
      * @return Attribute<array{name: ?string, phone: ?string, address: ?string, area: ?string, address_type: ?AddressType, latitude: ?float, longitude: ?float}>
      */
-    protected function recipient(): Attribute
-    {
+    protected function recipient(): Attribute {
         return Attribute::make(get: fn (): array => [
             'name' => $this->recipient_name,
             'phone' => $this->recipient_phone,
@@ -114,8 +117,7 @@ final class Package extends Model
     }
 
     /** Recipient numbers are stored the way buyer numbers are: E.164. */
-    protected function recipientPhone(): Attribute
-    {
+    protected function recipientPhone(): Attribute {
         return Attribute::make(
             set: fn (?string $value) => ($value !== null && trim($value) !== '') ? PhoneFormatter::toE164Id($value) : $value,
         );
@@ -124,48 +126,42 @@ final class Package extends Model
     /**
      * @return BelongsTo<Buyer, $this>
      */
-    public function buyer(): BelongsTo
-    {
+    public function buyer(): BelongsTo {
         return $this->belongsTo(Buyer::class, 'buyer_id');
     }
 
     /**
      * @return BelongsTo<Staff, $this>
      */
-    public function creator(): BelongsTo
-    {
+    public function creator(): BelongsTo {
         return $this->belongsTo(Staff::class, 'created_by');
     }
 
     /**
      * @return BelongsTo<Staff, $this>
      */
-    public function courier(): BelongsTo
-    {
+    public function courier(): BelongsTo {
         return $this->belongsTo(Staff::class, 'courier_id');
     }
 
     /**
      * @return BelongsTo<PackageStatusRef, $this>
      */
-    public function statusRef(): BelongsTo
-    {
+    public function statusRef(): BelongsTo {
         return $this->belongsTo(PackageStatusRef::class, 'status', 'code');
     }
 
     /**
      * @return HasMany<PackageItem, $this>
      */
-    public function items(): HasMany
-    {
+    public function items(): HasMany {
         return $this->hasMany(PackageItem::class, 'package_id');
     }
 
     /**
      * @return BelongsToMany<Product, $this>
      */
-    public function products(): BelongsToMany
-    {
+    public function products(): BelongsToMany {
         return $this->belongsToMany(Product::class, 'package_items', 'package_id', 'product_id')
             ->withPivot('quantity');
     }
@@ -173,45 +169,39 @@ final class Package extends Model
     /**
      * @return HasMany<ScheduleConfirmation, $this>
      */
-    public function scheduleConfirmations(): HasMany
-    {
+    public function scheduleConfirmations(): HasMany {
         return $this->hasMany(ScheduleConfirmation::class, 'package_id');
     }
 
     /**
      * @return HasMany<ConditionCheck, $this>
      */
-    public function conditionChecks(): HasMany
-    {
+    public function conditionChecks(): HasMany {
         return $this->hasMany(ConditionCheck::class, 'package_id')->orderBy('checked_at', 'desc');
     }
 
     /**
      * @return HasOne<Delivery, $this>
      */
-    public function delivery(): HasOne
-    {
+    public function delivery(): HasOne {
         return $this->hasOne(Delivery::class, 'package_id');
     }
 
     /**
      * @return HasMany<DeliveryMilestone, $this>
      */
-    public function deliveryMilestones(): HasMany
-    {
+    public function deliveryMilestones(): HasMany {
         return $this->hasMany(DeliveryMilestone::class, 'package_id')->orderBy('id', 'asc');
     }
 
     /**
      * @return HasOne<DeliveryMilestone, $this>
      */
-    public function latestMilestone(): HasOne
-    {
+    public function latestMilestone(): HasOne {
         return $this->hasOne(DeliveryMilestone::class, 'package_id')->latestOfMany('id');
     }
 
-    public function deliveryStage(): DeliveryStage
-    {
+    public function deliveryStage(): DeliveryStage {
         $milestone = $this->latestMilestone?->milestone;
         if ($milestone === null) {
             return DeliveryStage::PENDING;
@@ -226,45 +216,39 @@ final class Package extends Model
     /**
      * @return HasMany<Notification, $this>
      */
-    public function notifications(): HasMany
-    {
+    public function notifications(): HasMany {
         return $this->hasMany(Notification::class, 'package_id');
     }
 
     /**
      * @return HasMany<StatusLog, $this>
      */
-    public function statusLogs(): HasMany
-    {
+    public function statusLogs(): HasMany {
         return $this->hasMany(StatusLog::class, 'package_id')->orderBy('changed_at', 'asc');
     }
 
     /**
      * @return BelongsTo<Package, $this>
      */
-    public function resendOf(): BelongsTo
-    {
+    public function resendOf(): BelongsTo {
         return $this->belongsTo(Package::class, 'resend_of_package_id');
     }
 
-    public function replacementPackage(): HasOne
-    {
+    public function replacementPackage(): HasOne {
         return $this->hasOne(Package::class, 'resend_of_package_id');
     }
 
     /**
      * @return HasMany<Package, $this>
      */
-    public function resendPackages(): HasMany
-    {
+    public function resendPackages(): HasMany {
         return $this->hasMany(Package::class, 'resend_of_package_id');
     }
 
     /**
      * @return HasOneThrough<IssueReport, ConditionCheck, $this>
      */
-    public function latestIssue(): HasOneThrough
-    {
+    public function latestIssue(): HasOneThrough {
         return $this->hasOneThrough(
             IssueReport::class,
             ConditionCheck::class,
@@ -275,14 +259,17 @@ final class Package extends Model
         )->latest('issue_reports.reported_at');
     }
 
-    public function availableAdminActions(): string
-    {
+    public function availableAdminActions(): string {
         if ($this->status === PackageStatus::ISSUE_REPORTED) {
             return 'issue_detail';
         }
 
-        if ($this->status === PackageStatus::CONFIRMED && $this->courier_id === null) {
+        if ($this->status === PackageStatus::CREATED && $this->courier_id === null) {
             return 'assign_courier';
+        }
+
+        if ($this->status === PackageStatus::COURIER_ASSIGNED) {
+            return 'request_confirmation';
         }
 
         if ($this->status === PackageStatus::RESCHEDULE_REQUESTED) {
@@ -297,8 +284,7 @@ final class Package extends Model
      * @param  PackageSource|string  $source
      * @return Builder<Package>
      */
-    public function scopeOfSource(Builder $query, PackageSource|string $source): Builder
-    {
+    public function scopeOfSource(Builder $query, PackageSource|string $source): Builder {
         return $query->where('source', $source instanceof PackageSource ? $source->value : $source);
     }
 
@@ -306,8 +292,7 @@ final class Package extends Model
      * @param  Builder<Package>  $query
      * @return Builder<Package>
      */
-    public function scopeWithCompletedAt(Builder $query): Builder
-    {
+    public function scopeWithCompletedAt(Builder $query): Builder {
         return $query->select('packages.*')
             ->selectRaw(
                 "COALESCE(

@@ -11,7 +11,7 @@ Aturan bisnis terkait: BR-015, BR-016.
 
 - Deskripsi: Sistem HARUS menulis setiap pemberitahuan sebagai baris pada tabel notifications berstatus QUEUED, lengkap dengan konteks pengiriman, sebelum job pengiriman dijalankan.
 - Aktor & Otorisasi: sistem; dipanggil dari Action domain, bukan dari controller.
-- Trigger: pemanggilan NotificationQueue::queue dan pembungkusnya (queueTaskRejected, queueOnTheWay, queueCourierArrived, queueDelivered, queueIssueReported, queueIssueOptions).
+- Trigger: pemanggilan NotificationQueue::queue dan pembungkusnya (queueTaskRejected, queueOnTheWay, queueCourierArrived, queueDelivered, queueDeliveryPin, queueIssueReported, queueIssueOptions).
 - Precondition: paket ada.
 - Input & Validasi: paket, recipient_type (BUYER, COURIER, ADMIN), recipient_id, template, dan payload array opsional.
 - Proses / Business Rules: bila penerima adalah BUYER dan payload belum memuat client_url, tautan masuk diisi otomatis dari ClientLinkService (BR-015). Payload kemudian diperkaya: recipient_type, recipient_name, recipient_phone ternormalisasi E.164, tracking_number, client_token, courier_name, dan window yang dihitung DisplayTime::windowLabel bila belum ada. Untuk BUYER, address dan buyer_name juga diisi dari data pembeli. Nomor staf dicari dari baris staff untuk penerima COURIER dan ADMIN. Baris notifications dibuat dengan status QUEUED, lalu DispatchNotificationToN8n dijadwalkan dengan afterCommit agar hanya berjalan setelah transaksi selesai.

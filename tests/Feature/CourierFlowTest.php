@@ -6,16 +6,16 @@ namespace Tests\Feature;
 
 use App\Enums\PackageStatus;
 use App\Enums\StaffRole;
-use App\Models\Buyer;
 use App\Models\Package;
+use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
-final class CourierFlowTest extends TestCase
-{
+final class CourierFlowTest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $courier;
@@ -24,8 +24,7 @@ final class CourierFlowTest extends TestCase
 
     private Staff $admin;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         $this->courier = Staff::where('role', StaffRole::COURIER)->where('email', 'budi@anteraja.id')->firstOrFail();
@@ -33,8 +32,7 @@ final class CourierFlowTest extends TestCase
         $this->admin = Staff::where('role', StaffRole::ADMIN)->firstOrFail();
     }
 
-    public function test_access_controls(): void
-    {
+    public function test_access_controls(): void {
         // 1. Guest -> 401
         $this->getJson('/api/courier/tasks')->assertUnauthorized();
 
@@ -53,8 +51,7 @@ final class CourierFlowTest extends TestCase
         $this->actingAs($this->courier)->getJson('/api/courier/tasks')->assertOk();
     }
 
-    public function test_courier_cannot_access_another_couriers_package(): void
-    {
+    public function test_courier_cannot_access_another_couriers_package(): void {
         // AJ-FRZ-0012351 belongs to Budi
         // Ahmad should get 404
         $response = $this->actingAs($this->otherCourier)
@@ -63,8 +60,7 @@ final class CourierFlowTest extends TestCase
         $response->assertNotFound();
     }
 
-    public function test_courier_tasks_index_splits_new_and_active_tasks(): void
-    {
+    public function test_courier_tasks_index_splits_new_and_active_tasks(): void {
         $response = $this->actingAs($this->courier)->getJson('/api/courier/tasks');
 
         $response->assertOk();
@@ -79,8 +75,7 @@ final class CourierFlowTest extends TestCase
         $this->assertSame('AJ-FRZ-0012351', $data['newTasks'][0]['tracking']);
     }
 
-    public function test_courier_task_distance_endpoint(): void
-    {
+    public function test_courier_task_distance_endpoint(): void {
         // Distance with the recipient's coordinates
         $response = $this->actingAs($this->courier)->getJson('/api/courier/tasks/AJ-FRZ-0012351/distance?lat=-6.220000&lng=106.840000');
         $response->assertOk();
@@ -94,8 +89,7 @@ final class CourierFlowTest extends TestCase
         $response2->assertNoContent();
     }
 
-    public function test_courier_accept_task_flow(): void
-    {
+    public function test_courier_accept_task_flow(): void {
         $response = $this->actingAs($this->courier)->postJson('/api/courier/tasks/AJ-FRZ-0012351/accept');
 
         $response->assertOk();
@@ -109,8 +103,7 @@ final class CourierFlowTest extends TestCase
         $retryResponse->assertOk();
     }
 
-    public function test_courier_reject_task_flow(): void
-    {
+    public function test_courier_reject_task_flow(): void {
         $response = $this->actingAs($this->courier)->postJson('/api/courier/tasks/AJ-FRZ-0012351/reject', [
             'reason' => 'Kendaraan mogok',
         ]);
@@ -123,8 +116,7 @@ final class CourierFlowTest extends TestCase
         $this->assertNull($pkg->courier_accepted_at);
     }
 
-    public function test_courier_delivery_show_and_guards(): void
-    {
+    public function test_courier_delivery_show_and_guards(): void {
         // Unaccepted package cannot view delivery details directly
         $unacceptedResponse = $this->actingAs($this->courier)->getJson('/api/courier/deliveries/AJ-FRZ-0012351');
         $unacceptedResponse->assertStatus(422);
@@ -150,8 +142,7 @@ final class CourierFlowTest extends TestCase
         ]);
     }
 
-    public function test_courier_depart_flow(): void
-    {
+    public function test_courier_depart_flow(): void {
         // 1. Depart with issue -> returns 422
         $badDepartResponse = $this->actingAs($this->courier)->postJson('/api/courier/deliveries/AJ-FRZ-0012354/depart', [
             'checklist' => [
@@ -162,6 +153,13 @@ final class CourierFlowTest extends TestCase
         $badDepartResponse->assertJsonPath('hasIssue', true);
 
         // 2. Normal depart -> transitions to IN_DELIVERY
+        // The recipient confirmed the receiving window, so the courier may go.
+        $assigned = Package::where('tracking_number', 'AJ-FRZ-0012354')->firstOrFail();
+        ScheduleConfirmation::firstOrCreate(
+            ['package_id' => $assigned->id, 'response' => 'READY'],
+            ['requested_at' => now(), 'responded_at' => now()],
+        );
+
         $departResponse = $this->actingAs($this->courier)->postJson('/api/courier/deliveries/AJ-FRZ-0012354/depart', [
             'checklist' => [
                 'packaging_damaged' => ['answer' => false],
@@ -173,10 +171,15 @@ final class CourierFlowTest extends TestCase
         $departResponse->assertOk();
         $pkg = Package::where('tracking_number', 'AJ-FRZ-0012354')->firstOrFail();
         $this->assertSame(PackageStatus::IN_DELIVERY, $pkg->status);
+        // Departing mints the hand-over PIN and sends it to the recipient.
+        $this->assertNotNull($pkg->delivery_pin_hash);
+        $this->assertDatabaseHas('notifications', [
+            'package_id' => $pkg->id,
+            'template' => 'delivery_pin',
+        ]);
     }
 
-    public function test_courier_arrive_flow(): void
-    {
+    public function test_courier_arrive_flow(): void {
         // AJ-FRZ-0012352 is IN_DELIVERY with DEPARTED milestone
         $response = $this->actingAs($this->courier)->postJson('/api/courier/deliveries/AJ-FRZ-0012352/arrive', [
             'latitude' => -6.229746,
@@ -191,8 +194,7 @@ final class CourierFlowTest extends TestCase
         $retry->assertOk();
     }
 
-    public function test_courier_proof_create_and_store_flow(): void
-    {
+    public function test_courier_proof_create_and_store_flow(): void {
         Storage::fake('local');
 
         // 1. GET proof form
@@ -201,10 +203,15 @@ final class CourierFlowTest extends TestCase
         $createResponse->assertJsonStructure(['proofForm' => ['tracking', 'recipient', 'relations']]);
 
         // 2. POST proof confirmation
+        // The recipient received the PIN on departure; the courier types it back.
+        $proofPackage = Package::where('tracking_number', 'AJ-FRZ-0012353')->firstOrFail();
+        $proofPackage->update(['delivery_pin_hash' => Hash::make('123456')]);
+
         $fakePhoto = UploadedFile::fake()->image('proof.jpg', 640, 480);
         $storeResponse = $this->actingAs($this->courier)->postJson('/api/courier/deliveries/AJ-FRZ-0012353/proof', [
             'received_by' => 'Rina Putri',
             'recipient_relation' => 'Penerima Sendiri',
+            'pin' => '123456',
             'receipt_note' => 'Diserahkan langsung ke penerima di teras depan',
             'photo' => $fakePhoto,
         ]);
@@ -214,10 +221,29 @@ final class CourierFlowTest extends TestCase
         $this->assertSame(PackageStatus::RECEIVED, $pkg->status);
         $this->assertNotNull($pkg->delivery);
         $this->assertSame('Rina Putri', $pkg->delivery->received_by);
+        // The code is single-use: the hash is cleared on success.
+        $this->assertNull($pkg->delivery_pin_hash);
     }
 
-    public function test_courier_report_issue_flow(): void
-    {
+    public function test_a_wrong_delivery_pin_is_refused(): void {
+        Storage::fake('local');
+
+        $pinPackage = Package::where('tracking_number', 'AJ-FRZ-0012353')->firstOrFail();
+        $pinPackage->update(['delivery_pin_hash' => Hash::make('123456')]);
+
+        $fakePhoto = UploadedFile::fake()->image('proof.jpg', 640, 480);
+        $storeResponse = $this->actingAs($this->courier)->postJson('/api/courier/deliveries/AJ-FRZ-0012353/proof', [
+            'received_by' => 'Rina Putri',
+            'recipient_relation' => 'Penerima Sendiri',
+            'pin' => '000000',
+            'photo' => $fakePhoto,
+        ]);
+
+        $storeResponse->assertStatus(422);
+        $this->assertNull(Package::where('tracking_number', 'AJ-FRZ-0012353')->firstOrFail()->delivery);
+    }
+
+    public function test_courier_report_issue_flow(): void {
         Storage::fake('local');
 
         // AJ-FRZ-0012354 (accepted COURIER_ASSIGNED)
@@ -240,8 +266,7 @@ final class CourierFlowTest extends TestCase
         $this->assertSame(PackageStatus::ISSUE_REPORTED, $pkg->status);
     }
 
-    public function test_courier_history_and_profile(): void
-    {
+    public function test_courier_history_and_profile(): void {
         // History
         $histResponse = $this->actingAs($this->courier)->getJson('/api/courier/history');
         $histResponse->assertOk();

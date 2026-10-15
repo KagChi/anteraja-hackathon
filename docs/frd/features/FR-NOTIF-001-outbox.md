@@ -59,8 +59,8 @@ yang menghilang, dan isi pesan dapat diaudit.
 8. Kembalikan model Notification.
 
 Daftar template yang dipakai sistem: schedule_request, schedule_rescheduled
-on_the_way, courier_arrived, delivered, issue_options, issue_reported
-issue_decision, issue_decision_update, task_assigned, task_rejected
+on_the_way, courier_arrived, delivered, delivery_pin, issue_options, issue_reported
+issue_decision_update, task_rejected
 resend_requested, buyer_issue_choice, dan confirmation_overdue.
 
 ## 7. Output

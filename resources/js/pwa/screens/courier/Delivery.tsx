@@ -145,6 +145,24 @@ export default function Delivery({ params }: ScreenProps) {
         }
     }
 
+    async function requestConfirmation() {
+        if (busy) {
+            return;
+        }
+
+        setBusy(true);
+        setActionError(null);
+
+        try {
+            await courierApi.deliveries.requestConfirmation(resi);
+            reload();
+        } catch (failure) {
+            setActionError(firstError(failure));
+        } finally {
+            setBusy(false);
+        }
+    }
+
     const levelTone =
         delivery.gps.level === "BLOCKED" ? "error" : delivery.gps.level === "SUSPECTED" ? "suspected" : "clean";
     const phone = delivery.phoneHref === "" ? "" : delivery.phoneHref;
@@ -264,6 +282,18 @@ export default function Delivery({ params }: ScreenProps) {
                     </button>
                 ) : null}
             </section>
+
+            {delivery.canRequestConfirmation ? (
+                <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void requestConfirmation()}
+                    className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-space-lg font-label-md text-label-md text-on-primary disabled:opacity-60"
+                >
+                    <MaterialIcon name="event_available" className="text-[20px]" />
+                    Minta Konfirmasi Jadwal Penerimaan
+                </button>
+            ) : null}
 
             {delivery.canDepart ? (
                 <button

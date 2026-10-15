@@ -13,18 +13,18 @@ use App\Support\RelativeTime;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
-final class CourierTaskQuery
-{
+final class CourierTaskQuery {
     /**
      * @return array{
      *     newTasks: Collection<int, array<string, mixed>>,
      *     activeTasks: Collection<int, array<string, mixed>>
      * }
      */
-    public function getTasksForCourier(Staff $courier): array
-    {
+    public function getTasksForCourier(Staff $courier): array {
         $allowedStatuses = [
             PackageStatus::COURIER_ASSIGNED->value,
+            PackageStatus::AWAITING_CONFIRMATION->value,
+            PackageStatus::CONFIRMED->value,
             PackageStatus::CHECKED->value,
             PackageStatus::IN_DELIVERY->value,
             PackageStatus::ISSUE_REPORTED->value,

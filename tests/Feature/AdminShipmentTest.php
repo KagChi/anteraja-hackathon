@@ -14,20 +14,17 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
-final class AdminShipmentTest extends TestCase
-{
+final class AdminShipmentTest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $admin;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
         $this->admin = Staff::where('role', StaffRole::ADMIN)->where('is_active', true)->firstOrFail();
     }
 
-    public function test_admin_can_view_shipments_index(): void
-    {
+    public function test_admin_can_view_shipments_index(): void {
         $response = $this->actingAs($this->admin)->getJson('/api/admin/shipments');
 
         $response->assertOk();
@@ -39,31 +36,27 @@ final class AdminShipmentTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_filter_shipments(): void
-    {
+    public function test_admin_can_filter_shipments(): void {
         $response = $this->actingAs($this->admin)->getJson('/api/admin/shipments?schedule=all&status=ISSUE_REPORTED');
 
         $response->assertOk();
     }
 
-    public function test_admin_can_search_shipments_safely(): void
-    {
+    public function test_admin_can_search_shipments_safely(): void {
         // Testing search with wildcard characters to verify ILIKE escaping
         $response = $this->actingAs($this->admin)->getJson('/api/admin/shipments?q=%_test\\');
 
         $response->assertOk();
     }
 
-    public function test_admin_can_export_shipments_csv(): void
-    {
+    public function test_admin_can_export_shipments_csv(): void {
         $response = $this->actingAs($this->admin)->get('/api/admin/shipments/export');
 
         $response->assertOk();
         $this->assertStringContainsString('text/csv', (string) $response->headers->get('content-type'));
     }
 
-    public function test_admin_can_view_shipment_details(): void
-    {
+    public function test_admin_can_view_shipment_details(): void {
         $pkg = Package::where('tracking_number', 'AJ-FRZ-0012345')->firstOrFail();
 
         $response = $this->actingAs($this->admin)->getJson("/api/admin/shipments/{$pkg->tracking_number}");
@@ -75,8 +68,7 @@ final class AdminShipmentTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_create_new_shipment(): void
-    {
+    public function test_admin_can_create_new_shipment(): void {
         $product = Product::firstOrFail();
         $todayStr = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
@@ -109,17 +101,17 @@ final class AdminShipmentTest extends TestCase
         $response->assertCreated();
 
         $created = Package::where('cooler_box_code', 'BOX-TEST')->latest('id')->firstOrFail();
-        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $created->status);
+        $this->assertSame(PackageStatus::CREATED, $created->status);
         $this->assertNotNull($created->tracking_number);
-        $this->assertDatabaseHas('schedule_confirmations', [
+        $this->assertDatabaseMissing('schedule_confirmations', ['package_id' => $created->id]);
+        $this->assertDatabaseMissing('notifications', [
             'package_id' => $created->id,
-            'response' => 'PENDING',
+            'template' => 'schedule_request',
         ]);
     }
 
     /** A shipment without a pinned destination is refused. */
-    public function test_admin_cannot_create_a_shipment_without_a_destination_pin(): void
-    {
+    public function test_admin_cannot_create_a_shipment_without_a_destination_pin(): void {
         $product = Product::firstOrFail();
         $todayStr = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
@@ -140,8 +132,7 @@ final class AdminShipmentTest extends TestCase
     }
 
     /** Pinning an existing buyer's destination writes the point back. */
-    public function test_pinning_an_existing_buyer_updates_their_coordinates(): void
-    {
+    public function test_pinning_an_existing_buyer_updates_their_coordinates(): void {
         $product = Product::firstOrFail();
         $todayStr = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
@@ -172,8 +163,7 @@ final class AdminShipmentTest extends TestCase
     }
 
     /** A counter parcel can be sent to someone other than the buyer. */
-    public function test_admin_can_send_a_shipment_to_a_named_recipient(): void
-    {
+    public function test_admin_can_send_a_shipment_to_a_named_recipient(): void {
         $product = Product::firstOrFail();
         $todayStr = Carbon::now('Asia/Jakarta')->format('Y-m-d');
 
@@ -232,8 +222,7 @@ final class AdminShipmentTest extends TestCase
         $this->assertStringContainsString('Ibu Budi Penerima', $csv->streamedContent());
     }
 
-    public function test_admin_can_assign_courier(): void
-    {
+    public function test_admin_can_assign_courier(): void {
         $courier = Staff::where('role', StaffRole::COURIER)->where('is_active', true)->firstOrFail();
         $unassignedPkg = Package::where('tracking_number', 'AJ-FRZ-0012347')->firstOrFail();
 
@@ -249,8 +238,7 @@ final class AdminShipmentTest extends TestCase
         $this->assertSame($courier->id, $unassignedPkg->courier_id);
     }
 
-    public function test_admin_can_move_a_courier_before_the_parcel_is_on_the_road(): void
-    {
+    public function test_admin_can_move_a_courier_before_the_parcel_is_on_the_road(): void {
         $budi = Staff::where('email', 'budi@anteraja.id')->firstOrFail();
         $ahmad = Staff::where('email', 'ahmad@anteraja.id')->firstOrFail();
         $parcel = Package::where('tracking_number', 'AJ-FRZ-0012345')->firstOrFail();
@@ -273,8 +261,7 @@ final class AdminShipmentTest extends TestCase
         $this->assertSame(PackageStatus::ISSUE_REPORTED, $parcel->status);
     }
 
-    public function test_assigning_the_courier_who_already_holds_the_task_keeps_their_acceptance(): void
-    {
+    public function test_assigning_the_courier_who_already_holds_the_task_keeps_their_acceptance(): void {
         $budi = Staff::where('email', 'budi@anteraja.id')->firstOrFail();
         $parcel = Package::where('tracking_number', 'AJ-FRZ-0012345')->firstOrFail();
         $parcel->forceFill(['courier_accepted_at' => Carbon::now()])->save();
@@ -289,8 +276,7 @@ final class AdminShipmentTest extends TestCase
         $this->assertEquals($acceptedAt, $parcel->fresh()->courier_accepted_at);
     }
 
-    public function test_assignment_is_refused_with_a_readable_message_once_the_parcel_is_on_the_road(): void
-    {
+    public function test_assignment_is_refused_with_a_readable_message_once_the_parcel_is_on_the_road(): void {
         $budi = Staff::where('email', 'budi@anteraja.id')->firstOrFail();
         $parcel = Package::where('tracking_number', 'AJ-FRZ-0012346')->firstOrFail();
 

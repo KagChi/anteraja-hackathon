@@ -11,16 +11,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Aksi kurir dan admin dari balasan WhatsApp.
+ * Aksi admin dari balasan WhatsApp.
  *
- * Dipanggil workflow n8n setelah mengenali niat balasan. Nomor pengirim yang
- * menentukan siapa yang bertindak — kurir hanya bisa menyentuh paketnya sendiri
- * — dan message_id dari WhatsApp membuat pesan yang sama tidak pernah
- * dijalankan dua kali: balasan dobel menerima jawaban yang sama persis tanpa
- * mengubah data lagi.
+ * Dipanggil workflow n8n setelah mengenali niat balasan. Nomor pengirim
+ * menentukan siapa yang bertindak, dan message_id dari WhatsApp membuat pesan
+ * yang sama tidak pernah dijalankan dua kali: balasan dobel menerima jawaban
+ * yang sama persis tanpa mengubah data lagi. Kurir tidak memakai WhatsApp;
+ * nomor kurir yang membalas ditolak.
  */
-final class WhatsappActionController extends Controller
-{
+final class WhatsappActionController extends Controller {
     public function __invoke(
         Request $request,
         WhatsappStaffAction $action,
