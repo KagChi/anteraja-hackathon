@@ -382,6 +382,8 @@ export interface CourierDelivery {
         canReportIssue: boolean;
         hasOpenIssue: boolean;
         gps: DeliveryGps;
+        /** Packing checks the courier answers before departure, keyed by item. */
+        checklistItems: Record<string, string>;
     };
 }
 
@@ -549,12 +551,12 @@ export const courierApi = {
     deliveries: {
         show: (resi: string) =>
             get<CourierDelivery>(courierHttp, "courier", `/courier/deliveries/${encodeURIComponent(resi)}`),
-        depart: (resi: string, fields: GpsFields) =>
+        depart: (resi: string, fields: GpsFields, checklist: Record<string, boolean>) =>
             post<ActionMessage & { hasIssue?: boolean }>(
                 courierHttp,
                 "courier",
                 `/courier/deliveries/${encodeURIComponent(resi)}/depart`,
-                { ...fields, checklist: [] }
+                { ...fields, checklist }
             ),
         arrive: (resi: string, fields: GpsFields) =>
             post<ActionMessage>(
