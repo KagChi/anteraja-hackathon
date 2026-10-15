@@ -90,7 +90,9 @@ final class DemoDataSeeder extends Seeder
         // 2. Buyers
         // Buyers normalise phone to E.164 on save, so the lookup key must
         // already be in +62 form or a re-run would insert a duplicate.
-        $buyerPassword = 'password123';
+        // Same password as the staff demo accounts so the run book lists one
+        // credential for every role.
+        $buyerPassword = 'password';
 
         $rinaId = Buyer::firstOrCreate(['phone' => '+6281298765432'], [
             'name' => 'Rina Putri',

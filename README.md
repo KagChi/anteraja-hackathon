@@ -131,7 +131,7 @@ Suite PHPUnit berjalan di atas database yang sudah di-seed, jadi jalankan
 | --- | --- |
 | Admin | `dimas@anteraja.id` / `password` |
 | Kurir | `budi@anteraja.id`, `ahmad@anteraja.id` / `password` |
-| Pembeli | nomor `+6281298765432` (Rina Putri) / `password123` |
+| Pembeli | nomor `+6281298765432` (Rina Putri) / `password` |
 
 `php artisan migrate:fresh --seed` juga mencetak URL bertoken untuk tiap paket
 demo supaya alur pembeli bisa dibuka tanpa aplikasi.
