@@ -98,6 +98,14 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => 'prefer',
+            // Every timestamp the app writes is bound as a naive
+            // "Y-m-d H:i:s" string, so the server has to read it back in the
+            // same zone PHP formatted it in. Pinning the session timezone to
+            // the app's own keeps storage in UTC no matter what the database
+            // server happens to be configured with; without it a server on
+            // Asia/Jakarta silently shifts every row by seven hours and the
+            // GPS travel window (and every schedule) comes out wrong.
+            'timezone' => env('DB_TIMEZONE', 'UTC'),
         ],
 
         'sqlsrv' => [
