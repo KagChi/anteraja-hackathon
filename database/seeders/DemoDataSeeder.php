@@ -44,13 +44,24 @@ final class DemoDataSeeder extends Seeder
             'is_active' => true,
         ])->id;
 
-        $budiId = Staff::firstOrCreate(['phone' => '081298765432'], [
+        // Nomor kurir tidak boleh sama dengan nomor pembeli mana pun: satu
+        // nomor WhatsApp hanya bisa dikenali sebagai satu pihak, dan nomor ini
+        // yang dipakai kurir untuk membalas tugas di WhatsApp. Database lama
+        // yang masih memakai nomor bertabrakan (081298765432, sama dengan
+        // pembeli Rina) diperbaiki di bawah.
+        $budi = Staff::firstOrCreate(['email' => 'budi@anteraja.id'], [
             'name' => 'Budi Santoso',
             'role' => 'COURIER',
-            'email' => 'budi@anteraja.id',
+            'phone' => '081298760001',
             'password' => 'password',
             'is_active' => true,
-        ])->id;
+        ]);
+
+        if ($budi->phone !== '081298760001' && ! Staff::where('phone', '081298760001')->exists()) {
+            $budi->update(['phone' => '081298760001']);
+        }
+
+        $budiId = $budi->id;
 
         $ahmadId = Staff::firstOrCreate(['phone' => '081234567890'], [
             'name' => 'Ahmad Subagyo',

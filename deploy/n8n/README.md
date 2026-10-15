@@ -153,6 +153,45 @@ Pembeli yang mengetik nomor resi di WhatsApp akan dihubungkan ke paketnya lewat
 workflow tidak menebak sendiri. Baris state hasil resolusi disimpan, sehingga
 pesan berikutnya tidak perlu menyebut resi lagi.
 
+## Balasan kurir dan admin
+
+Balasan dari nomor kurir atau admin bukan pesan pelanggan: perannya dibaca dari
+endpoint lookup (nomor ini milik siapa) atau dari `context.recipient_type` yang
+ditulis flow outbound saat mengirim notifikasi terakhir. Workflow hanya mengenali
+niat balasannya, lalu menyerahkan aksinya ke
+`POST /api/internal/whatsapp/action` supaya domain aplikasi yang menentukan:
+
+| Peran | Balasan | Aksi aplikasi |
+| --- | --- | --- |
+| Kurir | "terima" | `AcceptTask` (instruksi penanganan dibalas ke kurir) |
+| Kurir | "tolak" + alasan | `RejectTask` (admin diberi tahu) |
+| Kurir | "berangkat" | `StartDelivery` (pembeli menerima pesan pengantaran) |
+| Kurir | "tiba" / "sudah sampai" | `MarkArrived` |
+| Kurir | "selesai" / "sudah diserahkan" | `ConfirmDelivery` (pengiriman ditutup) |
+| Kurir | "bocor" / "basah" / "suhu naik" | `ReportIssue` (pembeli menerima menu opsi) |
+| Admin | "kembalikan" / "kirim ulang" / "lanjut" / "periksa ulang" / "jadwalkan ulang" | `ResolveIssue` (instruksi ke kurir, kabar ke pembeli) |
+
+`message_id` dari WAHA ikut dikirim, jadi balasan dobel menerima jawaban yang
+sama tanpa menjalankan aksinya dua kali. Nomor yang tidak terdaftar, perintah
+yang tidak dikenali, dan perintah yang belum sesuai status paket dijawab dengan
+penjelasan sopan tanpa mengubah data.
+
+## Riwayat pesan
+
+Setiap pesan keluar (kedua workflow) dan setiap pesan masuk dicatat ke aplikasi
+lewat `POST /api/internal/whatsapp/messages`, sehingga dashboard punya satu
+riwayat: arah, pengirim atau penerima, isi, waktu, dan status terkirim. Baris
+dengan `external_id` yang sama tidak dicatat dua kali.
+
+## Laporan harian
+
+`php artisan report:send-daily` (dijadwalkan 20:00 WIB) dan tombol "Kirim
+laporan WhatsApp" di halaman Laporan memakai `App\Services\Reporting\DailyReportSender`
+yang sama, jadi angka pada pesan identik dengan kartu di dashboard: total paket,
+selesai, dalam proses, kendala, keputusan admin, dan pembeli yang belum
+merespons.
+
+
 ## Uji skenario
 
 Logika kedua workflow diuji oleh suite yang ikut di-commit, bukan oleh n8n:
