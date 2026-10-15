@@ -83,8 +83,8 @@ pengembalian → kurir dan pembeli menerima informasi keputusan*.
 
 ## WhatsApp
 
-Semua kanal pesan lewat WhatsApp (WAHA), tidak ada Telegram. Aplikasi menulis
-baris `notifications`, job `DispatchNotificationToN8n` mengirim template +
+Semua kanal pesan lewat WhatsApp (WAHA). Aplikasi menulis baris
+`notifications`, job `DispatchNotificationToN8n` mengirim template +
 payload ke workflow outbound, dan workflow merender teksnya. Balasan masuk
 dibaca workflow inbound: niatnya dikenali (aturan + LLM sebagai cadangan), lalu
 aksi untuk kurir dan admin dijalankan domain aplikasi lewat
