@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Client\MapController;
 use App\NativeComponents\Client\History;
 use App\NativeComponents\Client\Issue;
 use App\NativeComponents\Client\Catalog;
@@ -22,6 +23,7 @@ use App\Support\ClientCart;
 use App\Support\ClientPayload;
 use App\Support\ClientReceipt;
 use App\Support\MobileToken;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
 use Native\Mobile\UI\Theme;
@@ -30,8 +32,9 @@ use Tests\TestCase;
 
 /**
  * The customer shell renders native UI, and reads every screen through the
- * backend API. Http is faked to stand in for the server; no screen loads a URL
- * in its interface and none contains a web view.
+ * backend API. Http is faked to stand in for the server; only the checkout's
+ * destination picker embeds a web view, and even that saves its point through
+ * a route the test drives directly.
  */
 final class ClientNativeScreensTest extends TestCase {
     private const TRANSPORTING = MobileApiFake::TRANSPORTING;
@@ -184,7 +187,10 @@ final class ClientNativeScreensTest extends TestCase {
         // The destination has to be pinned before the order is accepted.
         $screen->call('submit')->assertSet('actionError', 'Pin titik lokasi penerima dulu sebelum membuat pesanan.');
 
-        $screen->call('onLocationReceived', true, -6.9175, 107.6191)
+        // The map webview writes the chosen point into the cache; the poll lifts
+        // it into the component.
+        Cache::put(MapController::cacheKey(), ['latitude' => -6.9175, 'longitude' => 107.6191]);
+        $screen->call('syncMapPoint')
             ->assertSet('latitude', -6.9175)
             ->assertSet('longitude', 107.6191);
 
@@ -194,10 +200,32 @@ final class ClientNativeScreensTest extends TestCase {
             return $request->method() === 'POST'
                 && str_ends_with((string) parse_url($request->url(), PHP_URL_PATH), '/api/client/orders')
                 && (float) ($request['recipient']['latitude'] ?? 0) === -6.9175
-                && (float) ($request['recipient']['longitude'] ?? 0) === 107.6191;
+                && (float) ($request['recipient']['longitude'] ?? 0) === 107.6191
+                && ($request['service_type'] ?? null) === 'INSTANT_FROZEN';
         });
 
         $this->assertSame(0, ClientCart::count());
+    }
+
+    /** The destination picker: the checkout's one web view, in php mode. */
+    public function test_the_checkout_screen_embeds_the_destination_picker(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+        ClientCart::set(1, 1);
+
+        Native::test(Checkout::class)
+            ->assertElement('webview', fn (array $node): bool => ($node['props']['php'] ?? null) === true
+                && str_contains((string) ($node['props']['src'] ?? ''), '/client/map/pick'));
+    }
+
+    /** Each checkout starts from a clean pin, never the last order's point. */
+    public function test_the_checkout_screen_starts_from_a_clean_pin(): void {
+        MobileToken::set(MobileToken::CLIENT, 'client-test-token');
+        ClientCart::set(1, 1);
+        Cache::put(MapController::cacheKey(), ['latitude' => -6.2, 'longitude' => 106.8]);
+
+        Native::test(Checkout::class);
+
+        $this->assertNull(Cache::get(MapController::cacheKey()));
     }
 
     public function test_the_order_success_screen_shows_the_new_resi(): void {
@@ -489,8 +517,8 @@ final class ClientNativeScreensTest extends TestCase {
         }
     }
 
-    /** The web view is gone; nothing may reintroduce it. */
-    public function test_no_screen_renders_a_web_view(): void {
+    /** Only the checkout's destination picker embeds a web view. */
+    public function test_no_other_screen_renders_a_web_view(): void {
         $screens = [
             Orders::class,
             History::class,

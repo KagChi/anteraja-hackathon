@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\ExceptionController;
 use App\Http\Controllers\Admin\ExceptionDecisionController;
-use App\Http\Controllers\Admin\HistoryController;
-use App\Http\Controllers\Admin\HistoryExportController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Admin\DailyReportWhatsappController;
@@ -99,10 +97,6 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export', ReportExportController::class)->name('reports.export');
     Route::post('reports/daily-whatsapp', DailyReportWhatsappController::class)->name('reports.daily-whatsapp');
-
-    // 4. History / Riwayat
-    Route::get('history', [HistoryController::class, 'index'])->name('history.index');
-    Route::get('history/export', HistoryExportController::class)->name('history.export');
 
     // Riwayat pesan WhatsApp: masuk dan keluar, dengan isi dan statusnya.
     Route::get('messages', [MessageHistoryController::class, 'index'])->name('messages.index');

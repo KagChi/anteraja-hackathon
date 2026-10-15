@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\NativeComponents\Client;
 
+use App\Enums\ServiceType;
+use App\Http\Controllers\Client\MapController;
 use App\Support\ClientCart;
 use App\Support\ClientPayload;
 use App\Support\ClientReceipt;
@@ -12,12 +14,10 @@ use App\Support\DisplayTime;
 use App\Support\MobileApi;
 use App\Support\MobileToken;
 use Carbon\Carbon;
-use Native\Mobile\Attributes\On;
+use Illuminate\Support\Facades\Cache;
+use Native\Mobile\Attributes\Poll;
 use Native\Mobile\Edge\Element;
 use Native\Mobile\Edge\NativeComponent;
-use Native\Mobile\Events\Geolocation\LocationReceived;
-use Native\Mobile\Facades\Geolocation;
-use Throwable;
 
 /**
  * Checkout: what is being sent, when it should arrive, and to whom.
@@ -26,6 +26,10 @@ use Throwable;
  * starts blank: the customer's own profile is never copied into it. What is
  * typed here becomes the parcel's destination, the point the courier's geofence
  * is measured against, and the number the delivery updates go to.
+ *
+ * Everything ships frozen, so there is no service to choose, and the
+ * destination point is dropped on the recipient's door in the map picker — never
+ * the sender's own GPS fix.
  */
 final class Checkout extends NativeComponent {
     use LoadsFromApi;
@@ -49,8 +53,6 @@ final class Checkout extends NativeComponent {
 
     public string $addressType = 'Rumah / Residensial';
 
-    public string $serviceType = 'Reguler';
-
     public string $scheduleDate = '';
 
     public string $scheduleWindow = '13:00-15:00';
@@ -61,15 +63,7 @@ final class Checkout extends NativeComponent {
 
     public ?float $longitude = null;
 
-    public ?float $locationAccuracy = null;
-
     public string $pinNotice = '';
-
-    public bool $pinning = false;
-
-    public string $manualLatitude = '';
-
-    public string $manualLongitude = '';
 
     public bool $busy = false;
 
@@ -83,6 +77,10 @@ final class Checkout extends NativeComponent {
         $dates = $this->dateOptions();
         $this->scheduleDate = $dates[0] ?? $this->scheduleLabel(1);
         $this->scheduleWindow = $this->windowOptions()[2] ?? '13:00-15:00';
+
+        // Each checkout starts from a clean pin; the map webview writes the
+        // chosen point back into this slot.
+        Cache::forget(MapController::cacheKey());
 
         $this->load();
     }
@@ -179,86 +177,38 @@ final class Checkout extends NativeComponent {
     }
 
     /**
-     * Pin the destination from the device's own fix.
+     * Read the point the map webview saved.
      *
-     * The parcel is delivered to the recipient, who is often not the account
-     * holder, so this seeds the point and the manual fields below let the
-     * sender correct it for a door they are not standing at.
+     * The parcel goes to the recipient's door, often not the sender's, so the
+     * destination is chosen on the embedded Leaflet picker rather than the
+     * device's own fix. The page writes the point into the cache; this poll
+     * lifts it into the component, and `submit()` reads the same slot so a
+     * fast tap can never race the interval.
      */
-    public function pinMyLocation(): void {
-        $this->actionError = null;
-        $this->pinNotice = '';
-
-        if (! function_exists('nativephp_call')) {
-            $this->pinNotice = 'Lokasi perangkat tidak tersedia di sini.';
-
+    #[Poll(1500)]
+    public function syncMapPoint(): void {
+        if ($this->latitude !== null && $this->longitude !== null) {
             return;
         }
 
-        $this->pinning = true;
-
-        try {
-            Geolocation::getCurrentPosition(fineAccuracy: true)->get();
-        } catch (Throwable) {
-            $this->pinning = false;
-            $this->pinNotice = 'Gagal membaca lokasi. Coba lagi.';
+        if ($this->adoptPickedPoint()) {
+            $this->pinNotice = 'Titik lokasi tersimpan.';
         }
     }
 
-    #[On(LocationReceived::class)]
-    public function onLocationReceived(
-        bool $success,
-        ?float $latitude = null,
-        ?float $longitude = null,
-        ?float $accuracy = null,
-    ): void {
-        $this->pinning = false;
+    /** Pull the map's chosen point out of the cache, if one is there. */
+    private function adoptPickedPoint(): bool {
+        /** @var array<string, mixed>|null $pick */
+        $pick = Cache::get(MapController::cacheKey());
 
-        if (! $success || $latitude === null || $longitude === null) {
-            $this->pinNotice = 'Izin lokasi ditolak. Aktifkan GPS lalu coba lagi.';
-
-            return;
+        if (! is_array($pick) || ! isset($pick['latitude'], $pick['longitude'])) {
+            return false;
         }
 
-        $this->latitude = $latitude;
-        $this->longitude = $longitude;
-        $this->locationAccuracy = $accuracy;
-        $this->pinNotice = 'Titik lokasi tersimpan.';
-    }
+        $this->latitude = (float) $pick['latitude'];
+        $this->longitude = (float) $pick['longitude'];
 
-    /** Fallback for sending to a door the sender is not standing at. */
-    public function applyManualLocation(): void {
-        $this->actionError = null;
-
-        $latRaw = str_replace(',', '.', trim($this->manualLatitude));
-        $lngRaw = str_replace(',', '.', trim($this->manualLongitude));
-
-        if (! is_numeric($latRaw) || ! is_numeric($lngRaw)) {
-            $this->pinNotice = 'Isi lintang dan bujur dengan angka.';
-
-            return;
-        }
-
-        $lat = (float) $latRaw;
-        $lng = (float) $lngRaw;
-
-        if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-            $this->pinNotice = 'Koordinat di luar jangkauan. Lintang -90..90, bujur -180..180.';
-
-            return;
-        }
-
-        $this->latitude = $lat;
-        $this->longitude = $lng;
-        $this->locationAccuracy = null;
-        $this->pinNotice = 'Titik lokasi diatur manual.';
-    }
-
-    public function clearLocation(): void {
-        $this->latitude = null;
-        $this->longitude = null;
-        $this->locationAccuracy = null;
-        $this->pinNotice = 'Titik lokasi dihapus.';
+        return true;
     }
 
     public function submit(): void {
@@ -280,6 +230,9 @@ final class Checkout extends NativeComponent {
 
             return;
         }
+
+        // A pick made a moment before the tap may not have been polled yet.
+        $this->adoptPickedPoint();
 
         if ($this->latitude === null || $this->longitude === null) {
             $this->actionError = 'Pin titik lokasi penerima dulu sebelum membuat pesanan.';
@@ -305,7 +258,7 @@ final class Checkout extends NativeComponent {
                 'latitude' => $this->latitude,
                 'longitude' => $this->longitude,
             ],
-            'service_type' => str_contains($this->serviceType, 'Instant') ? 'INSTANT_FROZEN' : 'REGULER',
+            'service_type' => ServiceType::INSTANT_FROZEN->value,
             'scheduled_date' => $this->scheduledDateIso(),
             'window_start' => $windowStart,
             'window_end' => $windowEnd,
@@ -337,13 +290,6 @@ final class Checkout extends NativeComponent {
 
     public function openCatalog(): void {
         $this->navigate('/client/catalog');
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function serviceOptions(): array {
-        return ['Reguler', 'Instant Frozen'];
     }
 
     /**
@@ -411,7 +357,6 @@ final class Checkout extends NativeComponent {
             'cartCount' => $this->cartCount,
             'totalLabel' => $this->totalLabel,
             'busy' => $this->busy,
-            'serviceOptions' => $this->serviceOptions(),
             'dateOptions' => $this->dateOptions(),
             'windowOptions' => $this->windowOptions(),
             'typeOptions' => $this->addressTypeOptions(),
@@ -419,9 +364,8 @@ final class Checkout extends NativeComponent {
             'actionError' => $this->actionError,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
-            'locationAccuracy' => $this->locationAccuracy,
             'pinNotice' => $this->pinNotice,
-            'pinning' => $this->pinning,
+            'mapUrl' => '/client/map/pick',
         ]);
     }
 }

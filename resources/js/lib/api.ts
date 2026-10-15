@@ -258,23 +258,6 @@ export interface ReportResponse {
     paginator: Paginator;
 }
 
-export interface HistoryRow {
-    id: number;
-    tracking: string;
-    buyer: string;
-    courier: string;
-    completed_at: string;
-    status: string;
-    statusKey: string;
-    tone: Tone;
-}
-
-export interface HistoryResponse {
-    history: HistoryRow[];
-    filters: { q: string | null; status: string | null; page: number };
-    paginator: Paginator;
-}
-
 /** Riwayat pesan WhatsApp: satu baris per pesan masuk atau keluar. */
 export interface MessageRow {
     id: number;
@@ -584,9 +567,6 @@ export const api = {
             get<ReportResponse>("/admin/reports", query),
         dailyWhatsapp: (payload: { date?: string } = {}) =>
             post<DailyReportResponse>("/admin/reports/daily-whatsapp", payload)
-    },
-    history: {
-        index: (query: { q?: string; status?: string; page?: number }) => get<HistoryResponse>("/admin/history", query)
     },
     messages: {
         index: (query: { resi?: string; direction?: "IN" | "OUT"; page?: number } = {}) =>

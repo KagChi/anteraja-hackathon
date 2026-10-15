@@ -79,19 +79,4 @@ final class AdminExceptionTest extends TestCase
         $exportResponse->assertOk();
         $this->assertStringContainsString('text/csv', (string) $exportResponse->headers->get('content-type'));
     }
-
-    public function test_admin_can_view_history_and_export_csv(): void
-    {
-        $indexResponse = $this->actingAs($this->admin)->getJson('/api/admin/history');
-        $indexResponse->assertOk();
-        $indexResponse->assertJsonStructure([
-            'history',
-            'filters',
-            'paginator',
-        ]);
-
-        $exportResponse = $this->actingAs($this->admin)->get('/api/admin/history/export');
-        $exportResponse->assertOk();
-        $this->assertStringContainsString('text/csv', (string) $exportResponse->headers->get('content-type'));
-    }
 }

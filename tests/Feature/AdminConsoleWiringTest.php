@@ -129,7 +129,7 @@ final class AdminConsoleWiringTest extends TestCase
 
     public function test_a_guest_is_sent_to_the_login_page(): void
     {
-        foreach (['/admin/shipment', '/admin/report', '/admin/history'] as $path) {
+        foreach (['/admin/shipment', '/admin/report'] as $path) {
             $this->get($path)->assertRedirect('/login');
         }
     }
@@ -145,11 +145,6 @@ final class AdminConsoleWiringTest extends TestCase
             ->get('/admin/report')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->component('admin/Report'));
-
-        $this->actingAs($this->admin)
-            ->get('/admin/history')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->component('admin/History'));
     }
 
     public function test_a_courier_is_refused_the_console(): void
@@ -343,7 +338,7 @@ final class AdminConsoleWiringTest extends TestCase
         $this->assertStringContainsString('path=proofs%2F2026%2F10%2Fhandover.jpg', $query);
     }
 
-    public function test_the_report_and_history_endpoints_answer(): void
+    public function test_the_report_endpoint_answers(): void
     {
         $this->actingAs($this->admin)
             ->getJson('/api/admin/reports')
@@ -354,15 +349,6 @@ final class AdminConsoleWiringTest extends TestCase
                 'kpis' => ['total_shipments', 'delivered_count', 'issue_count', 'success_rate_pct'],
                 'issues',
                 'categoriesOnDate',
-                'paginator' => ['total', 'current_page', 'last_page'],
-            ]);
-
-        $this->actingAs($this->admin)
-            ->getJson('/api/admin/history')
-            ->assertOk()
-            ->assertJsonStructure([
-                'history',
-                'filters' => ['q', 'status', 'page'],
                 'paginator' => ['total', 'current_page', 'last_page'],
             ]);
     }

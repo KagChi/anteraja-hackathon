@@ -57,10 +57,3 @@ export const DECISION_REASON_DEFAULT =
 
 /** Delivery slots the cold-chain fleet runs, from config/coldchain.php. */
 export const DELIVERY_SLOTS = ["09:00-11:00", "11:00-13:00", "13:00-15:00", "15:00-17:00", "17:00-19:00"];
-
-/** Archive states offered by the Riwayat filter, from IndexHistoryRequest. */
-export const HISTORY_STATUS_OPTIONS = [
-    { value: "RECEIVED", label: "Diterima" },
-    { value: "RETURNED", label: "Dikembalikan" },
-    { value: "CLOSED", label: "Selesai" }
-];

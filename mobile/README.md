@@ -88,11 +88,14 @@ Pesanan, Riwayat and tracking screens. The courier drives to the recipient's
 coordinates, which is what the geofence validates.
 
 Checkout pins that destination before the order is accepted. There is no native
-map element, so the sender seeds the point from the device's own GPS fix — and,
-because the parcel often goes to someone else's door, can correct it with manual
-latitude/longitude fields. `POST /api/client/orders` rejects an order whose
-recipient has no coordinates, so a parcel can never reach the hub without a
-point for the courier's geofence to measure.
+map element, so the sender drops the pin on the recipient's door in a php-mode
+Leaflet picker embedded in the screen (`GET /client/map/pick`); the page writes
+the point into the file cache and the component polls it back. The sender's own
+GPS fix is never used — the parcel usually goes to someone else's door.
+`POST /api/client/orders` rejects an order whose recipient has no coordinates,
+so a parcel can never reach the hub without a point for the courier's geofence
+to measure. Every order ships frozen, so the checkout has no service to pick:
+`service_type` is always `INSTANT_FROZEN`.
 
 `GET /api/client/orders` and the tracking screens read the recipient from the
 package, so the Pesanan list shows who the parcel is going to rather than the

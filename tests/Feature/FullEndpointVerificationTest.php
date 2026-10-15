@@ -129,12 +129,6 @@ final class FullEndpointVerificationTest extends TestCase
 
         // 15. GET /api/admin/reports/export
         $this->get('/api/admin/reports/export')->assertOk();
-
-        // 16. GET /api/admin/history
-        $this->getJson('/api/admin/history')->assertOk();
-
-        // 17. GET /api/admin/history/export
-        $this->get('/api/admin/history/export')->assertOk();
     }
 
     public function test_all_courier_endpoints(): void

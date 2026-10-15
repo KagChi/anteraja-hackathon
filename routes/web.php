@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Models\Product;
+use App\Http\Controllers\Client\MapController as ClientMapController;
 use App\Http\Controllers\Courier\MapController;
 use App\Http\Resources\Client\ProductResource;
 
@@ -51,6 +52,13 @@ Route::get("courier/map/{resi}/fix", [MapController::class, "fix"])
     ->where("resi", "[A-Za-z0-9-]{4,32}")
     ->name("courier.map.fix");
 
+// The customer app's destination picker. Also a php-mode webview, but the flow
+// runs the other way: the sender drops the pin on the recipient's door and the
+// page writes the point into the cache the native Checkout component polls.
+Route::get("client/map/pick", [ClientMapController::class, "show"])->name("client.map.pick");
+Route::get("client/map/pick/point", [ClientMapController::class, "point"])->name("client.map.pick.point");
+Route::post("client/map/pick", [ClientMapController::class, "store"])->name("client.map.pick.store");
+
 Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(function () {
     // Filters travel in the query string so a Laporan drill-down and a shared
     // link both land on the queue with the same view applied.
@@ -59,10 +67,6 @@ Route::prefix("admin")->name("admin.")->middleware("staff.role:ADMIN")->group(fu
         "status" => $request->query("status")
     ]))->name("shipment");
     Route::get("report", fn () => Inertia::render("admin/Report"))->name("report");
-    Route::get("history", fn (Request $request) => Inertia::render("admin/History", [
-        "q" => $request->query("q"),
-        "status" => $request->query("status")
-    ]))->name("history");
     // Validasi GPS: verdicts the server refused or flagged, plus the review
     // queue couriers raise from the field.
     Route::get("gps", fn () => Inertia::render("admin/GpsChecks"))->name("gps");

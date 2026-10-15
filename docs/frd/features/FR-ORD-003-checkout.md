@@ -50,7 +50,7 @@ menjadi profil pengiriman pelanggan.
 | recipient.address_type | string | nullable, harus nilai AddressType |
 | recipient.latitude | numeric | nullable, antara -90 dan 90 |
 | recipient.longitude | numeric | nullable, antara -180 dan 180, required_with latitude |
-| service_type | string | required, harus nilai ServiceType |
+| service_type | string | required, harus nilai ServiceType; UI aplikasi pelanggan selalu mengirim INSTANT_FROZEN karena seluruh katalog beku |
 | scheduled_date | string | required, format Y-m-d, tidak sebelum hari ini Jakarta |
 | window_start, window_end | string | required, format H:i, window_end setelah window_start |
 | handling_instructions | string | nullable, max 300 |
@@ -118,6 +118,7 @@ menjadi profil pengiriman pelanggan.
 | Enum | Enums/PackageSource.php, ServiceType.php, AddressType.php |
 | Test | tests/Feature/ClientStorefrontTest.php test_a_signed_in_customer_can_check_out_and_the_hub_sees_the_order, test_checkout_requires_a_session_and_a_basket, tests/Feature/ClientNativeScreensTest.php test_checkout_sends_a_guest_to_register, test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order |
 | UI | app/NativeComponents/Client/Checkout.php, OrderSuccess.php |
+| Peta titik penerima | routes/web.php client/map/pick, Controller Http/Controllers/Client/MapController (show, point, store), resources/views/native/client/map.blade.php |
 
 ## 11. Skenario uji
 

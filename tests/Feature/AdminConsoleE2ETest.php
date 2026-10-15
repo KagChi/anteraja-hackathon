@@ -138,7 +138,6 @@ final class AdminConsoleE2ETest extends TestCase
         // 2. The same session reaches the Inertia page.
         $this->get('/admin/shipment')->assertOk();
         $this->get('/admin/report')->assertOk();
-        $this->get('/admin/history')->assertOk();
 
         // 3. The queue loads with the lists the filters need.
         $index = $this->getJson('/api/admin/shipments');
@@ -216,21 +215,16 @@ final class AdminConsoleE2ETest extends TestCase
         $proof->assertOk();
         $this->assertStringContainsString('image/', (string) $proof->headers->get('Content-Type'));
 
-        // 9. The day's report counts it, and the archive lists it.
+        // 9. The day's report counts it.
         $report = $this->getJson('/api/admin/reports?date='.$this->deliveryDate);
         $report->assertOk();
         $this->assertGreaterThanOrEqual(1, $report->json('kpis.total_shipments'));
         $this->assertGreaterThanOrEqual(1, $report->json('kpis.delivered_count'));
 
-        $history = $this->getJson("/api/admin/history?q={$tracking}");
-        $history->assertOk();
-        $this->assertContains($tracking, collect($history->json('history'))->pluck('tracking')->all());
-
         // 10. Every export streams the CSV it advertises.
         foreach ([
             "/api/admin/shipments/export?date={$this->deliveryDate}",
             '/api/admin/reports/export?date='.$this->deliveryDate,
-            "/api/admin/history/export?q={$tracking}",
         ] as $endpoint) {
             $export = $this->get($endpoint);
             $export->assertOk();

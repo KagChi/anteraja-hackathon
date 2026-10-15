@@ -19,8 +19,7 @@ const NAV_ITEMS: NavItem[] = [
     { label: "Shipment", icon: "local_shipping", href: "/admin/shipment" },
     { label: "Validasi GPS", icon: "my_location", href: "/admin/gps" },
     { label: "Radius GPS", icon: "tune", href: "/admin/geofence" },
-    { label: "Laporan", icon: "bar_chart", href: "/admin/report" },
-    { label: "Riwayat", icon: "history", href: "/admin/history" }
+    { label: "Laporan", icon: "bar_chart", href: "/admin/report" }
 ];
 
 /**
