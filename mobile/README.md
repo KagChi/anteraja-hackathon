@@ -137,24 +137,31 @@ record.
 
 ## Theme
 
-Both apps are light only, and neither has a theme toggle. The light palette in
-`config/native-ui.php` (white surfaces, dark type, Anteraja magenta for
-actions) is the only one the screens draw.
+Both apps are light only, and neither has a theme toggle. There is a single
+palette: `config/native-ui.php` defines the light tokens and repeats them as
+`dark`. Core turns every `bg-theme-*` / `text-theme-*` / `border-theme-*` class
+into a light hex plus a `dark_*` companion the native renderers pick at draw
+time via `isSystemInDarkTheme()`, and it only emits the companion when it
+differs from the light value — so an identical block keeps the screens light on
+a device set to dark. (Left empty, the `dark` block would instead be
+auto-inverted into a real dark palette.)
 
-Pinning a device or emulator set to dark is two separate levers per platform:
+Chrome and screens are pinned by `scripts/force-light-appearance.sh`, which
+`scripts/build-apk.sh` runs right after `native:install`:
 
 - **iOS** — `NATIVEPHP_APPEARANCE=light` (`.env.mobile.example`) is written to
   the Info.plist as `UIUserInterfaceStyle`, so the system chrome (sheets,
   keyboard, window background) stays light.
 - **Android** — `native:install` regenerates `nativephp/android` from the
   vendor template every build, whose theme parents on
-  `DayNight.DarkActionBar` and whose `MainActivity` feeds
-  `isSystemInDarkTheme()` to the Material3 color scheme. Both are pinned light
-  by `scripts/force-light-appearance.sh`, which `scripts/build-apk.sh` runs
-  right after `native:install`. It reparents `values/themes.xml` and
-  `values-night/themes.xml` to the Light variant and rewrites the Compose
-  `isDark` read to `false`, failing the build if the template has moved rather
-  than shipping an app that honours dark mode.
+  `DayNight.DarkActionBar` and whose Compose UI reads `isSystemInDarkTheme()`
+  in both `MainActivity` (the Material3 scheme) and every
+  `nativephp/mobile-ui` renderer (its light vs dark tokens). The script
+  reparents `values/themes.xml` and `values-night/themes.xml` to the Light
+  variant, pins the Compose `isDark` read to `false`, and adds an
+  `attachBaseContext` override that pins the Activity's Configuration to
+  night-mode NO — the one read all the renderers share. It fails the build if
+  the template has moved rather than shipping an app that honours dark mode.
 
 `status_bar_style='dark'` separately keeps the status/navigation bar icons dark
 on the light surface, and the Android theme colours are the same magenta day

@@ -16,6 +16,7 @@ use App\Support\MobileToken;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Native\Mobile\Testing\Native;
+use Native\Mobile\UI\Theme;
 use Tests\Support\MobileApiFake;
 use Tests\TestCase;
 
@@ -129,6 +130,11 @@ final class CourierNativeScreensTest extends TestCase {
             ->assertDontSee('Sistem');
 
         $this->assertSame('light', config('nativephp.appearance'));
+
+        // One palette only: the dark block repeats light, so the renderers'
+        // `dark_*` companions resolve to the same hex and never paint dark.
+        $theme = Theme::all();
+        $this->assertSame($theme['light'], $theme['dark']);
     }
 
     public function test_the_delivery_screen_offers_the_route_and_the_handover(): void {
