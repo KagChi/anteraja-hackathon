@@ -377,6 +377,69 @@ scenario('a window tomorrow still goes through', () => {
   eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
 });
 
+scenario('an explicit day and time the model resolved reschedules through the API', () => {
+  const out = decide({
+    text: 'tanggal 23 jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-23', proposed_slot: '13:00-15:00' },
+  });
+  contains(out.decision.app_url, '/schedule/reschedule', 'app url');
+  eq(out.decision.app_body.date, '2026-10-23', 'date from the model');
+  eq(out.decision.app_body.slot, '13:00-15:00', 'slot from the model');
+  eq(out.decision.next_template, 'reschedule_requested', 'state advanced');
+});
+
+scenario('"tanggal 22 jam 17.00" is not rejected for a two-hour lead it never had', () => {
+  const out = decide({
+    text: 'tanggal 22 jam 17.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-22', proposed_slot: '17:00-19:00' },
+  });
+  contains(out.decision.app_url, '/schedule/reschedule', 'app url');
+  eq(out.decision.app_body.date, '2026-10-22', 'date');
+  eq(out.decision.app_body.slot, '17:00-19:00', 'slot');
+});
+
+scenario('the prompt is anchored with today so the model can resolve a bare day', () => {
+  const out = decide({ text: 'tanggal 23 jam 13.00', state: SCHEDULE_STATE, llm: { intent: 'request_reschedule' } });
+  const system = out.context.llm_body.messages[0].content;
+  contains(system, '2026-10-14', 'today is in the prompt');
+  contains(system, '2026-10-15', 'tomorrow is in the prompt');
+});
+
+scenario('a date the model could not resolve asks for it, never blames the two-hour lead', () => {
+  const out = decide({
+    text: 'tanggal 23 jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: null, proposed_slot: '13:00-15:00' },
+  });
+  eq(out.decision.app_url, null, 'no app call');
+  eq(out.reply.values[3], null, 'state not advanced');
+  contains(out.reply.text, '09:00-11:00', 'offers the slots');
+  absent(out.reply.text, 'kurang dari 2 jam', 'not the two-hour message');
+});
+
+scenario('a date already gone is refused as past, not as too soon', () => {
+  const out = decide({
+    text: 'tanggal 2 jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-10-02', proposed_slot: '13:00-15:00' },
+  });
+  eq(out.decision.app_url, null, 'no app call');
+  contains(out.reply.text, 'sudah lewat', 'named as past');
+  absent(out.reply.text, 'kurang dari 2 jam', 'not the two-hour message');
+});
+
+scenario('a date past the booking window is refused before the API has to', () => {
+  const out = decide({
+    text: 'tanggal 30 jam 13.00',
+    state: SCHEDULE_STATE,
+    llm: { intent: 'request_reschedule', proposed_date: '2026-11-30', proposed_slot: '13:00-15:00' },
+  });
+  eq(out.decision.app_url, null, 'no app call');
+  contains(out.reply.text, '14 hari', 'names the limit');
+});
+
 scenario('the rescheduled notice is answered like a first request', () => {
   for (const word of ['siap', 'oke', 'ya']) {
     const out = decide({ text: word, state: RESCHEDULED_STATE });
