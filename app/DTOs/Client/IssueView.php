@@ -13,7 +13,7 @@ final readonly class IssueView
      */
     public function __construct(
         public string $trackingNumber,
-        public string $buyerName,
+        public string $recipientName,
         public ?string $courierName,
         public array $productNames,
         public string $issueCategoryLabel,
@@ -37,7 +37,7 @@ final readonly class IssueView
     {
         return [
             'tracking_number' => $this->trackingNumber,
-            'buyer_name' => $this->buyerName,
+            'recipient_name' => $this->recipientName,
             'courier_name' => $this->courierName,
             'product_names' => $this->productNames,
             'issue_category_label' => $this->issueCategoryLabel,

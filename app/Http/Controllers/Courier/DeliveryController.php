@@ -29,7 +29,7 @@ final class DeliveryController extends Controller
         GeofenceEvaluator $geofence,
     ): JsonResponse {
         $package = Package::where('tracking_number', $trackingNumber)
-            ->with(['buyer', 'statusRef', 'latestMilestone', 'conditionChecks.issueReport'])
+            ->with(['statusRef', 'latestMilestone', 'conditionChecks.issueReport'])
             ->firstOrFail();
 
         Gate::authorize('view', $package);
@@ -55,13 +55,15 @@ final class DeliveryController extends Controller
             ], 422);
         }
 
-        $buyer = $package->buyer;
-        $address = $buyer?->address ?? '';
-        $phone = $buyer?->phone ?? '';
+        // The courier drives to the recipient the customer chose, not to the
+        // customer's own address.
+        $recipient = $package->recipient;
+        $address = $recipient['address'] ?? '';
+        $phone = $recipient['phone'] ?? '';
         $phoneE164 = $phone !== '' ? PhoneFormatter::toE164Id($phone) : '';
 
-        if ($buyer && $buyer->latitude !== null && $buyer->longitude !== null) {
-            $mapHref = "https://www.google.com/maps/search/?api=1&query={$buyer->latitude},{$buyer->longitude}";
+        if ($recipient['latitude'] !== null && $recipient['longitude'] !== null) {
+            $mapHref = "https://www.google.com/maps/search/?api=1&query={$recipient['latitude']},{$recipient['longitude']}";
         } else {
             $mapHref = 'https://www.google.com/maps/search/?api=1&query='.urlencode($address);
         }
@@ -83,7 +85,7 @@ final class DeliveryController extends Controller
                 'tracking' => $package->tracking_number,
                 'service' => 'Paket Beku',
                 'serviceType' => $package->service_type?->label() ?? 'Reguler',
-                'recipient' => $buyer?->name ?? '-',
+                'recipient' => $recipient['name'] ?? '-',
                 'phone' => $phone,
                 'phoneHref' => "tel:{$phoneE164}",
                 'address' => $address,
@@ -131,8 +133,8 @@ final class DeliveryController extends Controller
 
         return [
             'destination' => [
-                'latitude' => $package->buyer?->latitude,
-                'longitude' => $package->buyer?->longitude,
+                'latitude' => $package->recipient_latitude,
+                'longitude' => $package->recipient_longitude,
             ],
             'radius_m' => $geofence->radiusFor($package->service_type),
             'distance_m' => $last?->distance_m,

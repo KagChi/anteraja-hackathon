@@ -134,6 +134,24 @@ components:
         buyer_address:
           type: string
           example: Jl. Senopati No. 88, Kebayoran Baru, Jakarta Selatan
+        recipient_name:
+          type: string
+          nullable: true
+          description: Penerima paket di lokasi antar. Bila dikosongkan, paket
+            diantar ke pembeli sendiri seperti sebelumnya.
+          example: Ibu Sari Wulandari
+        recipient_phone:
+          type: string
+          nullable: true
+          example: '081200010001'
+        recipient_address:
+          type: string
+          nullable: true
+          example: Jl. Cihampelas No. 88, Coblong, Bandung
+        recipient_area:
+          type: string
+          nullable: true
+          example: Bandung, Jawa Barat
         product_name:
           type: string
           example: Frozen Wagyu Slice 500g
@@ -520,6 +538,9 @@ components:
       properties:
         recipient:
           type: object
+          description: Tujuan pengiriman yang dipilih pelanggan — penerima di lokasi
+            antar, biasanya keluarga atau kerabat. Pembeli adalah pengirim paket,
+            jadi blok ini tidak diisi dari profil pelanggan.
           required:
           - name
           - phone
@@ -612,6 +633,23 @@ components:
         total_idr:
           type: integer
           example: 124000
+        recipient:
+          type: object
+          description: Penerima paket — tujuan pengantaran kurir, bukan pembeli.
+          properties:
+            name:
+              type: string
+              example: Ibu Sari Wulandari
+            phone:
+              type: string
+              example: '081200010001'
+            address:
+              type: string
+              example: Jl. Cihampelas No. 88, Coblong
+            area:
+              type: string
+              nullable: true
+              example: Bandung, Jawa Barat
         items:
           type: array
           items:
@@ -1815,8 +1853,9 @@ paths:
       - Client - Storefront
       summary: Buat pesanan dari aplikasi pelanggan
       description: Membuat paket dengan sumber CLIENT_APP, menyimpan data penerima
-        sebagai profil pengantaran pembeli, lalu menaruh paket di antrean hub sebagai
-        Menunggu Konfirmasi.
+        sebagai tujuan pengantaran paket — pembeli tetap pengirimnya dan profilnya
+        tidak ikut berubah — lalu menaruh paket di antrean hub sebagai Menunggu
+        Konfirmasi.
       security:
       - bearerAuth: []
       requestBody:

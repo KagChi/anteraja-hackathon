@@ -69,12 +69,27 @@ this account" card.
 
 ## Storefront
 
-The customer app is a shop as well as a tracker. Beranda and the catalog read
-`GET /api/client/catalog`, which is public, so a visitor can look around before
-signing up; the app asks for an account at checkout. Registering calls
-`POST /api/client/auth/register` and stores the bearer token, and checkout posts
-`POST /api/client/orders`: the order is created with source CLIENT_APP and shows
-up in the hub queue tagged APP.
+The customer app is the sender's app: the account holder picks what to send and
+names the recipient — family or a friend at another address — and the parcel is
+delivered there. Beranda and the catalog read `GET /api/client/catalog`, which
+is public, so a visitor can look around before signing up; the app asks for an
+account at checkout. Registering calls `POST /api/client/auth/register` and
+stores the bearer token, and checkout posts `POST /api/client/orders`: the
+recipient block becomes the parcel's destination and the order is created with
+source CLIENT_APP, showing up in the hub queue tagged APP.
+
+Nothing about the customer's own profile fills that block. The destination lives
+on the package (`recipient_name`, `recipient_phone`, `recipient_address`,
+`recipient_area`, `recipient_address_type`, `recipient_latitude`,
+`recipient_longitude`), because the same customer sends to a different family
+member next time. The recipient has no account and no app: they answer the
+delivery steps over WhatsApp, and the customer follows the parcel in the
+Pesanan, Riwayat and tracking screens. The courier drives to the recipient's
+coordinates, which is what the geofence validates.
+
+`GET /api/client/orders` and the tracking screens read the recipient from the
+package, so the Pesanan list shows who the parcel is going to rather than the
+account holder.
 
 The basket lives in `App\Support\ClientCart` (product ids and quantities in the
 cache store, like `MobileToken`), because native screens are

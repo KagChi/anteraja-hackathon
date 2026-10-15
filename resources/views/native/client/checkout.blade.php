@@ -89,9 +89,14 @@
                 </native:text>
             </native:column>
 
-            {{-- Where and when. --}}
+            {{-- Who receives it, and when. The sender is the account holder;
+                 this block is the family member or friend at the door. --}}
             <native:column class="w-full gap-4 rounded-xl bg-theme-surface-container-lowest p-4">
-                <native:text class="text-sm text-theme-secondary uppercase">Data pengantaran</native:text>
+                <native:text class="text-sm text-theme-secondary uppercase">Data penerima</native:text>
+                <native:text class="text-sm leading-snug text-theme-secondary">
+                    Paket dikirim ke orang yang Anda isi di sini. Update pengantaran dikirim ke nomor
+                    penerima lewat WhatsApp.
+                </native:text>
 
                 <native:outlined-text-input
                     label="Nama penerima"

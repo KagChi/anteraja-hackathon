@@ -52,9 +52,14 @@ final class GpsValidator
         }
 
         $assessment = $this->detector->assess($package, $signals);
-        $package->loadMissing('buyer');
 
-        $geo = $this->geofence->evaluate($package->buyer, $latitude, $longitude, $package->service_type);
+        $geo = $this->geofence->evaluate(
+            $package->recipient_latitude,
+            $package->recipient_longitude,
+            $latitude,
+            $longitude,
+            $package->service_type,
+        );
 
         // Arriving is allowed from anywhere (the courier may still be walking),
         // so only the hand-over enforces the radius.

@@ -35,6 +35,9 @@ final class WhatsappLookupTest extends TestCase
 
     private const PHONE = '+6289611122233';
 
+    /** The customer who sends the parcel; the looked-up number is the recipient's. */
+    private const SENDER_PHONE = '+6289600000001';
+
     private Staff $admin;
 
     private Staff $courier;
@@ -72,9 +75,9 @@ final class WhatsappLookupTest extends TestCase
         );
 
         $this->buyer = Buyer::firstOrCreate(
-            ['phone' => self::PHONE],
+            ['phone' => self::SENDER_PHONE],
             [
-                'name' => 'Pembeli WhatsApp Lookup',
+                'name' => 'Pengirim WhatsApp Lookup',
                 'is_active' => true,
                 'address' => 'Jl. Pengujian No. 1, Jakarta Selatan',
                 'area' => 'Tebet',
@@ -128,7 +131,7 @@ final class WhatsappLookupTest extends TestCase
     {
         $this->package();
 
-        // Same resi, a phone that is not the buyer's.
+        // Same resi, a phone that is not the recipient's.
         $this->lookup(['phone' => '6289900011122'])
             ->assertOk()
             ->assertJson(['found' => false]);
@@ -154,28 +157,33 @@ final class WhatsappLookupTest extends TestCase
 
         $this->assertIsString($response->json('client_token'));
         $this->assertNotSame('', (string) $response->json('client_token'));
-        $this->assertStringStartsWith('http', (string) $response->json('client_url'));
+        // The recipient has no account, so the answer rides on the package
+        // token and the customer's app link stays out of the chat.
+        $this->assertArrayNotHasKey('client_url', $response->json());
         $this->assertNotSame('', (string) $response->json('status_label'));
         $this->assertNotSame('', (string) $response->json('window'));
     }
 
     /**
-     * n8n calls this app over the in-cluster service name, and a link built
-     * from that host is unreachable from a customer's phone.
+     * The recipient's chat carries no customer link: n8n calls this app over
+     * the in-cluster service name, and a link built from that host would be
+     * both unreachable and wrong to hand to someone without an account. The
+     * package token still comes back, because that is what an answer is
+     * applied through.
      */
-    public function test_links_never_inherit_the_callers_host(): void
+    public function test_the_recipient_answer_rides_on_the_package_token_without_a_customer_link(): void
     {
-        $this->package();
+        $package = $this->package();
 
         $response = $this->postJson('http://anteraja-hackathon-service/api/internal/whatsapp/lookup', [
             'phone' => '6289611122233',
             'resi' => self::RESI,
         ], ['X-Anteraja-Token' => self::TOKEN])->assertOk();
 
-        $clientUrl = (string) $response->json('client_url');
-
-        $this->assertStringStartsWith((string) config('app.url'), $clientUrl);
-        $this->assertStringNotContainsString('anteraja-hackathon-service', $clientUrl);
+        $this->assertSame($package->client_token, $response->json('client_token'));
+        $this->assertArrayNotHasKey('client_url', $response->json());
+        $this->assertStringNotContainsString('anteraja-hackathon-service', $response->getContent());
+        $this->assertStringNotContainsString((string) config('app.url'), $response->getContent());
     }
 
     public function test_it_reports_the_issue_menu_for_an_open_issue(): void
@@ -314,6 +322,15 @@ final class WhatsappLookupTest extends TestCase
             'buyer_id' => $this->buyer->id,
             'created_by' => $this->admin->id,
             'tracking_number' => $resi ?? self::RESI,
+            // The parcel belongs to the recipient at the door, who is the
+            // number the workflow resolves a WhatsApp conversation against.
+            'recipient_name' => 'Penerima WhatsApp Lookup',
+            'recipient_phone' => self::PHONE,
+            'recipient_address' => 'Jl. Kenanga No. 3, Coblong',
+            'recipient_area' => 'Bandung, Jawa Barat',
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => -6.9175,
+            'recipient_longitude' => 107.6191,
             'status' => PackageStatus::AWAITING_CONFIRMATION,
             'scheduled_at' => now()->addDay(),
             'scheduled_end_at' => now()->addDay()->addHours(2),

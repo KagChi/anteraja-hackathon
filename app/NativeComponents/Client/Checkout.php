@@ -16,11 +16,12 @@ use Native\Mobile\Edge\Element;
 use Native\Mobile\Edge\NativeComponent;
 
 /**
- * Checkout: what is in the basket, when it should arrive, and where.
+ * Checkout: what is being sent, when it should arrive, and to whom.
  *
- * The delivery block is prefilled from the customer's profile and written back
- * on submit — the same record the courier is later validated against, which is
- * why the API accepts the recipient fields as the buyer's own delivery details.
+ * The customer is the sender, so the address block belongs to the recipient and
+ * starts blank: the customer's own profile is never copied into it. What is
+ * typed here becomes the parcel's destination, the point the courier's geofence
+ * is measured against, and the number the delivery updates go to.
  */
 final class Checkout extends NativeComponent {
     use LoadsFromApi;
@@ -54,12 +55,6 @@ final class Checkout extends NativeComponent {
 
     public bool $busy = false;
 
-    /**
-     * The profile is fetched once per visit; basket edits must not refetch it.
-     * Public because a screen's state is carried between native requests.
-     */
-    public bool $profileLoaded = false;
-
     public function mount(): void {
         if (MobileToken::get(MobileToken::CLIENT) === null) {
             $this->navigate('/client/register');
@@ -80,8 +75,6 @@ final class Checkout extends NativeComponent {
      * reflected here rather than quoted from a stale basket.
      */
     protected function load(): void {
-        $this->prefill();
-
         $cart = ClientCart::items();
         if ($cart === []) {
             $this->lines = [];
@@ -141,27 +134,6 @@ final class Checkout extends NativeComponent {
         $this->cartCount = $count;
         $this->totalIdr = $total;
         $this->totalLabel = 'Rp '.number_format($total, 0, ',', '.');
-    }
-
-    private function prefill(): void {
-        if ($this->profileLoaded) {
-            return;
-        }
-
-        $this->profileLoaded = true;
-
-        $result = MobileApi::client()->get('/client/me');
-
-        if (! $result->ok) {
-            return;
-        }
-
-        $profile = $result->data();
-
-        $this->recipientName = $this->recipientName !== '' ? $this->recipientName : (string) ($profile['name'] ?? '');
-        $this->recipientPhone = $this->recipientPhone !== '' ? $this->recipientPhone : (string) ($profile['phone'] ?? '');
-        $this->recipientAddress = $this->recipientAddress !== '' ? $this->recipientAddress : (string) ($profile['address'] ?? '');
-        $this->recipientArea = $this->recipientArea !== '' ? $this->recipientArea : (string) ($profile['area'] ?? '');
     }
 
     public function increment(int $productId): void {

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Gps;
 
 use App\Enums\ServiceType;
-use App\Models\Buyer;
 use App\Models\GeofencePolicy;
 use App\Support\GeoDistance;
 use Illuminate\Support\Facades\Cache;
@@ -24,13 +23,22 @@ final class GeofenceEvaluator
     public const CACHE_TTL_SECONDS = 60;
 
     /**
+     * Measures a courier fix against the parcel's destination — the recipient
+     * the customer chose, not the sender's own address.
+     *
      * @return array{distance_m: int|null, radius_m: int, inside: bool|null}
      */
-    public function evaluate(?Buyer $buyer, float $latitude, float $longitude, ?ServiceType $serviceType): array
+    public function evaluate(
+        ?float $destinationLatitude,
+        ?float $destinationLongitude,
+        float $latitude,
+        float $longitude,
+        ?ServiceType $serviceType,
+    ): array
     {
         $radius = $this->radiusFor($serviceType);
 
-        if ($buyer === null || $buyer->latitude === null || $buyer->longitude === null) {
+        if ($destinationLatitude === null || $destinationLongitude === null) {
             // No destination coordinates on file: there is nothing to be inside
             // or outside of, so the geofence stays silent rather than failing.
             return ['distance_m' => null, 'radius_m' => $radius, 'inside' => null];
@@ -39,8 +47,8 @@ final class GeofenceEvaluator
         $distanceM = (int) round(GeoDistance::haversine(
             $latitude,
             $longitude,
-            (float) $buyer->latitude,
-            (float) $buyer->longitude,
+            $destinationLatitude,
+            $destinationLongitude,
         ) * 1000);
 
         return [

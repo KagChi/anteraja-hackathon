@@ -1,17 +1,19 @@
 # Anteraja Frozen — Kesiapan Penerimaan dan Kondisi Paket
 
-Prototipe hackathon Anteraja NextGen AI Academy. Satu proses utuh "FROZEN"
-berjalan end-to-end: paket dibuat, pembeli mengonfirmasi jadwal **lewat
-WhatsApp**, admin menugaskan kurir, kurir menerima tugas dan memeriksa kemasan
-dari aplikasi Android, kendala (mis. kemasan bocor) dilaporkan dan diputuskan
-admin, lalu semuanya masuk laporan harian.
+Prototipe hackathon Anteraja NextGen AI Academy. Aplikasi pelanggan adalah
+aplikasi **pengirim**: pelanggan memilih isi paket dan alamat penerima —
+keluarga, kerabat, atau teman — lalu paket diantar ke sana. Satu proses utuh
+"FROZEN" berjalan end-to-end: paket dibuat, **penerima** mengonfirmasi jadwal
+**lewat WhatsApp**, admin menugaskan kurir, kurir menerima tugas dan memeriksa
+kemasan dari aplikasi Android, kendala (mis. kemasan bocor) dilaporkan dan
+diputuskan admin, lalu semuanya masuk laporan harian.
 
 Tiga permukaan, satu backend Laravel:
 
 | Permukaan | Teknologi | Masuk lewat |
 | --- | --- | --- |
 | Dashboard admin | React + Inertia (desktop) | `/login` → `/admin/shipment` |
-| Aplikasi Pembeli | NativePHP for Mobile (Jetpack Compose) | `com.anteraja.frozen` |
+| Aplikasi Pelanggan (pengirim) | NativePHP for Mobile (Jetpack Compose) | `com.anteraja.frozen` |
 | Aplikasi Kurir | NativePHP for Mobile (Jetpack Compose) | `com.anteraja.kurir` |
 | Otomasi WhatsApp | n8n + WAHA (dua workflow, lihat `deploy/n8n/README.md`) | webhook |
 
@@ -60,26 +62,46 @@ Untuk mengemas APK: `scripts/build-apk.sh kurir` dan `scripts/build-apk.sh clien
 
 ## Alur FROZEN (yang didemokan)
 
-1. **Paket dibuat** — admin mengisi pembeli, produk, jadwal, instruksi
-   penanganan. Status `AWAITING_CONFIRMATION`, pembeli menerima permintaan
-   konfirmasi jadwal di WhatsApp.
-2. **Jadwal dikonfirmasi** — pembeli membalas *SIAP* (atau *JADWAL LAIN*).
+1. **Paket dibuat** — pelanggan memesan dari aplikasi (atau admin mengisi
+   pengirim, penerima, produk, jadwal, dan instruksi penanganan). Status
+   `AWAITING_CONFIRMATION`, penerima menerima permintaan konfirmasi jadwal di
+   WhatsApp.
+2. **Jadwal dikonfirmasi** — penerima membalas *SIAP* (atau *JADWAL LAIN*).
    Kurir tidak bisa ditugaskan sebelum ini; `CONFIRMED`.
 3. **Kurir ditugaskan** — admin memilih kurir. Kurir menerima tugas beserta
    instruksi penanganan di WhatsApp dan aplikasi; `COURIER_ASSIGNED`.
 4. **Kondisi diperiksa** — kurir mengisi checklist kemasan (tanpa sensor suhu);
    `CHECKED`, atau `ISSUE_REPORTED` bila ada kendala.
-5. **Paket diantar** — kurir berangkat; pembeli menerima pesan pengantaran dan
+5. **Paket diantar** — kurir berangkat; penerima menerima pesan pengantaran dan
    pemberitahuan menjelang tiba; `IN_DELIVERY`.
 6. **Kendala diputuskan** — admin memilih tindakan (kembalikan, kirim ulang,
    lanjut, periksa ulang, jadwalkan ulang) dan mencatat alasannya. Instruksi
-   dikirim ke kurir, pembeli menerima informasi keputusan.
+   dikirim ke kurir, penerima menerima informasi keputusan.
 7. **Paket diterima** — kurir mencatat serah terima (foto bukti di aplikasi);
    `RECEIVED`, pengiriman masuk riwayat dan laporan.
 
-Cabang yang didemokan: *pembeli minta jadwal lain → admin memperbarui jadwal →
+Cabang yang didemokan: *penerima minta jadwal lain → admin memperbarui jadwal →
 kurir menerima tugas → kurir melaporkan kemasan bocor → admin memutuskan
-pengembalian → kurir dan pembeli menerima informasi keputusan*.
+pengembalian → kurir dan penerima menerima informasi keputusan*.
+
+## Penerima paket
+
+Pembeli pada akun pelanggan adalah **pengirim**; tujuan pengantaran disimpan
+pada paketnya sendiri (`packages.recipient_name`, `recipient_phone`,
+`recipient_address`, `recipient_area`, `recipient_address_type`,
+`recipient_latitude`, `recipient_longitude`).
+
+- Penerima tidak punya akun dan tidak memakai aplikasi. Satu-satunya kanal
+  mereka adalah WhatsApp: konfirmasi jadwal, permintaan jadwal lain, dan pilihan
+  penyelesaian kendala dijawab dari nomor penerima. Balasannya diterapkan lewat
+  token paket, bukan tautan aplikasi pelanggan.
+- Perjalanan kurir tetap satu kaki — hub ke titik penerima. Validasi geofence
+  diukur dari koordinat penerima, bukan dari alamat pelanggan.
+- Profil pelanggan tetap identitas pengirim dan tidak lagi ditimpa data
+  pengantaran, jadi checkout aplikasi selalu mulai dari blok penerima yang
+  kosong.
+- Paket dari dashboard admin boleh tidak menyebut penerima: paket seperti itu
+  diantar ke pembeli sendiri, sama seperti sebelum blok penerima ada.
 
 ## WhatsApp
 
@@ -132,6 +154,9 @@ Suite PHPUnit berjalan di atas database yang sudah di-seed, jadi jalankan
 | Admin | `dimas@anteraja.id` / `password` |
 | Kurir | `budi@anteraja.id`, `ahmad@anteraja.id` / `password` |
 | Pembeli | nomor `+6281298765432` (Rina Putri) / `password` |
+
+Penerima paket tidak punya akun. Nomornya ada di kolom penerima tiap paket demo
+(mis. `+6281200010001` untuk Ibu Sari Wulandari, tujuan paket-paket demo Rina).
 
 `php artisan migrate:fresh --seed` juga mencetak URL bertoken untuk tiap paket
 demo supaya alur pembeli bisa dibuka tanpa aplikasi.

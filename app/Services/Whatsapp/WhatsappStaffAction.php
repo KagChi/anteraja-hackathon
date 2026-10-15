@@ -187,7 +187,7 @@ final class WhatsappStaffAction
                 return $this->done('courier_arrived', $package, 'Kedatangan Anda untuk paket '.$resi.' sudah dicatat dan pembeli sudah diberi tahu. Mohon siapkan serah terima paket beku.');
 
             case 'deliver':
-                $receivedBy = $note !== null && trim($note) !== '' ? trim($note) : ($package->buyer?->name ?? 'Penerima');
+                $receivedBy = $note !== null && trim($note) !== '' ? trim($note) : ($package->recipient_name ?? 'Penerima');
 
                 $this->confirmDelivery->execute($package, $courier, new ConfirmDeliveryData(
                     receivedBy: $receivedBy,

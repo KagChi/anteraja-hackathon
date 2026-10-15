@@ -85,9 +85,9 @@ final class WhatsappStaffActionTest extends TestCase
         );
 
         $this->buyer = Buyer::firstOrCreate(
-            ['phone' => '+6281300000199'],
+            ['phone' => '+6281300000100'],
             [
-                'name' => 'Rina Pembeli',
+                'name' => 'Rina Pengirim',
                 'address' => 'Jl. Melati Indah No. 42, Jakarta Selatan',
                 'area' => 'Tebet Barat',
             ]
@@ -108,6 +108,14 @@ final class WhatsappStaffActionTest extends TestCase
             'buyer_id' => $this->buyer->id,
             'created_by' => $this->admin->id,
             'courier_id' => $courier->id,
+            // The parcel's destination and WhatsApp contact is the recipient.
+            'recipient_name' => 'Penerima WhatsApp Staff',
+            'recipient_phone' => '+6281300000199',
+            'recipient_address' => 'Jl. Kenanga No. 3, Coblong',
+            'recipient_area' => 'Bandung, Jawa Barat',
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => -6.9175,
+            'recipient_longitude' => 107.6191,
             'status' => $status,
             'scheduled_at' => now()->addDay(),
             'scheduled_end_at' => now()->addDay()->addHours(2),
@@ -157,7 +165,7 @@ final class WhatsappStaffActionTest extends TestCase
         return $response->json();
     }
 
-    public function test_the_lookup_recognises_the_buyer_and_keeps_the_guest_link(): void
+    public function test_the_lookup_recognises_the_recipient_without_a_customer_link(): void
     {
         $package = $this->package(PackageStatus::AWAITING_CONFIRMATION, courier: $this->courier, attributes: ['courier_id' => null]);
 
@@ -166,7 +174,7 @@ final class WhatsappStaffActionTest extends TestCase
         $this->assertTrue($answer['found']);
         $this->assertSame('BUYER', $answer['role']);
         $this->assertSame($package->client_token, $answer['client_token']);
-        $this->assertArrayHasKey('client_url', $answer);
+        $this->assertArrayNotHasKey('client_url', $answer);
     }
 
     public function test_the_lookup_recognises_the_courier_without_leaking_the_buyer_token(): void

@@ -9,7 +9,6 @@ use App\Enums\RecipientType;
 use App\Models\Package;
 use App\Models\ScheduleConfirmation;
 use App\Models\Staff;
-use App\Services\Client\ClientLinkService;
 use App\Support\DisplayTime;
 use App\Support\NotificationQueue;
 use App\Support\PackageStatusTransitioner;
@@ -22,7 +21,6 @@ final class RescheduleShipment
     public function __construct(
         private readonly PackageStatusTransitioner $transitioner,
         private readonly NotificationQueue $notificationQueue,
-        private readonly ClientLinkService $linkService,
     ) {}
 
     public function execute(
@@ -55,7 +53,9 @@ final class RescheduleShipment
                 $admin
             );
 
-            // Queue notification to buyer
+            // Queue notification to the recipient: the delivery leg is their
+            // conversation, and their answer rides on the package token rather
+            // than on a customer app link.
             $this->notificationQueue->queue(
                 $updated,
                 RecipientType::BUYER,
@@ -63,7 +63,6 @@ final class RescheduleShipment
                 'schedule_rescheduled',
                 [
                     'tracking_number' => $updated->tracking_number,
-                    'client_url' => $this->linkService->entry($updated),
                     'window' => DisplayTime::windowLabel($newScheduledAt, $newScheduledEndAt),
                 ]
             );

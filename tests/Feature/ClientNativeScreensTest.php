@@ -62,7 +62,7 @@ final class ClientNativeScreensTest extends TestCase {
     public function test_the_landing_screen_offers_the_catalog_and_the_sign_up_cta(): void {
         Native::test(Landing::class)
             ->assertSee('Anteraja Frozen')
-            ->assertSee('Kiriman beku Anda sampai utuh, dingin, dan tercatat')
+            ->assertSee('Kiriman Anda sampai ke penerima, utuh, dingin, dan tercatat')
             ->assertSee('Lihat Katalog')
             ->assertSee('Produk Populer')
             ->assertSee('Nugget Ayam 1 kg')
@@ -158,7 +158,7 @@ final class ClientNativeScreensTest extends TestCase {
         Native::test(Checkout::class)->assertNavigatedTo('/client/register');
     }
 
-    public function test_checkout_reads_the_basket_prefills_the_recipient_and_posts_the_order(): void {
+    public function test_checkout_reads_the_basket_and_posts_the_order_to_the_recipient(): void {
         MobileToken::set(MobileToken::CLIENT, 'client-test-token');
         ClientCart::set(1, 2);
 
@@ -167,10 +167,18 @@ final class ClientNativeScreensTest extends TestCase {
             ->assertSee('Nugget Ayam 1 kg')
             ->assertSee('Rp 96.000')
             ->assertSet('cartCount', 2)
-            // Prefilled from the customer profile the API returns.
-            ->assertSet('recipientName', 'Rina Putri');
+            // The recipient block starts empty: the customer's own profile is
+            // never copied into the destination.
+            ->assertSet('recipientName', '')
+            ->assertSet('recipientPhone', '')
+            ->assertSet('recipientAddress', '');
 
         $screen->call('increment', 1)->assertSet('cartCount', 3);
+
+        $screen->set('recipientName', 'Ibu Sari')
+            ->set('recipientPhone', '081299900011')
+            ->set('recipientAddress', 'Jl. Kenanga No. 3, Coblong')
+            ->set('recipientArea', 'Bandung');
 
         $screen->call('submit')->assertNavigatedTo('/client/order-success?resi=AJ-FRZ-0012400');
 

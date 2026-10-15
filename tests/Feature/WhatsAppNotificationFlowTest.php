@@ -94,6 +94,15 @@ final class WhatsAppNotificationFlowTest extends TestCase
         $package = Package::create(array_merge([
             'buyer_id' => $this->buyer->id,
             'created_by' => $this->admin->id,
+            // The delivery-leg messages go to the recipient's number, not to
+            // the customer who sent the parcel.
+            'recipient_name' => 'Ibu Sari Penerima',
+            'recipient_phone' => '+6281300000199',
+            'recipient_address' => 'Jl. Kenanga No. 3, Coblong',
+            'recipient_area' => 'Bandung, Jawa Barat',
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => -6.9175,
+            'recipient_longitude' => 107.6191,
             'scheduled_at' => now()->addDay(),
             'scheduled_end_at' => now()->addDay()->addHours(2),
             'status' => PackageStatus::AWAITING_CONFIRMATION,
@@ -158,12 +167,14 @@ final class WhatsAppNotificationFlowTest extends TestCase
 
         $payload = $notification->refresh()->payload;
 
-        $this->assertSame('+6281300000188', $payload['recipient_phone']);
-        $this->assertSame('Rina Pembeli', $payload['recipient_name']);
-        $this->assertSame('Jl. Melati No. 14, Jakarta Selatan', $payload['address']);
+        // Addressed to the recipient, with the token the answer is applied
+        // through; the customer's app link is not part of it.
+        $this->assertSame('+6281300000199', $payload['recipient_phone']);
+        $this->assertSame('Ibu Sari Penerima', $payload['recipient_name']);
+        $this->assertSame('Jl. Kenanga No. 3, Coblong', $payload['address']);
         $this->assertSame($package->tracking_number, $payload['tracking_number']);
         $this->assertSame($package->client_token, $payload['client_token']);
-        $this->assertNotEmpty($payload['client_url']);
+        $this->assertArrayNotHasKey('client_url', $payload);
         // A caller that names the window keeps it.
         $this->assertSame('Besok 13:00-15:00', $payload['window']);
     }
@@ -298,7 +309,7 @@ final class WhatsAppNotificationFlowTest extends TestCase
 
         $this->assertNotNull($notification);
         $this->assertSame('kemasan_bocor', $notification->payload['issue_category']);
-        $this->assertSame('+6281300000188', $notification->payload['recipient_phone']);
+        $this->assertSame('+6281300000199', $notification->payload['recipient_phone']);
     }
 
     public function test_buyer_can_pick_return_option_from_whatsapp(): void

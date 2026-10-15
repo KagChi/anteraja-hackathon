@@ -109,8 +109,8 @@ final class ClientPayload {
             'product_meta' => (string) ($view['product_meta'] ?? ''),
             'eta_date' => $etaDate,
             'eta_time' => $etaTime,
-            'recipient' => (string) ($view['buyer_name'] ?? '-'),
-            'recipient_area' => (string) ($view['buyer_area'] ?? ''),
+            'recipient' => (string) ($view['recipient_name'] ?? '-'),
+            'recipient_area' => (string) ($view['recipient_area'] ?? ''),
             'courier' => (string) ($view['courier_name'] ?? '-'),
             'courier_box' => (string) ($view['cooler_box_code'] ?? '-'),
             'courier_phone' => (string) ($view['courier_phone'] ?? ''),
@@ -133,9 +133,9 @@ final class ClientPayload {
 
         return [
             'resi' => (string) ($view['tracking_number'] ?? ''),
-            'recipient' => (string) ($view['buyer_name'] ?? '-'),
+            'recipient' => (string) ($view['recipient_name'] ?? '-'),
             'courier' => (string) ($view['courier_name'] ?? '-'),
-            'address' => (string) ($view['buyer_address'] ?? ''),
+            'address' => (string) ($view['recipient_address'] ?? ''),
             'product' => (string) ($products[0] ?? 'Paket Frozen'),
         ];
     }

@@ -25,11 +25,12 @@ use Illuminate\Support\Facades\DB;
  * A shipment opened by the customer in the app rather than by the hub.
  *
  * It mirrors App\Actions\Packages\CreatePackage — schedule window, pending
- * confirmation, buyer notification — with two differences: the package has no
- * staff creator (source CLIENT_APP, created_by null), and the recipient block
- * doubles as the customer's own delivery profile, which is saved back onto the
- * buyer row so the next checkout is prefilled and the courier's geofence has
- * coordinates to work with.
+ * confirmation, notification — with two differences: the package has no staff
+ * creator (source CLIENT_APP, created_by null), and the recipient block is the
+ * customer's own choice of destination rather than their account profile. The
+ * buyer row is the customer who sends the parcel; it is never overwritten with
+ * the recipient, and the courier's geofence measures against the recipient
+ * coordinates stored here.
  */
 final class CreateClientOrder
 {
@@ -54,21 +55,6 @@ final class CreateClientOrder
         return DB::transaction(function () use ($buyer, $data): Package {
             $recipient = $data['recipient'];
 
-            $buyer->fill([
-                'name' => $recipient['name'],
-                'phone' => $recipient['phone'],
-                'address' => $recipient['address'],
-                'area' => $recipient['area'] ?? null,
-                'address_type' => AddressType::fromInput((string) ($recipient['address_type'] ?? '')) ?? AddressType::RESIDENTIAL,
-            ]);
-
-            if (isset($recipient['latitude'], $recipient['longitude'])) {
-                $buyer->latitude = (float) $recipient['latitude'];
-                $buyer->longitude = (float) $recipient['longitude'];
-            }
-
-            $buyer->save();
-
             // 1. Resolve the cart against the catalog. Only rows the storefront
             //    actually offers can be ordered, and weight/category come from
             //    the products rather than from the client.
@@ -88,6 +74,13 @@ final class CreateClientOrder
                 'source' => PackageSource::CLIENT_APP,
                 'courier_id' => null,
                 'status' => PackageStatus::CREATED,
+                'recipient_name' => $recipient['name'],
+                'recipient_phone' => $recipient['phone'],
+                'recipient_address' => $recipient['address'],
+                'recipient_area' => $recipient['area'] ?? null,
+                'recipient_address_type' => AddressType::fromInput((string) ($recipient['address_type'] ?? '')) ?? AddressType::RESIDENTIAL,
+                'recipient_latitude' => isset($recipient['latitude']) ? (float) $recipient['latitude'] : null,
+                'recipient_longitude' => isset($recipient['longitude']) ? (float) $recipient['longitude'] : null,
                 'package_category' => $lines[0]['product']->category ?? 'Frozen Food',
                 'service_type' => ServiceType::from((string) $data['service_type']),
                 'koli_count' => 1,

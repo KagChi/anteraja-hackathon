@@ -83,6 +83,14 @@ final class ClientFlowTest extends TestCase
         $pkg = Package::create(array_merge([
             'buyer_id' => $this->buyer->id,
             'created_by' => $this->admin->id,
+            // The customer sends the parcel; the destination is the recipient.
+            'recipient_name' => 'Ibu Sari Penerima',
+            'recipient_phone' => '+628111222333',
+            'recipient_address' => 'Jl. Kenanga No. 3, Coblong',
+            'recipient_area' => 'Bandung, Jawa Barat',
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => -6.9175,
+            'recipient_longitude' => 107.6191,
             'scheduled_at' => now()->addDay(),
             'scheduled_end_at' => now()->addDay()->addHours(2),
             'status' => PackageStatus::AWAITING_CONFIRMATION,
@@ -230,7 +238,7 @@ final class ClientFlowTest extends TestCase
                     'tracking_number' => $pkg->tracking_number,
                     'status' => 'IN_DELIVERY',
                     'status_label' => 'Sedang Diantar',
-                    'buyer_name' => 'Siti Pembeli',
+                    'recipient_name' => 'Ibu Sari Penerima',
                     'courier_name' => 'Budi Courier',
                     'can_contact_courier' => true,
                     'courier_phone' => $this->courier->phone,
@@ -401,7 +409,10 @@ final class ClientFlowTest extends TestCase
             ->first();
 
         $this->assertNotNull($buyerNotif);
-        $this->assertArrayHasKey('client_url', $buyerNotif->payload);
+        // The notice goes to the recipient's number, so it carries no customer
+        // app link — only the package token the answer is applied through.
+        $this->assertArrayNotHasKey('client_url', $buyerNotif->payload);
+        $this->assertSame($pkg->recipient_phone, $buyerNotif->payload['recipient_phone']);
     }
 
     public function test_remind_unanswered_confirmations_command(): void

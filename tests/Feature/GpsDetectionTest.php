@@ -137,18 +137,32 @@ final class GpsDetectionTest extends TestCase
     public function test_the_geofence_uses_the_service_radius(): void
     {
         $geofence = app(GeofenceEvaluator::class);
-        $buyer = $this->package->buyer;
+        // The radius is measured against the parcel's destination — the
+        // recipient the customer named, not the sender's own address.
+        $destination = $this->package->recipient;
 
         $this->assertSame(100, $geofence->radiusFor(ServiceType::REGULER));
         $this->assertSame(30, $geofence->radiusFor(ServiceType::INSTANT_FROZEN));
 
         // Roughly 150 m north of the destination.
-        $outside = $geofence->evaluate($buyer, -6.228400, 106.845600, ServiceType::INSTANT_FROZEN);
+        $outside = $geofence->evaluate(
+            $destination['latitude'],
+            $destination['longitude'],
+            -6.228400,
+            106.845600,
+            ServiceType::INSTANT_FROZEN,
+        );
         $this->assertFalse($outside['inside']);
         $this->assertGreaterThan($outside['radius_m'], $outside['distance_m']);
 
         // Roughly 15 m away.
-        $inside = $geofence->evaluate($buyer, -6.229876, 106.848529, ServiceType::INSTANT_FROZEN);
+        $inside = $geofence->evaluate(
+            $destination['latitude'],
+            $destination['longitude'],
+            -6.229876,
+            106.848529,
+            ServiceType::INSTANT_FROZEN,
+        );
         $this->assertTrue($inside['inside']);
     }
 
@@ -177,7 +191,7 @@ final class GpsDetectionTest extends TestCase
         $courier = Staff::where('role', StaffRole::COURIER)->firstOrFail();
 
         $buyer = Buyer::create([
-            'name' => 'Penerima GPS',
+            'name' => 'Rina Pengirim',
             'phone' => '+6281255500077',
             'password' => 'rahasia123',
             'address' => 'Jl. Tebet Barat Dalam No. 5',
@@ -191,6 +205,13 @@ final class GpsDetectionTest extends TestCase
             'buyer_id' => $buyer->id,
             'created_by' => $admin->id,
             'courier_id' => $courier->id,
+            'recipient_name' => 'Penerima GPS',
+            'recipient_phone' => $buyer->phone,
+            'recipient_address' => $buyer->address,
+            'recipient_area' => $buyer->area,
+            'recipient_address_type' => 'RESIDENTIAL',
+            'recipient_latitude' => $buyer->latitude,
+            'recipient_longitude' => $buyer->longitude,
             'status' => PackageStatus::IN_DELIVERY,
             'scheduled_at' => Carbon::now('UTC')->addHour(),
             'weight_kg' => 1.0,

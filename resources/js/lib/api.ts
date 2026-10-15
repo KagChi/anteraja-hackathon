@@ -59,6 +59,8 @@ export interface ShipmentRow {
     id: number;
     tracking: string;
     buyer: string;
+    /** The person the courier hands the parcel to; the buyer is the sender. */
+    recipient: string;
     location: string;
     schedule: string;
     courier: string | null;
@@ -123,6 +125,15 @@ export interface PackageDetail {
     status: string;
     status_ref: { code: string; label: string } | null;
     buyer: { name: string; phone: string | null; address: string; area: string | null } | null;
+    recipient: {
+        name: string | null;
+        phone: string | null;
+        address: string | null;
+        area: string | null;
+        address_type: string | null;
+        latitude: number | null;
+        longitude: number | null;
+    } | null;
     courier: { id: number; name: string } | null;
     courier_id: number | null;
     scheduled_at: string | null;
@@ -396,6 +407,8 @@ export interface NewBuyerPayload {
 export interface CreateShipmentPayload {
     buyer_id?: number;
     buyer?: NewBuyerPayload;
+    /** Omitted when the parcel goes to the buyer themselves. */
+    recipient?: NewBuyerPayload;
     items: Array<{ product_id: number; quantity: number }>;
     scheduled_date: string;
     window_start: string;

@@ -287,7 +287,7 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr className="h-9 bg-surface-container-low">
-                                {["Resi", "Pembeli", "Jadwal", "Kurir", "Status"].map((heading) => (
+                                {["Resi", "Pengirim / Penerima", "Jadwal", "Kurir", "Status"].map((heading) => (
                                     <th
                                         key={heading}
                                         className="px-space-lg font-label-sm font-semibold text-label-sm text-secondary uppercase tracking-wider"
@@ -327,7 +327,13 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                                         </div>
                                     </td>
                                     <td className="px-space-lg">
-                                        <div className="font-body-sm text-body-sm text-on-surface">{row.buyer}</div>
+                                        <div className="font-body-sm text-body-sm text-on-surface">
+                                            {row.recipient}
+                                            <span className="font-label-sm text-label-sm text-secondary">
+                                                {" "}
+                                                dari {row.buyer}
+                                            </span>
+                                        </div>
                                         <div className="font-label-sm text-label-sm text-secondary">{row.location}</div>
                                     </td>
                                     <td className="whitespace-nowrap px-space-lg">
@@ -457,7 +463,7 @@ export default function Shipment({ status: initialStatus, date: initialDate }: S
                 currentId={assignTarget?.courier_id ?? null}
                 subtitle={
                     assignTarget
-                        ? `${assignTarget.tracking} • ${assignTarget.buyer} (${assignTarget.location})`
+                        ? `${assignTarget.tracking} • ${assignTarget.recipient} (${assignTarget.location})`
                         : undefined
                 }
                 onClose={() => setAssignTarget(null)}
@@ -528,6 +534,11 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
     const [buyerMode, setBuyerMode] = useState<"new" | "existing">("new");
     const [buyerId, setBuyerId] = useState("");
     const [buyer, setBuyer] = useState({ name: "", phone: "", address: "", area: "" });
+    // Most counter shipments go to the buyer themselves, so the recipient block
+    // stays off and the API copies the buyer's details. Tick it off when the
+    // parcel is meant for someone else — family at another address.
+    const [recipientGiven, setRecipientGiven] = useState(false);
+    const [recipient, setRecipient] = useState({ name: "", phone: "", address: "", area: "" });
     const [items, setItems] = useState<ItemDraft[]>([{ id: 1, product_id: "", quantity: "1" }]);
     const [scheduledDate, setScheduledDate] = useState(todayIso());
     const [slot, setSlot] = useState(DELIVERY_SLOTS[2]);
@@ -590,6 +601,16 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                               ...(buyer.area.trim() === "" ? {} : { area: buyer.area.trim() })
                           }
                       }),
+                ...(recipientGiven
+                    ? {
+                          recipient: {
+                              name: recipient.name.trim(),
+                              phone: recipient.phone.trim(),
+                              address: recipient.address.trim(),
+                              ...(recipient.area.trim() === "" ? {} : { area: recipient.area.trim() })
+                          }
+                      }
+                    : {}),
                 items: items.map((item) => ({
                     product_id: Number(item.product_id),
                     quantity: Number(item.quantity)
@@ -741,6 +762,83 @@ function CreateShipmentDialog({ onClose, onCreated }: CreateShipmentDialogProps)
                             </label>
                         </div>
                     )}
+                </section>
+
+                <section className="flex flex-col gap-space-sm">
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">Penerima</span>
+                    <label className="flex items-start gap-space-sm" htmlFor="recipient-same-as-buyer">
+                        <input
+                            id="recipient-same-as-buyer"
+                            type="checkbox"
+                            checked={!recipientGiven}
+                            onChange={(event) => setRecipientGiven(!event.target.checked)}
+                            className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+                        />
+                        <span className="font-body-sm text-body-sm text-secondary">
+                            Sama dengan pengirim — biarkan tercentang kalau paket diantar ke alamat pengirim sendiri.
+                        </span>
+                    </label>
+
+                    {recipientGiven ? (
+                        <div className="grid grid-cols-1 gap-space-sm sm:grid-cols-2">
+                            <label className="flex flex-col gap-1" htmlFor="new-recipient-name">
+                                <span className="font-body-sm text-body-sm text-secondary">Nama penerima</span>
+                                <input
+                                    id="new-recipient-name"
+                                    value={recipient.name}
+                                    onChange={(event) => setRecipient({ ...recipient, name: event.target.value })}
+                                    required
+                                    className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                                />
+                                {fieldError("recipient.name") ? (
+                                    <span className="font-body-sm text-body-sm text-error">
+                                        {fieldError("recipient.name")}
+                                    </span>
+                                ) : null}
+                            </label>
+                            <label className="flex flex-col gap-1" htmlFor="new-recipient-phone">
+                                <span className="font-body-sm text-body-sm text-secondary">Telepon penerima</span>
+                                <input
+                                    id="new-recipient-phone"
+                                    value={recipient.phone}
+                                    onChange={(event) => setRecipient({ ...recipient, phone: event.target.value })}
+                                    required
+                                    className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                                />
+                                {fieldError("recipient.phone") ? (
+                                    <span className="font-body-sm text-body-sm text-error">
+                                        {fieldError("recipient.phone")}
+                                    </span>
+                                ) : null}
+                            </label>
+                            <label className="flex flex-col gap-1 sm:col-span-2" htmlFor="new-recipient-address">
+                                <span className="font-body-sm text-body-sm text-secondary">Alamat penerima</span>
+                                <input
+                                    id="new-recipient-address"
+                                    value={recipient.address}
+                                    onChange={(event) => setRecipient({ ...recipient, address: event.target.value })}
+                                    required
+                                    className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                                />
+                                {fieldError("recipient.address") ? (
+                                    <span className="font-body-sm text-body-sm text-error">
+                                        {fieldError("recipient.address")}
+                                    </span>
+                                ) : null}
+                            </label>
+                            <label className="flex flex-col gap-1 sm:col-span-2" htmlFor="new-recipient-area">
+                                <span className="font-body-sm text-body-sm text-secondary">
+                                    Area penerima (opsional, mis. Tebet, Jaksel)
+                                </span>
+                                <input
+                                    id="new-recipient-area"
+                                    value={recipient.area}
+                                    onChange={(event) => setRecipient({ ...recipient, area: event.target.value })}
+                                    className="h-9 rounded-md border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                                />
+                            </label>
+                        </div>
+                    ) : null}
                 </section>
 
                 <section className="flex flex-col gap-space-sm">

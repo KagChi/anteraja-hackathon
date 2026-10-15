@@ -9,7 +9,6 @@ use App\Enums\StaffRole;
 use App\Http\Controllers\Controller;
 use App\Models\Package;
 use App\Models\Staff;
-use App\Services\Client\ClientLinkService;
 use App\Services\Client\OrderPresenter;
 use App\Support\DisplayTime;
 use App\Support\PhoneFormatter;
@@ -20,21 +19,23 @@ use Illuminate\Http\Request;
  * Menghubungkan satu nomor WhatsApp dengan paket yang sedang ia tangani, jadi
  * workflow n8n inbound tahu langkah apa yang sedang menunggu.
  *
- * Pembeli, kurir, dan admin dikenali dari nomor pengirimnya:
+ * Penerima, kurir, dan admin dikenali dari nomor pengirimnya:
  *
- * - BUYER: nomor harus sama dengan nomor pembeli paket itu. Hanya pemilik
- *   paket yang bisa membukanya.
+ * - BUYER: nomor harus sama dengan nomor penerima paket itu — orang yang
+ *   menerima kiriman, bukan pelanggan yang mengirimnya. Pelanggan memantau
+ *   pesanannya di aplikasi dan tidak ikut percakapan pengantaran.
  * - COURIER: hanya paket yang ditugaskan ke kurir tersebut.
  * - ADMIN: paket yang sedang menunggu keputusan kendala.
  *
- * Tautan dan token pelanggan hanya dikirim ke pembelinya sendiri.
+ * Token paket ikut dikembalikan karena workflow memakainya untuk menerapkan
+ * balasan penerima; tautan aplikasi pelanggan tidak, sebab penerima tidak
+ * punya akun.
  */
 final class WhatsappLookupController extends Controller
 {
     public function __invoke(
         Request $request,
         OrderPresenter $presenter,
-        ClientLinkService $linkService,
     ): JsonResponse {
         $validated = $request->validate([
             'phone' => ['required', 'string', 'max:32'],
@@ -54,13 +55,12 @@ final class WhatsappLookupController extends Controller
             return response()->json(['found' => false, 'role' => null]);
         }
 
-        if ($package->buyer !== null && $package->buyer->phone === $phone) {
+        if ($package->recipient_phone !== null && $package->recipient_phone === $phone) {
             return response()->json([
                 'found' => true,
                 'role' => 'BUYER',
                 'tracking_number' => $package->tracking_number,
                 'client_token' => $package->client_token,
-                'client_url' => $linkService->entry($package),
                 'template' => $this->templateFor($presenter, $package),
                 'status_label' => $this->statusLabel($package),
                 'window' => DisplayTime::windowLabel($package->scheduled_at, $package->scheduled_end_at),

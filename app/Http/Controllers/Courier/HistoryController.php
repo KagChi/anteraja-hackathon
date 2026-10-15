@@ -43,7 +43,7 @@ final class HistoryController extends Controller
 
             return [
                 'resi' => $pkg->tracking_number,
-                'recipient' => $pkg->buyer?->name ?? '-',
+                'recipient' => $pkg->recipient_name ?? '-',
                 'completedAt' => $completedAtFormatted,
                 'status' => $statusLabel,
             ];

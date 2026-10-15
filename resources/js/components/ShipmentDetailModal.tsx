@@ -27,6 +27,12 @@ interface ShipmentDetailModalProps {
     onChanged?: () => void;
 }
 
+/**
+ * Statuses the assignment endpoint still accepts a courier for; mirrors
+ * App\Actions\Packages\AssignCourier::ASSIGNABLE_STATUSES.
+ */
+const ASSIGNABLE_STATUSES = ["CONFIRMED", "COURIER_ASSIGNED", "CHECKED", "ISSUE_REPORTED"];
+
 /** Status chip shared by the header and the kendala panel. */
 function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
     return (
@@ -456,6 +462,10 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
     const photoCaption = issue ? "Foto pemeriksaan" : "Foto serah terima";
     const photoMeta = issue ? "Laporan kurir" : "Diterima pembeli";
     const checklist = issue?.checklist.filter((item) => item.answered) ?? [];
+    // Mirrors AssignCourier::ASSIGNABLE_STATUSES. Past handover the parcel is
+    // on the road, so the desk cannot swap the courier and the button says so
+    // instead of letting the picker fail on submit.
+    const canAssignCourier = ASSIGNABLE_STATUSES.includes(detail?.package.status ?? "");
 
     return (
         <>
@@ -505,7 +515,7 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                                     <Pill tone={detail.tone}>{detail.statusLabel}</Pill>
                                 </div>
                                 <p className="truncate font-body-sm text-body-sm text-secondary">
-                                    {detail.package.buyer?.name ?? "-"} · {detail.package.buyer?.address ?? "-"}
+                                    {detail.package.recipient?.name ?? "-"} · {detail.package.recipient?.address ?? "-"}
                                 </p>
                             </div>
                             <CloseButton onClick={onClose} />
@@ -518,9 +528,14 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                                 </h3>
                                 <div className="divide-y divide-surface-container rounded-lg border border-outline-variant">
                                     <Fact
-                                        label="Pembeli"
+                                        label="Pengirim"
                                         value={detail.package.buyer?.name ?? "-"}
                                         hint={detail.package.buyer?.address ?? "-"}
+                                    />
+                                    <Fact
+                                        label="Penerima"
+                                        value={detail.package.recipient?.name ?? "-"}
+                                        hint={detail.package.recipient?.address ?? "-"}
                                     />
                                     <Fact
                                         label="Kurir"
@@ -632,6 +647,12 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                                     setActionError(null);
                                     setPickerOpen(true);
                                 }}
+                                disabled={!canAssignCourier}
+                                title={
+                                    canAssignCourier
+                                        ? undefined
+                                        : "Paket sudah diantar atau selesai; kurir tidak dapat diubah."
+                                }
                             />
                             <SecondaryButton
                                 icon="image"
@@ -677,7 +698,7 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                 currentId={detail?.package.courier_id ?? null}
                 subtitle={
                     detail
-                        ? `${detail.package.buyer?.name ?? "-"} (${detail.package.buyer?.address ?? "-"})`
+                        ? `${detail.package.recipient?.name ?? "-"} (${detail.package.recipient?.address ?? "-"})`
                         : undefined
                 }
                 onClose={() => setPickerOpen(false)}

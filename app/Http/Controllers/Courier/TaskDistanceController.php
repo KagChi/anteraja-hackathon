@@ -17,13 +17,11 @@ final class TaskDistanceController extends Controller
     public function __invoke(DistanceRequest $request, string $trackingNumber): JsonResponse|Response
     {
         $package = Package::where('tracking_number', $trackingNumber)
-            ->with('buyer')
             ->firstOrFail();
 
         Gate::authorize('view', $package);
 
-        $buyer = $package->buyer;
-        if (! $buyer || $buyer->latitude === null || $buyer->longitude === null) {
+        if ($package->recipient_latitude === null || $package->recipient_longitude === null) {
             return response()->noContent();
         }
 
@@ -33,8 +31,8 @@ final class TaskDistanceController extends Controller
         $distanceKm = GeoDistance::haversine(
             $courierLat,
             $courierLng,
-            (float) $buyer->latitude,
-            (float) $buyer->longitude
+            $package->recipient_latitude,
+            $package->recipient_longitude
         );
 
         $etaMinutes = GeoDistance::etaMinutes($distanceKm);

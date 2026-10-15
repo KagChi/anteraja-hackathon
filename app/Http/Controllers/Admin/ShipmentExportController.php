@@ -21,8 +21,9 @@ final class ShipmentExportController extends Controller
 
         $headers = [
             'RESI',
-            'PEMBELI',
-            'AREA',
+            'PENGIRIM',
+            'PENERIMA',
+            'AREA TUJUAN',
             'JADWAL',
             'KURIR',
             'STATUS',
@@ -33,7 +34,8 @@ final class ShipmentExportController extends Controller
             return [
                 $pkg->tracking_number,
                 $pkg->buyer?->name ?? '',
-                $pkg->buyer?->area ?? $pkg->buyer?->address ?? '',
+                $pkg->recipient_name ?? '',
+                $pkg->recipient_area ?? $pkg->recipient_address ?? '',
                 DisplayTime::windowLabel($pkg->scheduled_at, $pkg->scheduled_end_at),
                 $pkg->courier?->name ?? 'Belum Ditugaskan',
                 $pkg->statusRef?->label ?? $pkg->status->value,

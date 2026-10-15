@@ -13,7 +13,7 @@
             </native:column>
             <native:text class="text-xl font-bold text-theme-on-primary">Pesanan berhasil dibuat</native:text>
             <native:text class="text-sm text-theme-on-primary">
-                Hub akan mengonfirmasi jadwal, lalu kurir berangkat membawa paket beku Anda.
+                Hub mengonfirmasi jadwal ke penerima lewat WhatsApp, lalu kurir berangkat mengantar paket.
             </native:text>
         </native:column>
 
@@ -79,8 +79,8 @@
                 <native:text class="text-sm font-bold text-theme-tertiary uppercase">Langkah berikutnya</native:text>
             </native:row>
             <native:text class="text-sm leading-snug text-theme-secondary">
-                Buka tab Pesanan untuk melacak status dan mengonfirmasi jadwal pengantaran begitu hub mengirim
-                pemberitahuan.
+                Buka tab Pesanan untuk melacak status paket. Penerima yang mengonfirmasi jadwal kedatangan lewat
+                WhatsApp.
             </native:text>
         </native:column>
 

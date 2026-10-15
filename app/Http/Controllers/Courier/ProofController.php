@@ -23,7 +23,6 @@ final class ProofController extends Controller
     public function create(Request $request, string $trackingNumber): JsonResponse
     {
         $package = Package::where('tracking_number', $trackingNumber)
-            ->with('buyer')
             ->firstOrFail();
 
         Gate::authorize('update', $package);
@@ -39,7 +38,7 @@ final class ProofController extends Controller
             'proofForm' => [
                 'tracking' => $package->tracking_number,
                 'service' => $package->service_type?->label() ?? 'Reguler',
-                'recipient' => $package->buyer?->name ?? '',
+                'recipient' => $package->recipient_name ?? '',
                 'relations' => [
                     'Penerima Sendiri',
                     'Keluarga Serumah',

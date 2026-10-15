@@ -75,6 +75,8 @@ final class ShipmentIndexQuery
                 $q->where('packages.tracking_number', 'ILIKE', $term)
                     ->orWhere('buyers.name', 'ILIKE', $term)
                     ->orWhere('buyers.area', 'ILIKE', $term)
+                    ->orWhere('packages.recipient_name', 'ILIKE', $term)
+                    ->orWhere('packages.recipient_area', 'ILIKE', $term)
                     ->orWhere('couriers.name', 'ILIKE', $term);
             });
         }

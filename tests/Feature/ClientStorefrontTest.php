@@ -146,7 +146,17 @@ final class ClientStorefrontTest extends TestCase
         $this->assertSame(ServiceType::INSTANT_FROZEN, $package->service_type);
         $this->assertSame(2, $package->items()->count());
         $this->assertSame(2.5, (float) $package->weight_kg);
-        $this->assertSame('COMMERCIAL', $package->buyer?->address_type?->value);
+        // What the customer typed becomes the parcel's destination, and the
+        // buyer row — the sender — is left alone.
+        $this->assertSame('Pelanggan Checkout', $package->recipient_name);
+        $this->assertSame('+6281299900011', $package->recipient_phone);
+        $this->assertSame('Jl. Tebet Barat Dalam No. 5', $package->recipient_address);
+        $this->assertSame('Tebet, Jakarta Selatan', $package->recipient_area);
+        $this->assertSame('COMMERCIAL', $package->recipient_address_type?->value);
+        $this->assertSame(-6.229746, $package->recipient_latitude);
+        $this->assertSame(106.848529, $package->recipient_longitude);
+        $this->assertSame('RESIDENTIAL', $package->buyer?->address_type?->value);
+        $this->assertSame('Jl. Tebet Barat Dalam No. 5', $package->buyer?->address);
 
         // The hub queue can work the app queue on its own.
         $admin = Staff::where('role', StaffRole::ADMIN)->firstOrFail();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Packages;
 
+use App\Enums\AddressType;
 use App\Enums\ConfirmationResponse;
 use App\Enums\PackageStatus;
 use App\Enums\RecipientType;
@@ -31,6 +32,7 @@ final class CreatePackage
      * @param array{
      *     buyer_id?: ?int,
      *     buyer?: ?array{name: string, phone: string, address: string, area?: ?string},
+     *     recipient?: ?array{name: string, phone: string, address: string, area?: ?string, address_type?: ?string, latitude?: ?float, longitude?: ?float},
      *     items: list<array{product_id: int, quantity: int}>,
      *     scheduled_date: string,
      *     window_start: string,
@@ -45,8 +47,10 @@ final class CreatePackage
     {
         return DB::transaction(function () use ($data, $admin): Package {
             // 1. Resolve Buyer
+            $buyer = null;
             if (! empty($data['buyer_id'])) {
                 $buyerId = (int) $data['buyer_id'];
+                $buyer = Buyer::find($buyerId);
             } else {
                 $buyerData = $data['buyer'] ?? [];
                 $phone = $buyerData['phone'] ?? '';
@@ -70,7 +74,33 @@ final class CreatePackage
                 $buyerId = $buyer->id;
             }
 
-            // 2. Parse schedule window in Jakarta timezone, convert to UTC
+            // 2. Resolve the destination. A hub shipment that names no
+            //    recipient is a shipment to the buyer themselves, which is how
+            //    every counter parcel worked before the recipient block.
+            $recipient = is_array($data['recipient'] ?? null) ? $data['recipient'] : [];
+            $namesRecipient = $recipient !== [];
+
+            $recipientBlock = [
+                'recipient_name' => $recipient['name'] ?? $buyer?->name,
+                'recipient_phone' => $recipient['phone'] ?? $buyer?->phone,
+                'recipient_address' => $recipient['address'] ?? $buyer?->address,
+                'recipient_area' => $recipient['area'] ?? $buyer?->area,
+                'recipient_address_type' => isset($recipient['address_type'])
+                    ? (AddressType::fromInput((string) $recipient['address_type']) ?? AddressType::RESIDENTIAL)
+                    : ($buyer?->address_type ?? AddressType::RESIDENTIAL),
+                // Coordinates are only inherited when the parcel really is a
+                // shipment to the buyer. A named recipient without coordinates
+                // keeps none, so the geofence stays silent instead of measuring
+                // the courier against the sender's own house.
+                'recipient_latitude' => isset($recipient['latitude'])
+                    ? (float) $recipient['latitude']
+                    : ($namesRecipient ? null : $buyer?->latitude),
+                'recipient_longitude' => isset($recipient['longitude'])
+                    ? (float) $recipient['longitude']
+                    : ($namesRecipient ? null : $buyer?->longitude),
+            ];
+
+            // 3. Parse schedule window in Jakarta timezone, convert to UTC
             $dateStr = $data['scheduled_date'];
             $startJkt = Carbon::createFromFormat('Y-m-d H:i', "{$dateStr} {$data['window_start']}", DisplayTime::DISPLAY_TIMEZONE);
             $endJkt = Carbon::createFromFormat('Y-m-d H:i', "{$dateStr} {$data['window_end']}", DisplayTime::DISPLAY_TIMEZONE);
@@ -78,11 +108,12 @@ final class CreatePackage
             $scheduledAtUtc = $startJkt !== false ? $startJkt->setTimezone('UTC') : Carbon::now('UTC');
             $scheduledEndAtUtc = $endJkt !== false ? $endJkt->setTimezone('UTC') : Carbon::now('UTC')->addHours(2);
 
-            // 3. Create Package (Status: CREATED)
+            // 4. Create Package (Status: CREATED)
             $serviceType = isset($data['service_type']) ? ServiceType::tryFrom($data['service_type']) ?? ServiceType::REGULER : ServiceType::REGULER;
             $koliCount = isset($data['koli_count']) ? max(1, (int) $data['koli_count']) : 1;
 
             $package = Package::create([
+                ...$recipientBlock,
                 'buyer_id' => $buyerId,
                 'created_by' => $admin->id,
                 'courier_id' => null,

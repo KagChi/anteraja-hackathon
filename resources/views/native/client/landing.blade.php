@@ -11,15 +11,15 @@
             <native:row class="items-center gap-2">
                 <native:icon :ios="Ios::Snowflake" :android="Android::AcUnit" :size="18"
                     class="text-theme-on-primary" />
-                <native:text class="text-sm text-theme-on-primary uppercase">Rantai dingin -18°C</native:text>
+                <native:text class="text-sm text-theme-on-primary uppercase">Kirim ke keluarga</native:text>
             </native:row>
 
             <native:text class="text-2xl font-bold leading-snug text-theme-on-primary">
-                Kiriman beku Anda sampai utuh, dingin, dan tercatat
+                Kiriman Anda sampai ke penerima, utuh, dingin, dan tercatat
             </native:text>
 
             <native:text class="text-sm leading-snug text-theme-on-primary">
-                Pesan produk beku, pilih jadwal antar, dan pantau kurir sampai paket diterima.
+                Pilih isi paket, isi alamat penerima, lalu pantau kurir sampai paket diterima.
             </native:text>
 
             <native:row class="w-full gap-2 pt-1">

@@ -304,8 +304,8 @@ final class DemoDataSeeder extends Seeder
 
         DB::table('deliveries')->insert([
             'package_id' => $pkg4Id,
-            'received_by' => 'Kevin Tan (Penerima Sendiri)',
-            'recipient_relation' => 'SELF',
+            'received_by' => 'Keluarga Kevin Tan (Keluarga Serumah)',
+            'recipient_relation' => 'FAMILY',
             'photo_url' => null,
             'receipt_note' => 'Paket diterima dalam kondisi beku sempurna.',
             'delivered_at' => $now->copy()->subHours(3),
@@ -393,8 +393,8 @@ final class DemoDataSeeder extends Seeder
 
         DB::table('deliveries')->insert([
             'package_id' => $pkg6Id,
-            'received_by' => 'Rizky Ramadhan',
-            'recipient_relation' => 'SELF',
+            'received_by' => 'Keluarga Ramadhan (Keluarga Serumah)',
+            'recipient_relation' => 'FAMILY',
             'photo_url' => null,
             'receipt_note' => 'Selesai diantar kemarin.',
             'delivered_at' => $now->copy()->subDays(1)->addHours(1),
@@ -698,6 +698,39 @@ final class DemoDataSeeder extends Seeder
         ]);
 
         // Update tracking sequence past the highest sample tracking number
+        // 4. Destinations. The buyer is the customer who sends the parcel; the
+        //    recipient is the family member at the door. They have no account
+        //    and are reached over WhatsApp, so every demo parcel carries its own
+        //    name, number, address and coordinates.
+        $destinations = [
+            'AJ-FRZ-0012345' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012346' => ['Pak Hendra Wijaya Senior', '+6281200010002', 'Jl. Pandanaran No. 42, Semarang Tengah', 'Semarang, Jawa Tengah', -6.9667, 110.4167],
+            'AJ-FRZ-0012347' => ['Mbak Nur Aisyah', '+6281200010003', 'Jl. Kaliurang Km 5, Sleman', 'Yogyakarta, DI Yogyakarta', -7.7956, 110.3695],
+            'AJ-FRZ-0012348' => ['Keluarga Kevin Tan', '+6281200010004', 'Jl. Raya Darmo No. 12, Wonokromo', 'Surabaya, Jawa Timur', -7.2575, 112.7521],
+            'AJ-FRZ-0012349' => ['Om Robert Lestari', '+6281200010005', 'Jl. Gatot Subroto No. 77, Medan Petisah', 'Medan, Sumatera Utara', 3.5952, 98.6722],
+            'AJ-FRZ-0012350' => ['Keluarga Ramadhan', '+6281200010006', 'Jl. Pettarani No. 5, Panakkukang', 'Makassar, Sulawesi Selatan', -5.1477, 119.4327],
+            'AJ-FRZ-0012351' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012352' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012353' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012354' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012361' => ['Mbak Nur Aisyah', '+6281200010003', 'Jl. Kaliurang Km 5, Sleman', 'Yogyakarta, DI Yogyakarta', -7.7956, 110.3695],
+            'AJ-FRZ-0012362' => ['Ibu Sari Wulandari', '+6281200010001', 'Jl. Cihampelas No. 88, Coblong', 'Bandung, Jawa Barat', -6.9175, 107.6191],
+            'AJ-FRZ-0012363' => ['Om Robert Lestari', '+6281200010005', 'Jl. Gatot Subroto No. 77, Medan Petisah', 'Medan, Sumatera Utara', 3.5952, 98.6722],
+            'AJ-FRZ-0012364' => ['Keluarga Kevin Tan', '+6281200010004', 'Jl. Raya Darmo No. 12, Wonokromo', 'Surabaya, Jawa Timur', -7.2575, 112.7521],
+        ];
+
+        foreach ($destinations as $resi => [$name, $phone, $address, $area, $latitude, $longitude]) {
+            DB::table('packages')->where('tracking_number', $resi)->update([
+                'recipient_name' => $name,
+                'recipient_phone' => $phone,
+                'recipient_address' => $address,
+                'recipient_area' => $area,
+                'recipient_address_type' => 'RESIDENTIAL',
+                'recipient_latitude' => $latitude,
+                'recipient_longitude' => $longitude,
+            ]);
+        }
+
         DB::statement("SELECT setval('package_tracking_seq', 12370, true)");
 
         // Output client demo tokens and URLs
