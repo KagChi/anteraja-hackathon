@@ -6,7 +6,6 @@ return [
     'status' => [
         'CREATED' => 'Paket Diproses',
         'AWAITING_CONFIRMATION' => 'Menunggu Konfirmasi',
-        'RESCHEDULE_REQUESTED' => 'Menunggu Penjadwalan Ulang',
         'CONFIRMED' => 'Jadwal Dikonfirmasi',
         'COURIER_ASSIGNED' => 'Kurir Ditugaskan',
         'CHECKED' => 'Pemeriksaan Kemasan',
@@ -45,10 +44,6 @@ return [
         'awaiting_confirmation' => [
             'title' => 'Menunggu Konfirmasi Jadwal',
             'description' => 'Mohon konfirmasi jadwal pengantaran.',
-        ],
-        'reschedule_requested' => [
-            'title' => 'Permintaan Jadwal Ulang',
-            'description' => 'Permintaan Anda diterima, admin akan mengusulkan jadwal baru.',
         ],
         'confirmed' => [
             'title' => 'Jadwal Dikonfirmasi',

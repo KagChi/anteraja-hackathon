@@ -73,8 +73,8 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 - Aktor & Otorisasi: pembeli pemilik paket (client.owned) atau guest pemegang tautan.
 - Trigger: GET /api/client/orders/{tracking_number}/tracking, GET /api/guest/{token}/tracking, dan GET /api/client/{token}/tracking.
 - Precondition: paket tersedia dan boleh diakses.
-- Proses / Business Rules: nomor kurir hanya dikirim bila status IN_DELIVERY dan kurir ada. Kartu cold chain DISEMBUNYIKAN untuk status CREATED, AWAITING_CONFIRMATION, RESCHEDULE_REQUESTED, dan CONFIRMED, sehingga suhu baru ditampilkan setelah kurir ditugaskan. Banner kendala muncul untuk status ISSUE_REPORTED dan RETURNED beserta tautan ke layar kendala. Banner jadwal ulang muncul untuk status RESCHEDULE_REQUESTED. Perkiraan kedatangan disusun dari jadwal dalam zona Jakarta sebagai tanggal berbahasa Indonesia dan jendela jam. Ringkasan produk menyebut nama produk pertama ditambah jumlah lainnya, serta koli dan berat dalam gram.
-- Output / Response: HTTP 200 dengan data view berisi tracking_number, status, statusLabel, statusTone, estimatedDelivery, buyerName, buyerArea, courierName, coolerBoxCode, coldChain, timeline, canContactCourier, courierPhone, issueBanner, rescheduleBanner, productName, productMeta.
+- Proses / Business Rules: nomor kurir hanya dikirim bila status IN_DELIVERY dan kurir ada. Kartu cold chain DISEMBUNYIKAN untuk status CREATED, AWAITING_CONFIRMATION, dan CONFIRMED, sehingga suhu baru ditampilkan setelah kurir ditugaskan. Banner kendala muncul untuk status ISSUE_REPORTED dan RETURNED beserta tautan ke layar kendala. Perkiraan kedatangan disusun dari jadwal dalam zona Jakarta sebagai tanggal berbahasa Indonesia dan jendela jam. Ringkasan produk menyebut nama produk pertama ditambah jumlah lainnya, serta koli dan berat dalam gram.
+- Output / Response: HTTP 200 dengan data view berisi tracking_number, status, statusLabel, statusTone, estimatedDelivery, buyerName, buyerArea, courierName, coolerBoxCode, coldChain, timeline, canContactCourier, courierPhone, issueBanner, productName, productMeta.
 - Error & Edge Cases: paket tanpa jadwal menampilkan estimatedDelivery kosong. Paket tanpa kurir tidak menampilkan tombol kontak. Status pra-kurir menampilkan coldChain null sehingga layar harus menangani ketiadaan kartu itu.
 - Side Effects: tidak ada penulisan.
 - Postcondition: tidak ada perubahan state.
@@ -127,19 +127,19 @@ Aturan bisnis terkait: BR-005, BR-014, BR-017, BR-018, BR-019, BR-024, BR-025.
 
 ### FR-TRACK-007 — Permintaan jadwal ulang pelanggan
 
-- Deskripsi: Sistem HARUS menerima pilihan slot baru dari pelanggan, memindahkan paket ke RESCHEDULE_REQUESTED, dan memberitahu seluruh admin aktif agar menyusun jadwal pengganti.
+- Deskripsi: Sistem HARUS menerima pilihan slot baru dari pelanggan, menerapkannya langsung ke jadwal paket (paket menjadi CONFIRMED), dan memberitahu seluruh admin aktif.
 - Aktor & Otorisasi: pembeli pemilik paket atau guest pemegang tautan.
 - Trigger: POST /api/client/orders/{tracking_number}/schedule/reschedule, POST /api/guest/{token}/schedule/reschedule, dan POST /api/client/{token}/schedule/reschedule.
 - Precondition: paket berstatus AWAITING_CONFIRMATION dengan konfirmasi PENDING.
 - Input & Validasi: date wajib format Y-m-d dan tidak sebelum hari ini; slot wajib salah satu nilai dari config coldchain.client.slots. Validator lanjutan menolak tanggal lebih dari 14 hari ke depan dan slot yang waktunya kurang dari 2 jam dari sekarang, dengan pesan yang menyebut angka batasnya (BR-006).
-- Proses / Business Rules: transaksi dengan lockForUpdate. Bila status sudah RESCHEDULE_REQUESTED, kembalikan paket apa adanya sebagai idempotensi. Bila status bukan AWAITING_CONFIRMATION, lempar ScheduleNotActionable. Konfirmasi PENDING diubah menjadi RESCHEDULE_REQUESTED dengan proposed_scheduled_at berisi waktu slot yang dipilih dalam UTC dan responded_at sekarang. Transisi ke RESCHEDULE_REQUESTED dijalankan dengan aktor null. Setiap admin aktif menerima notifikasi reschedule_requested berisi tanggal usulan dan jadwal saat ini.
+- Proses / Business Rules: transaksi dengan lockForUpdate. Bila status sudah CONFIRMED, kembalikan paket apa adanya sebagai idempotensi. Bila status bukan AWAITING_CONFIRMATION, lempar ScheduleNotActionable. Konfirmasi PENDING diubah menjadi RESCHEDULE_REQUESTED (response) dengan proposed_scheduled_at berisi waktu slot yang dipilih dalam UTC dan responded_at sekarang. Jadwal paket ditulis dan transisi ke CONFIRMED dijalankan dengan aktor null, karena pembeli memilih jendelanya sendiri. Setiap admin aktif menerima notifikasi reschedule_requested berisi tanggal usulan dan jadwal saat ini.
 - Output / Response: HTTP 200 dengan success true, message "Permintaan perubahan jadwal berhasil dikirim.", redirect_url ke tracking, dan data status serta tracking_number.
-- Error & Edge Cases: tanggal lebih dari 14 hari menghasilkan 422 pada errors.date; slot kurang dari 2 jam menghasilkan 422 pada errors.slot. Permintaan kedua saat status sudah RESCHEDULE_REQUESTED mengembalikan sukses tanpa perubahan.
-- Side Effects: kolom response, proposed_scheduled_at, dan responded_at konfirmasi; baris status_logs; baris notifications QUEUED reschedule_requested per admin aktif.
-- Postcondition: paket menunggu admin menyusun jadwal baru (FR-PKG-005).
+- Error & Edge Cases: tanggal lebih dari 14 hari menghasilkan 422 pada errors.date; slot kurang dari 2 jam menghasilkan 422 pada errors.slot. Permintaan kedua saat status sudah CONFIRMED mengembalikan sukses tanpa perubahan.
+- Side Effects: kolom scheduled_at dan scheduled_end_at paket berubah; kolom response, proposed_scheduled_at, dan responded_at konfirmasi; baris status_logs; baris notifications QUEUED reschedule_requested per admin aktif.
+- Postcondition: paket berstatus CONFIRMED dengan jendela pilihan pembeli.
 - Traceability: Actions/Client/RequestReschedule.php, Requests/Client/RescheduleRequest.php, DTOs/Client/RescheduleRequestData.php, config/coldchain.php client.reschedule_max_days dan min_lead_hours, Support/NotificationQueue.php, tests/Feature/ClientFlowTest.php test_schedule_reschedule_validates_and_transitions_status, resources/js/pwa/screens/client/Schedule.tsx.
 - Acceptance Criteria:
-  - Given paket AWAITING_CONFIRMATION, When pelanggan memilih slot besok, Then HTTP 200, paket menjadi RESCHEDULE_REQUESTED, dan setiap admin aktif menerima notifikasi reschedule_requested.
+  - Given paket AWAITING_CONFIRMATION, When pelanggan memilih slot besok, Then HTTP 200, paket menjadi CONFIRMED, jadwal paket memakai slot itu, dan setiap admin aktif menerima notifikasi reschedule_requested.
   - Given slot yang tinggal satu jam dari sekarang, When diajukan, Then HTTP 422 pada errors.slot dan status paket tidak berubah.
 - Status: Live
 

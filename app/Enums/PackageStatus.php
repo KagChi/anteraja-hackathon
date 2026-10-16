@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-enum PackageStatus: string
-{
+enum PackageStatus: string {
     case CREATED = 'CREATED';
     case AWAITING_CONFIRMATION = 'AWAITING_CONFIRMATION';
-    case RESCHEDULE_REQUESTED = 'RESCHEDULE_REQUESTED';
     case CONFIRMED = 'CONFIRMED';
     case COURIER_ASSIGNED = 'COURIER_ASSIGNED';
     case CHECKED = 'CHECKED';
@@ -18,12 +16,10 @@ enum PackageStatus: string
     case RETURNED = 'RETURNED';
     case CLOSED = 'CLOSED';
 
-    public function tone(): Tone
-    {
+    public function tone(): Tone {
         return match ($this) {
             self::CREATED => Tone::NEUTRAL,
             self::AWAITING_CONFIRMATION => Tone::MUTED,
-            self::RESCHEDULE_REQUESTED => Tone::WARNING,
             self::CONFIRMED, self::COURIER_ASSIGNED, self::CHECKED => Tone::INFO,
             self::ISSUE_REPORTED => Tone::DANGER,
             self::IN_DELIVERY => Tone::DARK,
@@ -33,16 +29,14 @@ enum PackageStatus: string
         };
     }
 
-    public function isWaiting(): bool
-    {
+    public function isWaiting(): bool {
         return match ($this) {
             self::AWAITING_CONFIRMATION, self::ISSUE_REPORTED => true,
             default => false,
         };
     }
 
-    public function isTerminal(): bool
-    {
+    public function isTerminal(): bool {
         return $this === self::CLOSED;
     }
 }

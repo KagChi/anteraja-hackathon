@@ -67,7 +67,6 @@ Tanpa body.
 | Kasus | Keterangan |
 | --- | --- |
 | Konfirmasi dua kali | sukses tanpa transisi tambahan |
-| Status RESCHEDULE_REQUESTED | ScheduleNotActionable |
 | Konfirmasi PENDING tidak ada | ScheduleNotActionable |
 | Resi milik pembeli lain | 404 lewat middleware |
 | Konfirmasi tepat saat admin menyusun ulang | salah satu permintaan gagal karena lockForUpdate |

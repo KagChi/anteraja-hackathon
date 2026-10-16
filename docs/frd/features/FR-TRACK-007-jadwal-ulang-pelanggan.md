@@ -12,8 +12,9 @@
 
 ## 1. Ringkasan
 
-Pembeli memilih slot lain ketika jendela yang diusulkan tidak cocok. Paket
-berpindah ke RESCHEDULE_REQUESTED dan seluruh admin aktif menerima permintaannya.
+Pembeli memilih slot lain ketika jendela yang diusulkan tidak cocok. Karena pembeli
+yang memilih jendelanya, jadwal langsung diterapkan dan paket menjadi CONFIRMED,
+sementara seluruh admin aktif menerima notifikasi perubahan itu.
 
 ## 2. Aktor dan otorisasi
 
@@ -35,7 +36,7 @@ berpindah ke RESCHEDULE_REQUESTED dan seluruh admin aktif menerima permintaannya
 | Tahap | Isi |
 | --- | --- |
 | Precondition | status AWAITING_CONFIRMATION dengan konfirmasi PENDING |
-| Postcondition | paket berstatus RESCHEDULE_REQUESTED dengan usulan waktu tersimpan |
+| Postcondition | paket berstatus CONFIRMED dengan jendela pilihan pembeli |
 
 ## 5. Input dan validasi
 
@@ -53,12 +54,12 @@ dengan pesan yang menyebut angka batasnya.
 1. Validasi dasar dan validator lanjutan dijalankan.
 2. toData mengubah slot menjadi waktu mulai di zona Jakarta, lalu ke UTC.
 3. Action membuka transaksi dan mengunci baris paket.
-4. Bila status sudah RESCHEDULE_REQUESTED, kembalikan paket apa adanya (idempotensi).
+4. Bila status sudah CONFIRMED, kembalikan paket apa adanya (idempotensi).
 5. Bila status bukan AWAITING_CONFIRMATION, lempar ScheduleNotActionable.
 6. Ambil konfirmasi PENDING dengan lockForUpdate; bila tidak ada, lempar ScheduleNotActionable.
-7. Ubah konfirmasi menjadi RESCHEDULE_REQUESTED dengan proposed_scheduled_at berisi usulan dan responded_at sekarang.
-8. Transisi ke RESCHEDULE_REQUESTED dengan aktor null.
-9. Antrekan notifikasi reschedule_requested ke setiap admin aktif berisi resi, usulan waktu, dan jadwal saat ini.
+7. Ubah konfirmasi menjadi RESCHEDULE_REQUESTED (response) dengan proposed_scheduled_at berisi usulan dan responded_at sekarang.
+8. Transisi ke CONFIRMED dengan aktor null, sambil menulis scheduled_at dan scheduled_end_at dari usulan pembeli.
+9. Antrekan notifikasi reschedule_requested ke setiap admin aktif berisi resi, usulan waktu, dan jadwal sebelumnya.
 10. Balas redirect ke tautan tracking.
 
 ## 7. Output
@@ -68,7 +69,7 @@ dengan pesan yang menyebut angka batasnya.
 | success | boolean | true |
 | message | string | "Permintaan perubahan jadwal berhasil dikirim." |
 | redirect_url | string | tautan tracking |
-| data.status | string | RESCHEDULE_REQUESTED |
+| data.status | string | CONFIRMED |
 | data.tracking_number | string | resi |
 
 ## 8. Error dan edge case
@@ -86,7 +87,7 @@ dengan pesan yang menyebut angka batasnya.
 | Efek | Tempat |
 | --- | --- |
 | Konfirmasi | schedule_confirmations response RESCHEDULE_REQUESTED dan proposed_scheduled_at |
-| Log status | status_logs ke RESCHEDULE_REQUESTED dengan changed_by null |
+| Log status | status_logs ke CONFIRMED dengan changed_by null |
 | Notifikasi | reschedule_requested ke setiap admin aktif |
 
 ## 10. Traceability
@@ -103,12 +104,12 @@ dengan pesan yang menyebut angka batasnya.
 
 ## 11. Skenario uji
 
-1. Given paket AWAITING_CONFIRMATION, When pelanggan memilih slot besok, Then HTTP 200, paket RESCHEDULE_REQUESTED, dan setiap admin aktif menerima notifikasi.
+1. Given paket AWAITING_CONFIRMATION, When pelanggan memilih slot besok, Then HTTP 200, paket CONFIRMED dengan jadwal itu, dan setiap admin aktif menerima notifikasi.
 2. Given slot yang hanya satu jam dari sekarang, When diajukan, Then HTTP 422 pada errors.slot.
 3. Given tanggal 20 hari ke depan, When diajukan, Then HTTP 422 pada errors.date.
 
 ## 12. Yang perlu dikonfirmasi
 
 1. Batas 14 hari dan 2 jam adalah konfigurasi manual. Apakah perlu berbeda untuk layanan INSTANT_FROZEN yang SLA-nya 2 sampai 4 jam?
-2. Setelah admin menyusun ulang, pelanggan harus menjawab lagi. Apakah perlu batas berapa kali siklus ini boleh berulang?
+2. Admin atau kurir kemudian dapat mengajukan jendela lain setelah paket ditugaskan (FR-PKG-005), dan penerima mengonfirmasinya sekali lagi.
 

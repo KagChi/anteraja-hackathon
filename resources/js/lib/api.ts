@@ -55,7 +55,7 @@ export interface BuyerOption {
 }
 
 /** Which action the queue offers for a row; mirrors Package::availableAdminActions(). */
-export type AvailableAction = "issue_detail" | "assign_courier" | "request_confirmation" | "reschedule" | "detail";
+export type AvailableAction = "issue_detail" | "assign_courier" | "request_confirmation" | "detail";
 
 export interface ShipmentRow {
     id: number;
@@ -591,13 +591,11 @@ export const api = {
             post<{ message: string }>(`/admin/shipments/${encodeURIComponent(resi)}/assign`, {
                 courier_id: courierId
             }),
-        requestConfirmation: (resi: string) =>
-            post<{ message: string }>(`/admin/shipments/${encodeURIComponent(resi)}/request-confirmation`),
-        reschedule: (resi: string, scheduledDate: string, window: string) =>
-            post<{ message: string }>(`/admin/shipments/${encodeURIComponent(resi)}/reschedule`, {
-                scheduled_date: scheduledDate,
-                scheduled_time_window: window
-            })
+        requestConfirmation: (resi: string, scheduledDate?: string, window?: string) =>
+            post<{ message: string }>(
+                `/admin/shipments/${encodeURIComponent(resi)}/request-confirmation`,
+                scheduledDate && window ? { scheduled_date: scheduledDate, scheduled_time_window: window } : {}
+            )
     },
     exceptions: {
         show: (resi: string) => get<ExceptionDetailResponse>(`/admin/exceptions/${encodeURIComponent(resi)}`),

@@ -10,29 +10,25 @@ use App\Enums\PackageStatus;
 use App\Models\Package;
 use Carbon\CarbonInterface;
 
-final class ClientTimelineBuilder
-{
+final class ClientTimelineBuilder {
     /**
      * @return list<TimelineEntry>
      */
-    public function forTracking(Package $package): array
-    {
+    public function forTracking(Package $package): array {
         return $this->build($package, isIssueOnly: false);
     }
 
     /**
      * @return list<TimelineEntry>
      */
-    public function forIssue(Package $package): array
-    {
+    public function forIssue(Package $package): array {
         return $this->build($package, isIssueOnly: true);
     }
 
     /**
      * @return list<TimelineEntry>
      */
-    private function build(Package $package, bool $isIssueOnly): array
-    {
+    private function build(Package $package, bool $isIssueOnly): array {
         $hub = (string) config('coldchain.hub.display_name', 'Hub Jakarta Selatan');
         $courierName = $package->courier?->name ?? 'Kurir';
 
@@ -63,13 +59,6 @@ final class ClientTimelineBuilder
                     'title' => 'Menunggu Konfirmasi Jadwal',
                     'description' => 'Mohon konfirmasi jadwal pengantaran.',
                     'tag' => 'awaiting_confirmation',
-                ];
-            } elseif (! $isIssueOnly && $to === PackageStatus::RESCHEDULE_REQUESTED) {
-                $events[] = [
-                    'time' => $at,
-                    'title' => 'Permintaan Jadwal Ulang',
-                    'description' => 'Permintaan Anda diterima, admin akan mengusulkan jadwal baru.',
-                    'tag' => 'reschedule_requested',
                 ];
             } elseif (! $isIssueOnly && $to === PackageStatus::CONFIRMED) {
                 $events[] = [

@@ -8,16 +8,15 @@ use App\DTOs\Client\TrackingView;
 use App\Enums\PackageStatus;
 use App\Models\Package;
 
-final class TrackingViewService
-{
+final class TrackingViewService {
     public function __construct(
         private readonly ColdChainSummaryService $coldChainSummaryService,
         private readonly ClientTimelineBuilder $timelineBuilder,
         private readonly ClientLinkService $linkService,
-    ) {}
+    ) {
+    }
 
-    public function build(Package $package): TrackingView
-    {
+    public function build(Package $package): TrackingView {
         $status = $package->status;
         $statusLabel = (string) __("client.status.{$status->value}", [], 'id');
         $statusTone = $status->tone()->value;
@@ -42,7 +41,6 @@ final class TrackingViewService
         $preCourierStatuses = [
             PackageStatus::CREATED,
             PackageStatus::AWAITING_CONFIRMATION,
-            PackageStatus::RESCHEDULE_REQUESTED,
             PackageStatus::CONFIRMED,
         ];
 
@@ -56,11 +54,6 @@ final class TrackingViewService
                 'message' => 'Pengiriman terkendala',
                 'url' => $this->linkService->issue($package),
             ];
-        }
-
-        $rescheduleBanner = null;
-        if ($status === PackageStatus::RESCHEDULE_REQUESTED) {
-            $rescheduleBanner = 'Permintaan jadwal ulang diterima, admin akan mengusulkan jadwal baru.';
         }
 
         $firstItem = $package->items->first();
@@ -85,7 +78,6 @@ final class TrackingViewService
             canContactCourier: $canContactCourier,
             courierPhone: $courierPhone,
             issueBanner: $issueBanner,
-            rescheduleBanner: $rescheduleBanner,
             productName: $productName,
             productMeta: $productMeta,
         );

@@ -6,14 +6,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Packages\RequestScheduleConfirmation;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ScheduleWindowRequest;
 use App\Models\Package;
 use App\Models\Staff;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class ShipmentScheduleConfirmationController extends Controller {
     public function __invoke(
-        Request $request,
+        ScheduleWindowRequest $request,
         string $trackingNumber,
         RequestScheduleConfirmation $action
     ): JsonResponse {
@@ -22,7 +22,9 @@ final class ShipmentScheduleConfirmationController extends Controller {
         /** @var Staff $admin */
         $admin = $request->user();
 
-        $updated = $action->execute($package, $admin);
+        [$start, $end] = $request->toWindow() ?? [null, null];
+
+        $updated = $action->execute($package, $admin, $start, $end);
 
         return response()->json([
             'message' => "Permintaan konfirmasi jadwal resi {$trackingNumber} dikirim ke penerima.",

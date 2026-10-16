@@ -19,7 +19,6 @@ final class ReferenceDataSeeder extends Seeder {
         DB::table('package_statuses')->upsert([
             ['code' => 'CREATED',               'label' => 'Dibuat',              'is_waiting' => false, 'is_terminal' => false, 'sort_order' => 10],
             ['code' => 'AWAITING_CONFIRMATION', 'label' => 'Menunggu Konfirmasi', 'is_waiting' => true,  'is_terminal' => false, 'sort_order' => 20],
-            ['code' => 'RESCHEDULE_REQUESTED',  'label' => 'Minta Jadwal Ulang',  'is_waiting' => false, 'is_terminal' => false, 'sort_order' => 30],
             ['code' => 'CONFIRMED',             'label' => 'Dijadwalkan',          'is_waiting' => false, 'is_terminal' => false, 'sort_order' => 40],
             ['code' => 'COURIER_ASSIGNED',      'label' => 'Kurir Ditugaskan',     'is_waiting' => false, 'is_terminal' => false, 'sort_order' => 50],
             ['code' => 'CHECKED',               'label' => 'Sudah Diperiksa',      'is_waiting' => false, 'is_terminal' => false, 'sort_order' => 60],
@@ -36,8 +35,6 @@ final class ReferenceDataSeeder extends Seeder {
             ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'AWAITING_CONFIRMATION'],
             ['from_status' => 'CREATED',               'to_status' => 'AWAITING_CONFIRMATION'],
             ['from_status' => 'AWAITING_CONFIRMATION', 'to_status' => 'CONFIRMED'],
-            ['from_status' => 'AWAITING_CONFIRMATION', 'to_status' => 'RESCHEDULE_REQUESTED'],
-            ['from_status' => 'RESCHEDULE_REQUESTED',  'to_status' => 'AWAITING_CONFIRMATION'],
             ['from_status' => 'CONFIRMED',             'to_status' => 'COURIER_ASSIGNED'],
             ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'CHECKED'],
             ['from_status' => 'COURIER_ASSIGNED',      'to_status' => 'CONFIRMED'],

@@ -15,7 +15,6 @@ use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\GeofenceController;
 use App\Http\Controllers\Admin\GpsCheckController;
 use App\Http\Controllers\Admin\ShipmentExportController;
-use App\Http\Controllers\Admin\ShipmentRescheduleController;
 use App\Http\Controllers\Admin\ShipmentScheduleConfirmationController;
 use App\Http\Controllers\Api\Client\AuthController as ClientAuthController;
 use App\Http\Controllers\Api\Client\CatalogController as ClientCatalogController;
@@ -95,7 +94,6 @@ Route::prefix('admin')->name('api.admin.')->middleware(['staff.role:ADMIN'])->gr
     Route::get('shipments/{package:tracking_number}', [ShipmentController::class, 'show'])->name('shipments.show');
     Route::post('shipments/{package:tracking_number}/assign', ShipmentAssignmentController::class)->name('shipments.assign');
     Route::post('shipments/{package:tracking_number}/request-confirmation', ShipmentScheduleConfirmationController::class)->name('shipments.request-confirmation');
-    Route::post('shipments/{package:tracking_number}/reschedule', ShipmentRescheduleController::class)->name('shipments.reschedule');
 
     // 2. Exceptions / Kendala
     Route::get('exceptions', [ExceptionController::class, 'index'])->name('exceptions.index');

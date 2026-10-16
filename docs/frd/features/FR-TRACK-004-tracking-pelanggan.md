@@ -43,10 +43,9 @@ Tanpa input.
 
 1. Susun label status dari lang client.status.
 2. Tentukan apakah tombol menghubungi kurir tersedia: hanya bila status IN_DELIVERY dan kurir ada. Bila ya, sertakan nomor kurir.
-3. Tentukan kartu cold chain: disembunyikan untuk CREATED, AWAITING_CONFIRMATION, RESCHEDULE_REQUESTED, dan CONFIRMED; selainnya dihitung dari pemeriksaan terakhir.
+3. Tentukan kartu cold chain: disembunyikan untuk CREATED, AWAITING_CONFIRMATION, dan CONFIRMED; selainnya dihitung dari pemeriksaan terakhir.
 4. Susun banner kendala untuk ISSUE_REPORTED dan RETURNED beserta tautan ke layar kendala.
-5. Susun banner jadwal ulang untuk RESCHEDULE_REQUESTED sebagai teks biasa.
-6. Susun perkiraan kedatangan dari jadwal dalam zona Jakarta, memakai tanggal berbahasa Indonesia dan jendela jam.
+5. Susun perkiraan kedatangan dari jadwal dalam zona Jakarta, memakai tanggal berbahasa Indonesia dan jendela jam.
 7. Susun ringkasan produk: nama produk pertama ditambah jumlah lainnya, serta koli dan berat dalam gram.
 8. Bangun timeline memakai ClientTimelineBuilder untuk mode tracking.
 

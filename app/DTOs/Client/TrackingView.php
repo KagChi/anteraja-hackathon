@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTOs\Client;
 
-final readonly class TrackingView
-{
+final readonly class TrackingView {
     /**
      * @param  list<TimelineEntry>  $timeline
      * @param  array{message: string, url: string}|null  $issueBanner
@@ -25,16 +24,15 @@ final readonly class TrackingView
         public bool $canContactCourier,
         public ?string $courierPhone,
         public ?array $issueBanner = null,
-        public ?string $rescheduleBanner = null,
         public ?string $productName = null,
         public ?string $productMeta = null,
-    ) {}
+    ) {
+    }
 
     /**
      * @return array<string, mixed>
      */
-    public function toArray(): array
-    {
+    public function toArray(): array {
         return [
             'tracking_number' => $this->trackingNumber,
             'status' => $this->status,
@@ -50,7 +48,6 @@ final readonly class TrackingView
             'can_contact_courier' => $this->canContactCourier,
             'courier_phone' => $this->courierPhone,
             'issue_banner' => $this->issueBanner,
-            'reschedule_banner' => $this->rescheduleBanner,
             'product_name' => $this->productName,
             'product_meta' => $this->productMeta,
         ];

@@ -11,6 +11,9 @@ import { useRouter } from "../../lib/router";
 import { useFixWindow } from "../../lib/useFixWindow";
 import { useLoad } from "../../lib/useLoad";
 
+/** Delivery windows a courier can propose when they need to move a schedule. */
+const COURIER_SLOTS = ["09:00-11:00", "11:00-13:00", "13:00-15:00", "15:00-17:00"];
+
 /** The shipment currently on the road, with its location validation. */
 export default function Delivery({ params }: ScreenProps) {
     const resi = params.resi ?? "";
@@ -34,6 +37,8 @@ export default function Delivery({ params }: ScreenProps) {
     const [gpsNotice, setGpsNotice] = useState("");
     const [busy, setBusy] = useState(false);
     const [checks, setChecks] = useState<Record<string, boolean>>({});
+    const [windowDate, setWindowDate] = useState("");
+    const [windowSlot, setWindowSlot] = useState(COURIER_SLOTS[0]);
 
     useEffect(() => {
         if (resi === "") {
@@ -156,7 +161,11 @@ export default function Delivery({ params }: ScreenProps) {
         setActionError(null);
 
         try {
-            await courierApi.deliveries.requestConfirmation(resi);
+            await courierApi.deliveries.requestConfirmation(
+                resi,
+                windowDate === "" ? undefined : windowDate,
+                windowDate === "" ? undefined : windowSlot
+            );
             reload();
         } catch (failure) {
             setActionError(firstError(failure));
@@ -286,15 +295,42 @@ export default function Delivery({ params }: ScreenProps) {
             </section>
 
             {delivery.canRequestConfirmation ? (
-                <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void requestConfirmation()}
-                    className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-space-lg font-label-md text-label-md text-on-primary disabled:opacity-60"
-                >
-                    <MaterialIcon name="event_available" className="text-[20px]" />
-                    Minta Konfirmasi Jadwal Penerimaan
-                </button>
+                <section className="flex w-full flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-lg">
+                    <span className="font-label-sm text-label-sm text-secondary uppercase">Jadwal Penerimaan</span>
+                    <span className="font-body-sm text-body-sm text-secondary">
+                        Biarkan tanggal kosong untuk meminta konfirmasi jadwal yang ada, atau isi untuk mengajukan
+                        jadwal baru.
+                    </span>
+                    <div className="flex w-full gap-2">
+                        <input
+                            type="date"
+                            value={windowDate}
+                            onChange={(event) => setWindowDate(event.target.value)}
+                            className="h-11 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none"
+                        />
+                        <select
+                            value={windowSlot}
+                            onChange={(event) => setWindowSlot(event.target.value)}
+                            disabled={windowDate === ""}
+                            className="h-11 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-space-md font-body-sm text-body-sm text-on-surface focus:border-primary focus:outline-none disabled:opacity-50"
+                        >
+                            {COURIER_SLOTS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option} WIB
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void requestConfirmation()}
+                        className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-space-lg font-label-md text-label-md text-on-primary disabled:opacity-60"
+                    >
+                        <MaterialIcon name="event_available" className="text-[20px]" />
+                        Minta Konfirmasi Jadwal Penerimaan
+                    </button>
+                </section>
             ) : null}
 
             {delivery.canDepart && checklistEntries.length > 0 ? (

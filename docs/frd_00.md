@@ -234,7 +234,7 @@ docs/openapi.yaml.
 | GET | /api/admin/shipments/export | Admin/ShipmentExportController | staff.role:ADMIN | ya |
 | GET | /api/admin/shipments/{tracking_number} | Admin/ShipmentController@show | staff.role:ADMIN | ya |
 | POST | /api/admin/shipments/{tracking_number}/assign | Admin/ShipmentAssignmentController | staff.role:ADMIN | ya |
-| POST | /api/admin/shipments/{tracking_number}/reschedule | Admin/ShipmentRescheduleController | staff.role:ADMIN | ya |
+| POST | /api/admin/shipments/{tracking_number}/request-confirmation | Admin/ShipmentScheduleConfirmationController | staff.role:ADMIN | ya |
 | GET | /api/admin/exceptions | Admin/ExceptionController@index | staff.role:ADMIN | ya |
 | GET | /api/admin/exceptions/{tracking_number} | Admin/ExceptionController@show | staff.role:ADMIN | ya |
 | POST | /api/admin/exceptions/{tracking_number}/decision | Admin/ExceptionDecisionController | staff.role:ADMIN | ya |
@@ -394,8 +394,8 @@ Contoh bentuk respons penting, diambil dari controller:
 | CREATED | AWAITING_CONFIRMATION | Admin | Actions/Packages/CreatePackage |
 | CREATED | AWAITING_CONFIRMATION | Sistem | Actions/Client/CreateClientOrder |
 | AWAITING_CONFIRMATION | CONFIRMED | Pembeli | Actions/Client/ConfirmSchedule |
-| AWAITING_CONFIRMATION | RESCHEDULE_REQUESTED | Pembeli | Actions/Client/RequestReschedule |
-| RESCHEDULE_REQUESTED | AWAITING_CONFIRMATION | Admin | Actions/Admin/RescheduleShipment |
+| AWAITING_CONFIRMATION | CONFIRMED | Pembeli | Actions/Client/RequestReschedule (jendela pilihan pembeli langsung diterapkan) |
+| COURIER_ASSIGNED | AWAITING_CONFIRMATION | Admin atau Kurir | Actions/Packages/RequestScheduleConfirmation (opsional dengan jendela baru) |
 | CONFIRMED | COURIER_ASSIGNED | Admin | Actions/Packages/AssignCourier |
 | COURIER_ASSIGNED | CHECKED | Kurir | Actions/Courier/StartDelivery, Actions/Courier/ReportIssue |
 | COURIER_ASSIGNED | CONFIRMED | Kurir | Actions/Courier/RejectTask |
@@ -426,7 +426,7 @@ di sini dan dipakai dengan kode BR.
 | BR-001 | Perubahan status paket hanya sah bila pasangan from dan to ada di tabel package_status_transitions; pelanggaran menghasilkan error check_violation dan dipetakan menjadi InvalidStatusTransition | migrasi 0001_01_01_000016, Support/PackageStatusTransitioner.php | semua FR yang mengubah status |
 | BR-002 | Setiap perubahan status wajib melalui Support/PackageStatusTransitioner di dalam DB::transaction | AGENTS.md dan kode transitioner | FR-PKG-001, 005, 006, 007; seluruh Action |
 | BR-003 | Aktor transisi ditulis ke sesi PostgreSQL dengan set_config app.staff_id; aksi pelanggan dan sistem memakai aktor kosong sehingga changed_by null | Support/PackageStatusTransitioner.php | FR-PKG-007 |
-| BR-004 | Operasi penulisan yang rentan balapan memakai lockForUpdate pada baris paket | AssignCourier, ResolveIssue, ConfirmSchedule, RequestReschedule, ReportIssue, ConfirmDelivery, MarkArrived, RequestReplacement, RecordIssueChoice, RescheduleShipment | FR-ASG-001, FR-ISS-005, FR-TRACK-006, FR-TRACK-007 |
+| BR-004 | Operasi penulisan yang rentan balapan memakai lockForUpdate pada baris paket | AssignCourier, ResolveIssue, ConfirmSchedule, RequestReschedule, ReportIssue, ConfirmDelivery, MarkArrived, RequestReplacement, RecordIssueChoice, RequestScheduleConfirmation | FR-ASG-001, FR-ISS-005, FR-TRACK-006, FR-TRACK-007 |
 | BR-005 | Jadwal dipilih dalam zona Asia/Jakarta dan disimpan UTC; seluruh tampilan memakai label WIB | Support/DisplayTime.php, CreatePackage | FR-PKG-001, FR-PKG-005, FR-RPT-001, FR-ORD-003 |
 | BR-006 | Jendela pengantaran pelanggan minimal 2 jam dari sekarang dan maksimal 14 hari ke depan, hanya dari slot yang terdaftar di konfigurasi | Requests/Client/RescheduleRequest.php, config coldchain.client | FR-TRACK-007 |
 | BR-007 | Satu paket hanya boleh memiliki satu paket pengganti, dijaga unique index uq_packages_one_replacement | migrasi 0001_01_01_000022 | FR-ISS-007 |
@@ -634,7 +634,7 @@ tingkat atas:
 | Modul | FR | Action terpakai | Test utama | Halaman UI |
 | --- | --- | --- | --- | --- |
 | AUTH | 10 | - | AdminAccessTest, CourierApiAuthTest, ClientApiAuthTest, ClientStorefrontTest | Auth/Login, PWA client/Login, client/Register, client/Profile |
-| PKG | 8 | CreatePackage, RescheduleShipment, PackageStatusTransitioner | AdminShipmentTest, ClientFlowTest, AdminConsoleWiringTest | admin/Shipment |
+| PKG | 8 | CreatePackage, RequestScheduleConfirmation, PackageStatusTransitioner | AdminShipmentTest, ClientFlowTest, AdminConsoleWiringTest | admin/Shipment |
 | ASG | 5 | AssignCourier, AcceptTask, RejectTask | AdminShipmentTest, CourierFlowTest | admin/Shipment, courier/Tasks |
 | DEL | 7 | StartDelivery, MarkArrived, ConfirmDelivery | CourierFlowTest, AdminConsoleE2ETest | courier/Delivery, courier/Proof |
 | GPS | 7 | GpsValidator, FakeGpsDetector, GeofenceEvaluator | GpsDetectionTest, CourierGpsValidationTest, AdminGpsConsoleTest | admin/GpsChecks, admin/Geofence, courier/Delivery |

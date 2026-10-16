@@ -25,8 +25,7 @@ use Tests\TestCase;
  * The internal hook n8n uses to attach a WhatsApp conversation to the package
  * whose tracking number the customer typed.
  */
-final class WhatsappLookupTest extends TestCase
-{
+final class WhatsappLookupTest extends TestCase {
     use DatabaseTransactions;
 
     private const TOKEN = 'internal-lookup-test-token';
@@ -46,8 +45,7 @@ final class WhatsappLookupTest extends TestCase
 
     private Product $product;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         config(['coldchain.n8n.token' => self::TOKEN]);
@@ -90,8 +88,7 @@ final class WhatsappLookupTest extends TestCase
         );
     }
 
-    public function test_it_requires_the_shared_token(): void
-    {
+    public function test_it_requires_the_shared_token(): void {
         $payload = ['phone' => '6289611122233', 'resi' => self::RESI];
 
         $this->postJson('/api/internal/whatsapp/lookup', $payload)
@@ -102,8 +99,7 @@ final class WhatsappLookupTest extends TestCase
             ->assertUnauthorized();
     }
 
-    public function test_it_refuses_to_answer_when_the_token_is_unconfigured(): void
-    {
+    public function test_it_refuses_to_answer_when_the_token_is_unconfigured(): void {
         config(['coldchain.n8n.token' => '']);
 
         $this->withHeader('X-Anteraja-Token', self::TOKEN)
@@ -111,8 +107,7 @@ final class WhatsappLookupTest extends TestCase
             ->assertStatus(503);
     }
 
-    public function test_it_validates_its_input(): void
-    {
+    public function test_it_validates_its_input(): void {
         // Posted directly: the helper always supplies a resi.
         $this->withHeader('X-Anteraja-Token', self::TOKEN)
             ->postJson('/api/internal/whatsapp/lookup', ['phone' => '6289611122233'])
@@ -120,15 +115,13 @@ final class WhatsappLookupTest extends TestCase
             ->assertJsonValidationErrors('resi');
     }
 
-    public function test_an_unknown_resi_is_not_found(): void
-    {
+    public function test_an_unknown_resi_is_not_found(): void {
         $this->lookup(['resi' => 'AJ-FRZ-0000000'])
             ->assertOk()
             ->assertJson(['found' => false]);
     }
 
-    public function test_a_resi_belonging_to_another_number_is_not_found(): void
-    {
+    public function test_a_resi_belonging_to_another_number_is_not_found(): void {
         $this->package();
 
         // Same resi, a phone that is not the recipient's.
@@ -137,8 +130,7 @@ final class WhatsappLookupTest extends TestCase
             ->assertJson(['found' => false]);
     }
 
-    public function test_it_reports_a_pending_schedule_confirmation(): void
-    {
+    public function test_it_reports_a_pending_schedule_confirmation(): void {
         $package = $this->package();
 
         ScheduleConfirmation::create([
@@ -171,8 +163,7 @@ final class WhatsappLookupTest extends TestCase
      * package token still comes back, because that is what an answer is
      * applied through.
      */
-    public function test_the_recipient_answer_rides_on_the_package_token_without_a_customer_link(): void
-    {
+    public function test_the_recipient_answer_rides_on_the_package_token_without_a_customer_link(): void {
         $package = $this->package();
 
         $response = $this->postJson('http://anteraja-hackathon-service/api/internal/whatsapp/lookup', [
@@ -186,8 +177,7 @@ final class WhatsappLookupTest extends TestCase
         $this->assertStringNotContainsString((string) config('app.url'), $response->getContent());
     }
 
-    public function test_it_reports_the_issue_menu_for_an_open_issue(): void
-    {
+    public function test_it_reports_the_issue_menu_for_an_open_issue(): void {
         $package = $this->package(['status' => PackageStatus::ISSUE_REPORTED]);
 
         $this->issueReport($package);
@@ -201,12 +191,10 @@ final class WhatsappLookupTest extends TestCase
     }
 
     /** Every status maps to the step that is actually pending, or to none. */
-    public function test_it_maps_every_status_to_the_pending_step(): void
-    {
+    public function test_it_maps_every_status_to_the_pending_step(): void {
         $expected = [
             PackageStatus::CREATED->value => 'none',
             PackageStatus::AWAITING_CONFIRMATION->value => 'schedule_request',
-            PackageStatus::RESCHEDULE_REQUESTED->value => 'none',
             PackageStatus::CONFIRMED->value => 'none',
             PackageStatus::COURIER_ASSIGNED->value => 'none',
             PackageStatus::CHECKED->value => 'none',
@@ -238,8 +226,7 @@ final class WhatsappLookupTest extends TestCase
     }
 
     /** A returned parcel the buyer may replace asks them to start that flow. */
-    public function test_it_reports_the_replacement_step_after_a_return_decision(): void
-    {
+    public function test_it_reports_the_replacement_step_after_a_return_decision(): void {
         $package = $this->package(['status' => PackageStatus::RETURNED]);
 
         $this->issueReport($package, IssueDecision::RETURN);
@@ -253,8 +240,7 @@ final class WhatsappLookupTest extends TestCase
     }
 
     /** A returned parcel with a non-return decision still offers the menu. */
-    public function test_it_reports_the_issue_menu_when_the_decision_was_not_a_return(): void
-    {
+    public function test_it_reports_the_issue_menu_when_the_decision_was_not_a_return(): void {
         $package = $this->package(['status' => PackageStatus::RETURNED]);
 
         $this->issueReport($package, IssueDecision::RESEND);
@@ -268,8 +254,7 @@ final class WhatsappLookupTest extends TestCase
     }
 
     /** A confirmation already answered leaves nothing for the buyer to do. */
-    public function test_a_confirmation_that_is_no_longer_pending_has_nothing_to_do(): void
-    {
+    public function test_a_confirmation_that_is_no_longer_pending_has_nothing_to_do(): void {
         $package = $this->package();
 
         ScheduleConfirmation::create([
@@ -288,8 +273,7 @@ final class WhatsappLookupTest extends TestCase
             ]);
     }
 
-    public function test_a_delivered_package_has_nothing_pending(): void
-    {
+    public function test_a_delivered_package_has_nothing_pending(): void {
         $this->package(['status' => PackageStatus::RECEIVED]);
 
         $this->lookup()
@@ -303,8 +287,7 @@ final class WhatsappLookupTest extends TestCase
     /**
      * @param  array<string, string>  $overrides
      */
-    private function lookup(array $overrides = []): TestResponse
-    {
+    private function lookup(array $overrides = []): TestResponse {
         return $this->withHeader('X-Anteraja-Token', self::TOKEN)
             ->postJson('/api/internal/whatsapp/lookup', array_merge([
                 'phone' => '6289611122233',
@@ -315,8 +298,7 @@ final class WhatsappLookupTest extends TestCase
     /**
      * @param  array<string, mixed>  $attributes
      */
-    private function package(array $attributes = [], ?string $resi = null): Package
-    {
+    private function package(array $attributes = [], ?string $resi = null): Package {
         /** @var Package $package */
         $package = Package::create(array_merge([
             'buyer_id' => $this->buyer->id,
@@ -346,8 +328,7 @@ final class WhatsappLookupTest extends TestCase
         return $package;
     }
 
-    private function issueReport(Package $package, ?IssueDecision $decision = null): IssueReport
-    {
+    private function issueReport(Package $package, ?IssueDecision $decision = null): IssueReport {
         $check = ConditionCheck::create([
             'package_id' => $package->id,
             'courier_id' => $this->courier->id,

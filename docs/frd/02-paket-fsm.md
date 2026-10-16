@@ -87,22 +87,22 @@ Aturan bisnis terkait: BR-001, BR-002, BR-003, BR-005, BR-014.
 
 ---
 
-### FR-PKG-005 — Penjadwalan ulang oleh admin
+### FR-PKG-005 — Pengajuan/penjadwalan ulang oleh admin atau kurir
 
-- Deskripsi: Sistem HARUS menetapkan jendela pengantaran baru untuk paket yang meminta jadwal ulang, membuat konfirmasi PENDING baru, memindahkan paket kembali ke AWAITING_CONFIRMATION, dan memberi tahu pembeli.
-- Aktor & Otorisasi: admin hub.
-- Trigger: POST /api/admin/shipments/{tracking_number}/reschedule.
-- Precondition: paket berstatus RESCHEDULE_REQUESTED.
-- Input & Validasi: scheduled_date wajib format Y-m-d dan tidak sebelum hari ini; scheduled_time_window wajib string berbentuk dua jam dipisah tanda hubung, misalnya "09:00-11:00".
-- Proses / Business Rules: dilakukan di dalam transaksi dengan lockForUpdate pada baris paket (BR-004). Bila status bukan RESCHEDULE_REQUESTED, lempar InvalidArgumentException. Jadwal baru diparsing di zona Jakarta dan disimpan UTC. Konfirmasi baru dibuat dengan response PENDING dan requested_at sekarang. Transisi ke AWAITING_CONFIRMATION dijalankan dengan aktor admin (BR-002 dan BR-003). Notifikasi template schedule_rescheduled diantrekan untuk pembeli.
-- Output / Response: HTTP 200 dengan message yang memuat resi dan objek package yang sudah memuat buyer dan statusRef.
-- Error & Edge Cases: status bukan RESCHEDULE_REQUESTED menghasilkan error 500 InvalidArgumentException saat ini, karena controller tidak memetakannya ke 422. Ini catatan temuan, bukan perilaku yang diinginkan. Tanggal lampau dan format jam salah menghasilkan 422 dari FormRequest.
-- Side Effects: kolom scheduled_at dan scheduled_end_at paket berubah; satu baris schedule_confirmations PENDING baru; baris status_logs baru; satu baris notifications QUEUED berisi template schedule_rescheduled dan window.
-- Postcondition: paket menunggu konfirmasi pembeli atas jadwal baru.
-- Traceability: routes/api.php, Admin/ShipmentRescheduleController, Actions/Admin/RescheduleShipment, Requests/Admin/RescheduleShipmentRequest, Support/DisplayTime, Support/NotificationQueue, tests/Feature/ClientFlowTest.php test_admin_reschedule_shipment_action, resources/js/pages/admin/Shipment.tsx.
+- Deskripsi: Sistem HARUS menetapkan jendela pengantaran baru (opsional) untuk paket yang sudah ditugaskan ke kurir, membuat konfirmasi PENDING baru, memindahkan paket ke AWAITING_CONFIRMATION, dan memberi tahu pembeli agar mengonfirmasi.
+- Aktor & Otorisasi: admin hub atau kurir pemilik paket.
+- Trigger: POST /api/admin/shipments/{tracking_number}/request-confirmation, POST /api/courier/deliveries/{tracking_number}/request-confirmation.
+- Precondition: paket berstatus COURIER_ASSIGNED dan belum ada konfirmasi PENDING.
+- Input & Validasi: scheduled_date opsional format Y-m-d dan tidak sebelum hari ini; scheduled_time_window opsional string berbentuk dua jam dipisah tanda hubung, misalnya "09:00-11:00". Keduanya harus diisi bersamaan.
+- Proses / Business Rules: dilakukan di dalam transaksi dengan lockForUpdate pada baris paket (BR-004). Kurir hanya boleh mengajukan untuk paket yang ditugaskan padanya. Bila status bukan COURIER_ASSIGNED, lempar ScheduleNotActionable (422). Bila sudah ada konfirmasi PENDING, kembalikan paket apa adanya (idempotensi). Bila jendela baru diberikan, kolom scheduled_at dan scheduled_end_at diperbarui (diparsing di zona Jakarta dan disimpan UTC). Konfirmasi baru dibuat dengan response PENDING dan requested_at sekarang. Transisi ke AWAITING_CONFIRMATION dijalankan dengan aktor pengaju (BR-002 dan BR-003). Notifikasi template schedule_rescheduled (bila jendela diubah) atau schedule_request (bila tidak) diantrekan untuk pembeli.
+- Output / Response: HTTP 200 dengan message yang memuat resi dan objek package yang sudah memuat buyer, courier, dan statusRef.
+- Error & Edge Cases: status bukan COURIER_ASSIGNED dan kurir bukan pemilik paket menghasilkan 422 ScheduleNotActionable. Tanggal lampau dan format jam salah menghasilkan 422 dari FormRequest.
+- Side Effects: kolom scheduled_at dan scheduled_end_at paket berubah (bila jendela diubah); satu baris schedule_confirmations PENDING baru; baris status_logs baru; satu baris notifications QUEUED.
+- Postcondition: paket menunggu konfirmasi pembeli atas jadwal.
+- Traceability: routes/api.php, Admin/ShipmentScheduleConfirmationController, Courier/RequestConfirmationController, Actions/Packages/RequestScheduleConfirmation, Requests/ScheduleWindowRequest, Support/DisplayTime, Support/NotificationQueue, tests/Feature/ClientFlowTest.php test_admin_proposes_a_new_window_and_the_buyer_must_confirm, resources/js/components/ShipmentDetailModal.tsx, resources/js/pwa/screens/courier/Delivery.tsx.
 - Acceptance Criteria:
-  - Given paket RESCHEDULE_REQUESTED, When admin mengirim jadwal baru yang sah, Then HTTP 200, paket menjadi AWAITING_CONFIRMATION, dan ada satu konfirmasi PENDING baru.
-  - Given paket berstatus CONFIRMED, When reschedule dipanggil, Then permintaan gagal dan tidak ada baris schedule_confirmations tambahan.
+  - Given paket COURIER_ASSIGNED tanpa konfirmasi PENDING, When admin mengirim jendela baru yang sah, Then HTTP 200, paket menjadi AWAITING_CONFIRMATION, jadwal berubah, dan ada satu konfirmasi PENDING baru.
+  - Given paket berstatus CONFIRMED, When pengajuan dipanggil, Then HTTP 422 dan tidak ada baris schedule_confirmations tambahan.
 - Status: Live
 
 ---

@@ -189,23 +189,6 @@ components:
         cooler_box_code:
           type: string
           example: BOX-FROZEN-04
-    RescheduleShipmentRequest:
-      type: object
-      required:
-      - scheduled_at
-      - scheduled_end_at
-      properties:
-        scheduled_at:
-          type: string
-          format: date-time
-          example: '2026-10-16T08:00:00Z'
-        scheduled_end_at:
-          type: string
-          format: date-time
-          example: '2026-10-16T10:00:00Z'
-        admin_note:
-          type: string
-          example: Dijadwalkan ulang sesuai konfirmasi pembeli.
     ResolveDecisionRequest:
       type: object
       required:
@@ -1114,32 +1097,6 @@ paths:
                 $ref: '#/components/schemas/ApiResponseSuccess'
         '422':
           description: Paket belum ditugaskan ke kurir
-  /admin/shipments/{tracking_number}/reschedule:
-    post:
-      tags:
-      - Admin - Shipments
-      summary: Jadwalkan Ulang Pengiriman
-      description: Memperbarui jadwal tanggal dan slot jam pengiriman oleh admin.
-      parameters:
-      - name: tracking_number
-        in: path
-        required: true
-        schema:
-          type: string
-          example: AJ-FRZ-0012345
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RescheduleShipmentRequest'
-      responses:
-        '200':
-          description: Jadwal berhasil diperbarui
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseSuccess'
   /admin/exceptions:
     get:
       tags:

@@ -46,7 +46,6 @@ finish: "" { shape: circle; style.fill: "#0f172a" }
 
 created: "CREATED\nDibuat" { shape: oval }
 awc: "AWAITING_CONFIRMATION\nMenunggu Konfirmasi" { shape: oval }
-resch: "RESCHEDULE_REQUESTED\nMinta Jadwal Ulang" { shape: oval }
 conf: "CONFIRMED\nDijadwalkan" { shape: oval }
 ca: "COURIER_ASSIGNED\nKurir Ditugaskan" { shape: oval }
 chked: "CHECKED\nSudah Diperiksa" { shape: oval }
@@ -58,7 +57,6 @@ closed: "CLOSED\nSelesai" { shape: oval }
 
 created.class: normal
 awc.class: menunggu
-resch.class: normal
 conf.class: normal
 ca.class: normal
 chked.class: normal
@@ -71,9 +69,7 @@ closed.class: gantung
 start -> created
 created -> ca: admin menugaskan kurir
 ca -> awc: kurir atau admin meminta konfirmasi jadwal
-awc -> conf: penerima memilih siap menerima
-awc -> resch: penerima meminta jadwal lain
-resch -> awc: admin menyusun jadwal baru
+awc -> conf: penerima memilih siap menerima atau jendela lain
 conf -> ca: admin menugaskan kurir
 ca -> conf: kurir menolak penugasan
 ca -> chked: kurir mengisi checklist kemasan

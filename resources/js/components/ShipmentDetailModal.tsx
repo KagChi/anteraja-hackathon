@@ -284,15 +284,19 @@ function DecisionDialog({ resi, issue, onClose, onSaved }: DecisionDialogProps) 
     );
 }
 
-interface RescheduleDialogProps {
+interface ScheduleDialogProps {
     resi: string;
     defaultDate: string | null;
     onClose: () => void;
     onSaved: () => Promise<void>;
 }
 
-/** Schedules a new delivery window for a shipment waiting on one. */
-function RescheduleDialog({ resi, defaultDate, onClose, onSaved }: RescheduleDialogProps) {
+/**
+ * Proposes a delivery window and asks the recipient to confirm it. The same
+ * shared action the courier app uses creates the pending confirmation, so the
+ * parcel only counts as scheduled once the recipient answers.
+ */
+function ScheduleDialog({ resi, defaultDate, onClose, onSaved }: ScheduleDialogProps) {
     const [date, setDate] = useState(defaultDate ?? todayIso());
     const [slot, setSlot] = useState(DELIVERY_SLOTS[0]);
     const [error, setError] = useState<string | null>(null);
@@ -306,20 +310,20 @@ function RescheduleDialog({ resi, defaultDate, onClose, onSaved }: RescheduleDia
         setError(null);
 
         try {
-            await api.shipments.reschedule(resi, date, slot);
+            await api.shipments.requestConfirmation(resi, date, slot);
             await onSaved();
             onClose();
         } catch (caught) {
-            setError(caught instanceof ApiError ? caught.message : "Jadwal gagal diperbarui.");
+            setError(caught instanceof ApiError ? caught.message : "Jadwal gagal diajukan.");
             setSaving(false);
         }
     }
 
     return (
-        <Dialog onClose={onClose} label={`Jadwal ulang ${resi}`}>
+        <Dialog onClose={onClose} label={`Ajukan jadwal ${resi}`}>
             <div className="flex items-start justify-between gap-space-md">
                 <div className="flex flex-col">
-                    <h2 className="font-headline-sm text-headline-sm text-on-surface">Jadwal Ulang</h2>
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface">Ajukan Jadwal</h2>
                     <p className="mt-0.5 font-body-sm text-body-sm text-secondary">{resi}</p>
                 </div>
                 <CloseButton onClick={onClose} />
@@ -368,8 +372,8 @@ function RescheduleDialog({ resi, defaultDate, onClose, onSaved }: RescheduleDia
                         disabled={saving}
                         className="flex h-9 items-center gap-space-xs rounded-md bg-primary px-space-lg font-label-md text-label-md text-on-primary transition-colors hover:bg-primary-container disabled:opacity-50"
                     >
-                        <MaterialIcon name={saving ? "refresh" : "event_repeat"} className="text-[16px]" />
-                        <span>{saving ? "Menyimpan…" : "Simpan Jadwal"}</span>
+                        <MaterialIcon name={saving ? "refresh" : "event_available"} className="text-[16px]" />
+                        <span>{saving ? "Mengirim…" : "Ajukan Jadwal"}</span>
                     </button>
                 </div>
             </form>
@@ -383,8 +387,8 @@ function RescheduleDialog({ resi, defaultDate, onClose, onSaved }: RescheduleDia
  * Both halves come from the API: the shipment endpoint carries the delivery
  * summary and the proof photo, the exception endpoint the kendala report, its
  * allowed decisions and the inspection checklist. Moving the courier, the proof
- * photo, the decision and the reschedule each open as a dialog on top of this
- * one.
+ * photo, the decision and the schedule proposal each open as a dialog on top of
+ * this one.
  */
 export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetailModalProps) {
     const [detail, setDetail] = useState<ShipmentDetailResponse | null>(null);
@@ -396,7 +400,7 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
     const [pickerOpen, setPickerOpen] = useState(false);
     const [proofOpen, setProofOpen] = useState(false);
     const [decisionOpen, setDecisionOpen] = useState(false);
-    const [rescheduleOpen, setRescheduleOpen] = useState(false);
+    const [scheduleOpen, setScheduleOpen] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -456,17 +460,6 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
             await afterChange();
         } catch (caught) {
             setActionError(caught instanceof ApiError ? caught.message : "Kurir gagal ditugaskan.");
-        }
-    }
-
-    async function requestConfirmation() {
-        setActionError(null);
-
-        try {
-            await api.shipments.requestConfirmation(resi);
-            await afterChange();
-        } catch (caught) {
-            setActionError(caught instanceof ApiError ? caught.message : "Permintaan konfirmasi gagal dikirim.");
         }
     }
 
@@ -736,15 +729,11 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                             {detail.package.status === "COURIER_ASSIGNED" ? (
                                 <SecondaryButton
                                     icon="event_available"
-                                    label="Minta konfirmasi jadwal"
-                                    onClick={() => void requestConfirmation()}
-                                />
-                            ) : null}
-                            {detail.package.status === "RESCHEDULE_REQUESTED" ? (
-                                <SecondaryButton
-                                    icon="event_repeat"
-                                    label="Jadwal ulang"
-                                    onClick={() => setRescheduleOpen(true)}
+                                    label="Ajukan jadwal"
+                                    onClick={() => {
+                                        setActionError(null);
+                                        setScheduleOpen(true);
+                                    }}
                                 />
                             ) : null}
                             <div className="ml-auto flex items-center gap-space-sm">
@@ -809,11 +798,11 @@ export function ShipmentDetailModal({ resi, onClose, onChanged }: ShipmentDetail
                 />
             ) : null}
 
-            {rescheduleOpen ? (
-                <RescheduleDialog
+            {scheduleOpen ? (
+                <ScheduleDialog
                     resi={resi}
                     defaultDate={detail?.scheduledDate ?? null}
-                    onClose={() => setRescheduleOpen(false)}
+                    onClose={() => setScheduleOpen(false)}
                     onSaved={afterChange}
                 />
             ) : null}

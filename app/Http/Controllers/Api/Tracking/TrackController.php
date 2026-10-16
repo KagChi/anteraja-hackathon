@@ -20,8 +20,7 @@ use Illuminate\Http\JsonResponse;
  * built from fixed labels: no names, no phone numbers, no street addresses, and
  * no free text written by staff or couriers.
  */
-final class TrackController extends Controller
-{
+final class TrackController extends Controller {
     /**
      * Public wording for each package status. A step is described by what
      * happened, never by who did it.
@@ -31,7 +30,6 @@ final class TrackController extends Controller
     private const STEPS = [
         'CREATED' => ['label' => 'Pesanan diterima', 'detail' => 'Paket terdaftar di sistem hub.'],
         'AWAITING_CONFIRMATION' => ['label' => 'Menunggu konfirmasi jadwal', 'detail' => 'Jendela pengantaran belum dikonfirmasi.'],
-        'RESCHEDULE_REQUESTED' => ['label' => 'Jadwal ulang diminta', 'detail' => 'Jendela pengantaran sedang disusun ulang.'],
         'CONFIRMED' => ['label' => 'Jadwal dikonfirmasi', 'detail' => 'Pengiriman masuk jadwal hub.'],
         'COURIER_ASSIGNED' => ['label' => 'Kurir ditugaskan', 'detail' => 'Paket beku ini dipegang seorang kurir.'],
         'CHECKED' => ['label' => 'Pemeriksaan selesai', 'detail' => 'Kondisi dan suhu paket diperiksa sebelum berangkat.'],
@@ -42,8 +40,7 @@ final class TrackController extends Controller
         'CLOSED' => ['label' => 'Pengiriman selesai', 'detail' => 'Paket sudah ditutup.'],
     ];
 
-    public function __invoke(string $resi): JsonResponse
-    {
+    public function __invoke(string $resi): JsonResponse {
         $trackingNumber = strtoupper(trim($resi));
 
         $package = Package::query()
@@ -88,8 +85,7 @@ final class TrackController extends Controller
      *
      * @return list<array{label: string, time: string, detail: string, is_accent: bool}>
      */
-    private function timeline(Package $package): array
-    {
+    private function timeline(Package $package): array {
         $entries = [];
 
         foreach ($package->statusLogs as $log) {
@@ -132,8 +128,7 @@ final class TrackController extends Controller
     }
 
     /** District or city only: "Tebet, Jakarta Selatan" becomes "Jakarta Selatan". */
-    private function city(?string $area): ?string
-    {
+    private function city(?string $area): ?string {
         $area = trim((string) $area);
 
         if ($area === '') {

@@ -249,7 +249,6 @@ export interface TrackingView {
     can_contact_courier: boolean;
     courier_phone: string | null;
     issue_banner: { message: string; url: string } | null;
-    reschedule_banner: string | null;
     product_name: string | null;
     product_meta: string | null;
 }
@@ -565,11 +564,12 @@ export const courierApi = {
                 `/courier/deliveries/${encodeURIComponent(resi)}/arrive`,
                 fields
             ),
-        requestConfirmation: (resi: string) =>
+        requestConfirmation: (resi: string, scheduledDate?: string, window?: string) =>
             post<ActionMessage>(
                 courierHttp,
                 "courier",
-                `/courier/deliveries/${encodeURIComponent(resi)}/request-confirmation`
+                `/courier/deliveries/${encodeURIComponent(resi)}/request-confirmation`,
+                scheduledDate && window ? { scheduled_date: scheduledDate, scheduled_time_window: window } : {}
             ),
         requestReview: (resi: string, action: string, note?: string) =>
             post<ActionMessage>(courierHttp, "courier", `/courier/deliveries/${encodeURIComponent(resi)}/gps-review`, {

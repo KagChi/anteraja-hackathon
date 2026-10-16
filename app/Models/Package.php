@@ -272,10 +272,6 @@ final class Package extends Model {
             return 'request_confirmation';
         }
 
-        if ($this->status === PackageStatus::RESCHEDULE_REQUESTED) {
-            return 'reschedule';
-        }
-
         return 'detail';
     }
 

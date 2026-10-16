@@ -83,16 +83,14 @@ fase2: "Fase 2 - Konfirmasi jadwal" {
   direction: right
   dec1: "[Pembeli] siap menerima?" { shape: diamond }
   conf: CONFIRMED { shape: oval }
-  resch: RESCHEDULE_REQUESTED { shape: oval }
   nresch: "[Sistem] notifikasi reschedule_requested\nke admin"
-  adrs: "[Admin] susun jadwal baru\nPOST /api/admin/shipments/RESI/reschedule"
+  adrs: "[Admin/Kurir] ajukan jadwal\nPOST .../request-confirmation"
   newreq: "[Sistem] kirim jadwal baru\ntemplate schedule_rescheduled"
   overdue: "[Sistem] reminder pembeli belum menjawab\nconfirmations:remind-unanswered"
   adman: "[Admin] hubungi pembeli secara manual"
 
   dec1.class: keputusan
   conf.class: status
-  resch.class: status
   nresch.class: sistem
   adrs.class: admin
   newreq.class: sistem
@@ -100,9 +98,10 @@ fase2: "Fase 2 - Konfirmasi jadwal" {
   adman.class: admin
 
   dec1 -> conf: siap menerima
-  dec1 -> resch: minta jadwal lain, E1
-  resch -> nresch
-  nresch -> adrs
+  dec1 -> conf: minta jadwal lain, E1
+  dec1 -> nresch: minta jadwal lain
+  nresch -> conf
+  fase3.ca -> adrs: ajukan jadwal
   adrs -> newreq
   newreq -> fase1.awc: jadwal baru dikirim ulang
   dec1 -> overdue: tidak menjawab, E2 { style.stroke-dash: 4 }

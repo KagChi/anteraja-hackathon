@@ -22,8 +22,7 @@ use App\Models\StatusLog;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
-final class ClientFlowTest extends TestCase
-{
+final class ClientFlowTest extends TestCase {
     use DatabaseTransactions;
 
     private Staff $admin;
@@ -34,8 +33,7 @@ final class ClientFlowTest extends TestCase
 
     private Product $product;
 
-    protected function setUp(): void
-    {
+    protected function setUp(): void {
         parent::setUp();
 
         $this->admin = Staff::firstOrCreate(
@@ -77,8 +75,7 @@ final class ClientFlowTest extends TestCase
         );
     }
 
-    private function createPackage(array $attributes = []): Package
-    {
+    private function createPackage(array $attributes = []): Package {
         /** @var Package $pkg */
         $pkg = Package::create(array_merge([
             'buyer_id' => $this->buyer->id,
@@ -106,8 +103,7 @@ final class ClientFlowTest extends TestCase
         return $pkg;
     }
 
-    public function test_client_security_headers_are_present(): void
-    {
+    public function test_client_security_headers_are_present(): void {
         $pkg = $this->createPackage();
 
         $response = $this->getJson("/api/client/{$pkg->client_token}");
@@ -124,8 +120,7 @@ final class ClientFlowTest extends TestCase
         $res404->assertHeader('Referrer-Policy', 'no-referrer');
     }
 
-    public function test_data_privacy_allow_list_never_leaks_forbidden_fields(): void
-    {
+    public function test_data_privacy_allow_list_never_leaks_forbidden_fields(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::RETURNED]);
 
         $chk = ConditionCheck::create([
@@ -171,8 +166,7 @@ final class ClientFlowTest extends TestCase
         $this->assertStringNotContainsString($this->courier->phone, $trackingContent); // Not in delivery -> phone hidden
     }
 
-    public function test_entry_resolves_appropriate_screen_and_redirect_url(): void
-    {
+    public function test_entry_resolves_appropriate_screen_and_redirect_url(): void {
         // 1. Awaiting confirmation -> schedule
         $pkg1 = $this->createPackage(['status' => PackageStatus::AWAITING_CONFIRMATION]);
         $res1 = $this->getJson("/api/client/{$pkg1->client_token}");
@@ -214,8 +208,7 @@ final class ClientFlowTest extends TestCase
         $this->assertStringContainsString('/issue', $res3->json('redirect_url'));
     }
 
-    public function test_tracking_returns_formatted_data_and_client_status_labels(): void
-    {
+    public function test_tracking_returns_formatted_data_and_client_status_labels(): void {
         $pkg = $this->createPackage([
             'status' => PackageStatus::IN_DELIVERY,
             'courier_id' => $this->courier->id,
@@ -251,8 +244,7 @@ final class ClientFlowTest extends TestCase
         $this->assertSame('Terjaga', $data['cold_chain']['chain_state']);
     }
 
-    public function test_schedule_show_returns_cargo_items_and_weight(): void
-    {
+    public function test_schedule_show_returns_cargo_items_and_weight(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::AWAITING_CONFIRMATION]);
         ScheduleConfirmation::create([
             'package_id' => $pkg->id,
@@ -278,8 +270,7 @@ final class ClientFlowTest extends TestCase
         $this->assertSame('2 Paket', $items[0]['quantity_label']);
     }
 
-    public function test_schedule_confirm_transitions_status_with_null_actor(): void
-    {
+    public function test_schedule_confirm_transitions_status_with_null_actor(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::AWAITING_CONFIRMATION]);
         ScheduleConfirmation::create([
             'package_id' => $pkg->id,
@@ -309,8 +300,7 @@ final class ClientFlowTest extends TestCase
         $res2->assertOk();
     }
 
-    public function test_schedule_reschedule_validates_and_transitions_status(): void
-    {
+    public function test_schedule_reschedule_validates_and_transitions_status(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::AWAITING_CONFIRMATION]);
         ScheduleConfirmation::create([
             'package_id' => $pkg->id,
@@ -349,8 +339,7 @@ final class ClientFlowTest extends TestCase
         $this->assertNotNull($notif);
     }
 
-    public function test_issue_replacement_creates_child_package_and_handles_double_tap(): void
-    {
+    public function test_issue_replacement_creates_child_package_and_handles_double_tap(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::RETURNED]);
 
         $chk = ConditionCheck::create([
@@ -392,23 +381,36 @@ final class ClientFlowTest extends TestCase
         $this->assertSame($replacementToken, $res2->json('replacement_token'));
     }
 
-    public function test_admin_reschedule_shipment_action(): void
-    {
-        $pkg = $this->createPackage(['status' => PackageStatus::RESCHEDULE_REQUESTED]);
+    public function test_admin_proposes_a_new_window_and_the_buyer_must_confirm(): void {
+        $pkg = $this->createPackage([
+            'status' => PackageStatus::COURIER_ASSIGNED,
+            'courier_id' => $this->courier->id,
+        ]);
 
         $newDate = now('Asia/Jakarta')->addDays(2)->format('Y-m-d');
 
         $this->actingAs($this->admin);
 
-        $res = $this->postJson("/api/admin/shipments/{$pkg->tracking_number}/reschedule", [
+        $res = $this->postJson("/api/admin/shipments/{$pkg->tracking_number}/request-confirmation", [
             'scheduled_date' => $newDate,
             'scheduled_time_window' => '11:00 - 13:00',
         ]);
 
         $res->assertOk();
-        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $pkg->fresh()->status);
 
-        // Buyer notification queued
+        $fresh = $pkg->fresh();
+        $this->assertSame(PackageStatus::AWAITING_CONFIRMATION, $fresh->status);
+        $this->assertSame(
+            $newDate,
+            $fresh->scheduled_at?->setTimezone('Asia/Jakarta')->format('Y-m-d'),
+            'the admin-proposed day is written to the parcel',
+        );
+        $this->assertDatabaseHas('schedule_confirmations', [
+            'package_id' => $pkg->id,
+            'response' => 'PENDING',
+        ]);
+
+        // The recipient still has to confirm the proposed window.
         $buyerNotif = Notification::where('package_id', $pkg->id)
             ->where('recipient_type', RecipientType::BUYER)
             ->where('template', 'schedule_rescheduled')
@@ -421,8 +423,7 @@ final class ClientFlowTest extends TestCase
         $this->assertSame($pkg->recipient_phone, $buyerNotif->payload['recipient_phone']);
     }
 
-    public function test_remind_unanswered_confirmations_command(): void
-    {
+    public function test_remind_unanswered_confirmations_command(): void {
         $pkg = $this->createPackage(['status' => PackageStatus::AWAITING_CONFIRMATION]);
 
         $confirmation = ScheduleConfirmation::create([

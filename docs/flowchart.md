@@ -17,7 +17,6 @@ Konvensi penulisan: nama status selalu memakai kode database dalam huruf kapital
 |---|---|:---:|:---:|---|
 | `CREATED` | Dibuat | tidak | tidak | Baris paket sudah ada, permintaan konfirmasi belum dikirim |
 | `AWAITING_CONFIRMATION` | Menunggu Konfirmasi | ya | tidak | Permintaan jadwal sudah dikirim, menunggu jawaban pembeli |
-| `RESCHEDULE_REQUESTED` | Minta Jadwal Ulang | tidak | tidak | Pembeli minta jadwal lain, menunggu admin menyusun jadwal baru |
 | `CONFIRMED` | Dijadwalkan | tidak | tidak | Jadwal disetujui pembeli, siap ditugaskan ke kurir |
 | `COURIER_ASSIGNED` | Kurir Ditugaskan | tidak | tidak | Kurir sudah dipilih, checklist kemasan belum diisi |
 | `CHECKED` | Sudah Diperiksa | tidak | tidak | Checklist kemasan dan suhu sudah diisi |
@@ -35,10 +34,9 @@ Dua status penanda antrian kerja, `AWAITING_CONFIRMATION` dan `ISSUE_REPORTED`, 
 stateDiagram-v2
     [*] --> CREATED
     CREATED --> AWAITING_CONFIRMATION : sistem mengirim permintaan konfirmasi
-    AWAITING_CONFIRMATION --> CONFIRMED : pembeli memilih siap menerima
-    AWAITING_CONFIRMATION --> RESCHEDULE_REQUESTED : pembeli meminta jadwal lain
-    RESCHEDULE_REQUESTED --> AWAITING_CONFIRMATION : admin menyusun jadwal baru
+    AWAITING_CONFIRMATION --> CONFIRMED : pembeli memilih siap menerima atau memilih jendela lain
     CONFIRMED --> COURIER_ASSIGNED : admin menugaskan kurir
+    COURIER_ASSIGNED --> AWAITING_CONFIRMATION : kurir atau admin mengajukan jadwal (opsional jendela baru)
     COURIER_ASSIGNED --> CONFIRMED : kurir menolak penugasan
     COURIER_ASSIGNED --> CHECKED : kurir mengisi checklist kemasan
     CHECKED --> IN_DELIVERY : kondisi normal, kurir berangkat
@@ -87,9 +85,8 @@ flowchart TD
     subgraph F2["Fase 2 - Konfirmasi jadwal"]
         DEC1{"[Pembeli] siap menerima?"}
         CONF(("CONFIRMED"))
-        RESCH(("RESCHEDULE_REQUESTED"))
         NRESCH["[Sistem] notifikasi reschedule_requested ke admin"]
-        ADRS["[Admin] susun jadwal baru<br/>POST /api/admin/shipments/RESI/reschedule"]
+        ADRS["[Admin/Kurir] ajukan jadwal<br/>POST .../request-confirmation"]
         NEWREQ["[Sistem] kirim jadwal baru<br/>template schedule_rescheduled"]
         OVERDUE["[Sistem] reminder pembeli belum menjawab<br/>confirmations:remind-unanswered"]
         ADMAN["[Admin] hubungi pembeli secara manual"]
@@ -154,9 +151,10 @@ flowchart TD
     AWC --> REQ
     REQ --> DEC1
     DEC1 -->|"siap menerima"| CONF
-    DEC1 -->|"minta jadwal lain, E1"| RESCH
-    RESCH --> NRESCH
-    NRESCH --> ADRS
+    DEC1 -->|"minta jadwal lain, E1"| CONF
+    DEC1 -->|"minta jadwal lain"| NRESCH
+    NRESCH --> CONF
+    CA -->|"admin/kurir ajukan jadwal"| ADRS
     ADRS --> NEWREQ
     NEWREQ --> AWC
     DEC1 -.->|"tidak menjawab, E2"| OVERDUE
@@ -220,7 +218,7 @@ flowchart TD
     class HUB,ADRS,ADMAN,ASSIGN,PANEL,CATK,OPT1,OPT2,DP,DR,DS,DRT,DRS admin
     class KACC,KYES,KNO,CHK,COND,DEPART,ARRIVE,ROAD,RPT,PROOF kurir
     class REQ,NRESCH,NEWREQ,OVERDUE,TASK,REJ,NADM,NOTW,NARR,NISSUE,NDLV,REPORT,GAP sistem
-    class CREATED,AWC,CONF,RESCH,CA,CHKED,INDEL,ISSUE,RRET,RNEW,RECV status
+    class CREATED,AWC,CONF,CA,CHKED,INDEL,ISSUE,RRET,RNEW,RECV status
 ```
 
 Warnanya menandai peran: biru untuk pembeli, kuning untuk admin, hijau untuk kurir, abu-abu untuk sistem, dan ungu untuk status paket. Setiap kotak juga sudah diawali peran di dalam kurung siku, jadi diagramnya tetap terbaca kalau warnanya tidak muncul. Kotak berbentuk kapsul adalah status di kolom `packages.status`, sedangkan kotak persegi adalah tindakan.
@@ -245,7 +243,7 @@ flowchart TD
 
     subgraph L2["Admin dan hub"]
         AD1["Buat paket bila order datang dari hub<br/>POST /api/admin/shipments"]
-        AD2["Susun jadwal baru<br/>POST /api/admin/shipments/RESI/reschedule"]
+        AD2["Ajukan jadwal (opsional jendela baru)<br/>POST /api/admin/shipments/RESI/request-confirmation"]
         AD3["Tugaskan kurir<br/>POST /api/admin/shipments/RESI/assign"]
         AD4["Pantau kendala<br/>GET /api/admin/exceptions"]
         AD5["Putuskan kendala<br/>POST /api/admin/exceptions/RESI/decision"]
@@ -314,8 +312,8 @@ Ada dua pintu masuk yang sama-sama sah untuk langkah pertama. Pembeli bisa memul
 |---|---|---|---|---|---|
 | 1. Paket dibuat | Pembeli atau Admin | Checkout dari katalog, atau input manual di hub | `POST /api/client/orders`, `POST /api/admin/shipments` | `CREATED` | tidak ada |
 | 2. Penugasan kurir | Admin | Pilih kurir aktif | `POST /api/admin/shipments/{resi}/assign` | `COURIER_ASSIGNED` | tidak ada (kurir melihat tugas di aplikasi) |
-| 3. Permintaan konfirmasi jadwal | Kurir atau Admin | Minta penerima mengonfirmasi tanggal terima | `POST /api/courier/deliveries/{resi}/request-confirmation`, `POST /api/admin/shipments/{resi}/request-confirmation` | `AWAITING_CONFIRMATION` | `schedule_request` ke penerima |
-| 4. Konfirmasi jadwal | Penerima | Pilih siap menerima atau minta jadwal lain | `POST .../schedule/confirm`, `POST .../schedule/reschedule` | `CONFIRMED` atau `RESCHEDULE_REQUESTED` | `reschedule_requested` ke admin bila minta ganti jadwal |
+| 3. Permintaan konfirmasi jadwal | Kurir atau Admin | Minta penerima mengonfirmasi tanggal terima, opsional dengan jendela baru | `POST /api/courier/deliveries/{resi}/request-confirmation`, `POST /api/admin/shipments/{resi}/request-confirmation` | `AWAITING_CONFIRMATION` | `schedule_request` (atau `schedule_rescheduled` bila jendela diubah) ke penerima |
+| 4. Konfirmasi jadwal | Penerima | Pilih siap menerima, atau memilih jendela lain (langsung diterapkan) | `POST .../schedule/confirm`, `POST .../schedule/reschedule` | `CONFIRMED` | `reschedule_requested` ke admin bila pembeli memilih jendela lain |
 | 5. Pemeriksaan dan keberangkatan | Kurir | Isi checklist kemasan dan suhu | `POST /api/courier/deliveries/{resi}/depart` | `CHECKED` lalu `IN_DELIVERY` | `on_the_way` dan `delivery_pin` ke penerima |
 | 6. Pengantaran | Kurir | Tandai tiba di lokasi | `POST /api/courier/deliveries/{resi}/arrive` | tetap `IN_DELIVERY` | `courier_arrived` ke penerima |
 | 7. Serah terima | Kurir | Catat nama penerima, relasi, foto, catatan, dan PIN penerima | `POST /api/courier/deliveries/{resi}/proof` | `RECEIVED` | `delivered` ke penerima |
@@ -333,26 +331,27 @@ Bagian ini adalah pembesaran dari cabang di Bagian 3. Tujuannya supaya tiap kond
 flowchart TD
     A["AWAITING_CONFIRMATION<br/>permintaan jadwal sudah dikirim"]
     B{"Pembeli menjawab apa?"}
-    C["CONFIRMED<br/>lanjut ke penugasan kurir"]
-    D["RESCHEDULE_REQUESTED<br/>baris schedule_confirmations ditandai RESCHEDULE_REQUESTED"]
+    C["CONFIRMED<br/>siap menerima jadwal saat ini"]
+    D["CONFIRMED<br/>jendela pilihan pembeli langsung diterapkan"]
     E["Notifikasi reschedule_requested<br/>ke semua admin aktif"]
-    F["Admin menyusun jadwal baru<br/>POST /api/admin/shipments/RESI/reschedule"]
-    G["Baris schedule_confirmations baru berstatus PENDING<br/>status kembali ke AWAITING_CONFIRMATION"]
-    H["Notifikasi schedule_rescheduled<br/>ke pembeli"]
+    F["COURIER_ASSIGNED<br/>kurir ditugaskan"]
+    G["Admin atau kurir mengajukan jendela baru<br/>POST .../request-confirmation"]
+    H["AWAITING_CONFIRMATION<br/>konfirmasi PENDING baru; notifikasi schedule_rescheduled"]
     I["E2 bila pembeli tidak menjawab"]
 
     A --> B
     B -->|"siap menerima"| C
-    B -->|"minta jadwal lain"| D
+    B -->|"pilih jendela lain"| D
     B -.->|"tidak menjawab"| I
     D --> E
+    C --> F
     E --> F
     F --> G
     G --> H
     H --> A
 ```
 
-Pengulangan ini disengaja dan tidak dibatasi jumlah putaran. Setiap putaran membuat baris `schedule_confirmations` baru, jadi riwayat negosiasi jadwal tersimpan utuh dan admin bisa melihat berapa kali pembeli sudah meminta ganti jadwal. Permintaan pembeli bersifat idempoten: menekan tombol dua kali saat status sudah `RESCHEDULE_REQUESTED` tidak membuat transisi kedua.
+Pembeli yang memilih jendela lain tidak menunggu admin: jendelanya langsung diterapkan dan paket menjadi `CONFIRMED`, sementara admin tetap menerima notifikasi. Admin atau kurir dapat mengajukan jendela baru setelah paket ditugaskan (`COURIER_ASSIGNED`) lewat aksi yang sama dengan permintaan konfirmasi; paket kembali ke `AWAITING_CONFIRMATION` dan penerima mengonfirmasi sekali lagi. Permintaan pembeli bersifat idempoten: menekan tombol dua kali saat paket sudah `CONFIRMED` tidak membuat transisi kedua.
 
 ### 5.2 E2 - Pembeli tidak merespons
 
@@ -528,7 +527,7 @@ Semua pesan ke pembeli, kurir, dan admin melewati satu antrean yang sama: baris 
 
 | ID | Pemicu | Status sebelum menuju sesudah | Penanganan | Endpoint atau job |
 |---|---|---|---|---|
-| E1 | Pembeli memilih minta jadwal lain | `AWAITING_CONFIRMATION` menuju `RESCHEDULE_REQUESTED` menuju `AWAITING_CONFIRMATION` | Admin menyusun jadwal baru, sistem mengirim ulang permintaan konfirmasi | `POST /api/client/orders/{resi}/schedule/reschedule`, `POST /api/admin/shipments/{resi}/reschedule` |
+| E1 | Pembeli memilih jendela lain, lalu admin/kurir mengajukan jendela baru | `AWAITING_CONFIRMATION` menuju `CONFIRMED` (pembeli), atau `COURIER_ASSIGNED` menuju `AWAITING_CONFIRMATION` (admin/kurir) | Jendela pembeli langsung diterapkan; jendela yang diajukan admin/kurir menunggu konfirmasi penerima | `POST /api/client/orders/{resi}/schedule/reschedule`, `POST /api/admin/shipments/{resi}/request-confirmation` |
 | E2 | Pembeli tidak merespons melewati ambang waktu | tetap `AWAITING_CONFIRMATION` | Reminder otomatis ke admin | `confirmations:remind-unanswered` setiap 15 menit |
 | E3 | Kurir menolak penugasan | `COURIER_ASSIGNED` menuju `CONFIRMED` | Penugasan dibatalkan, admin memilih kurir lain | `POST /api/courier/tasks/{resi}/reject` |
 | E4 | Checklist kemasan menemukan masalah sebelum berangkat | `COURIER_ASSIGNED` atau `CHECKED` menuju `ISSUE_REPORTED` | Admin memutuskan lewat panel kendala | `POST /api/courier/deliveries/{resi}/issue`, `POST /api/admin/exceptions/{resi}/decision` |

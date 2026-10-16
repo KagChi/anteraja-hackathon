@@ -80,9 +80,10 @@ peta dan geolokasi membutuhkan HTTPS (kecuali localhost).
 7. **Paket diterima** — kurir mencatat serah terima (foto bukti di aplikasi);
    `RECEIVED`, pengiriman masuk riwayat dan laporan.
 
-Cabang yang didemokan: *penerima minta jadwal lain → admin memperbarui jadwal →
-kurir menerima tugas → kurir melaporkan kemasan bocor → admin memutuskan
-pengembalian → kurir dan penerima menerima informasi keputusan*.
+Cabang yang didemokan: *penerima minta jadwal lain (jendela pilihannya langsung
+diterapkan) → kurir ditugaskan → admin mengajukan jendela baru lewat "Ajukan
+jadwal" dan penerima mengonfirmasinya → kurir melaporkan kemasan bocor → admin
+memutuskan pengembalian → kurir dan penerima menerima informasi keputusan*.
 
 ## Beranda admin
 

@@ -11,10 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-final class DemoDataSeeder extends Seeder
-{
-    public function run(): void
-    {
+final class DemoDataSeeder extends Seeder {
+    public function run(): void {
         $now = Carbon::now('UTC');
 
         // The catalog is upserted on every run rather than guarded: the
@@ -666,12 +664,13 @@ final class DemoDataSeeder extends Seeder
             'updated_at' => $now->copy()->subHour(),
         ]);
 
-        // Package 14: AJ-FRZ-0012364 (Client Screen: Reschedule Requested Banner)
+        // Package 14: AJ-FRZ-0012364 (Admin: propose a new delivery window and
+        // ask the recipient to confirm it)
         $pkg14Id = DB::table('packages')->insertGetId([
             'tracking_number' => 'AJ-FRZ-0012364',
             'buyer_id' => $kevinId,
             'created_by' => $adminId,
-            'courier_id' => null,
+            'courier_id' => $budiId,
             'status' => 'CREATED',
             'cooler_box_code' => null,
             'package_category' => 'Frozen Food',
@@ -685,17 +684,7 @@ final class DemoDataSeeder extends Seeder
             'updated_at' => $now->copy()->subHours(5),
         ]);
         DB::table('package_items')->insert(['package_id' => $pkg14Id, 'product_id' => $p1, 'quantity' => 2]);
-        $transition($pkg14Id, 'AWAITING_CONFIRMATION', $adminId);
-        $transition($pkg14Id, 'RESCHEDULE_REQUESTED');
-        DB::table('schedule_confirmations')->insert([
-            'package_id' => $pkg14Id,
-            'response' => 'RESCHEDULE_REQUESTED',
-            'proposed_scheduled_at' => Carbon::tomorrow()->setTime(13, 0),
-            'requested_at' => $now->copy()->subHours(3),
-            'responded_at' => $now->copy()->subHours(1),
-            'created_at' => $now->copy()->subHours(3),
-            'updated_at' => $now->copy()->subHours(1),
-        ]);
+        $transition($pkg14Id, 'COURIER_ASSIGNED', $adminId);
 
         // Update tracking sequence past the highest sample tracking number
         // 4. Destinations. The buyer is the customer who sends the parcel; the
@@ -748,8 +737,7 @@ final class DemoDataSeeder extends Seeder
      * product name so a re-run refreshes price, weight and art instead of
      * inserting a second row.
      */
-    private function seedCatalog(): void
-    {
+    private function seedCatalog(): void {
         foreach ($this->catalog() as $product) {
             Product::updateOrCreate(
                 ['name' => $product['name']],
@@ -761,8 +749,7 @@ final class DemoDataSeeder extends Seeder
     /**
      * @return list<array<string, mixed>>
      */
-    private function catalog(): array
-    {
+    private function catalog(): array {
         return [
             [
                 'name' => 'Nugget Ayam 1 kg',

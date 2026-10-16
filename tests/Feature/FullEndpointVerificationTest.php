@@ -100,9 +100,10 @@ final class FullEndpointVerificationTest extends TestCase {
         ]);
         $assignRes->assertOk();
 
-        // 10. POST /api/admin/shipments/{package}/reschedule
-        // Resi AJ-FRZ-0012364 is RESCHEDULE_REQUESTED in DemoDataSeeder
-        $rescheduleRes = $this->postJson('/api/admin/shipments/AJ-FRZ-0012364/reschedule', [
+        // 10. POST /api/admin/shipments/{package}/request-confirmation
+        // Resi AJ-FRZ-0012364 is COURIER_ASSIGNED in DemoDataSeeder; the admin
+        // proposes a new window and the recipient has to confirm it.
+        $rescheduleRes = $this->postJson('/api/admin/shipments/AJ-FRZ-0012364/request-confirmation', [
             'scheduled_date' => Carbon::now('Asia/Jakarta')->addDays(2)->format('Y-m-d'),
             'scheduled_time_window' => '13:00 - 15:00',
         ]);

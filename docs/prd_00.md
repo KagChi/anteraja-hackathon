@@ -102,8 +102,9 @@ Perjalanan utama:
 4. Menangani kendala: melihat antrean, membaca checklist dan foto, lalu memilih
    satu dari lima keputusan yang diizinkan kategori kendala tersebut
    (Actions/Issues/ResolveIssue.php, Enums/IssueCategory.php).
-5. Menyusun ulang jadwal untuk paket RESCHEDULE_REQUESTED
-   (Actions/Admin/RescheduleShipment.php).
+5. Mengajukan jadwal baru (opsional) untuk paket yang sudah ditugaskan ke kurir,
+   lalu mengirim ulang permintaan konfirmasi ke penerima
+   (Actions/Packages/RequestScheduleConfirmation.php).
 6. Meninjau validasi GPS: melihat verdict BLOCKED atau SUSPECTED dan permintaan
    tinjauan kurir, lalu menyetujui atau menolak dengan alasan minimal 10 karakter
    (Admin/GpsCheckController.php, Admin/GpsDecisionRequest.php).
