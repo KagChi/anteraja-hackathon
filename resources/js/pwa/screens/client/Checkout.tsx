@@ -35,11 +35,62 @@ function addDays(iso: string, days: number): string {
     return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(base);
 }
 
+/** Smallest lead a delivery window may have, matching the hub's two-hour rule. */
+const MIN_LEAD_MINUTES = 120;
+
+/** Minutes since midnight in Jakarta, the clock the delivery windows run on. */
+function jakartaNowMinutes(): number {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: JAKARTA,
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+    }).formatToParts(new Date());
+    const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
+    const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+
+    return hour * 60 + minute;
+}
+
+function slotStartMinutes(slot: string): number {
+    const [hour, minute] = slot.split("-")[0].split(":").map(Number);
+
+    return hour * 60 + minute;
+}
+
+/** Windows still bookable on a date: today drops the ones inside the lead time. */
+function availableWindows(date: string): string[] {
+    const today = jakartaToday();
+
+    if (date > today) {
+        return WINDOWS;
+    }
+
+    if (date < today) {
+        return [];
+    }
+
+    const cutoff = jakartaNowMinutes() + MIN_LEAD_MINUTES;
+
+    return WINDOWS.filter((slot) => slotStartMinutes(slot) >= cutoff);
+}
+
+/** The first day that still has a bookable window, which is today unless it is late. */
+function defaultScheduleDate(): string {
+    const today = jakartaToday();
+
+    return availableWindows(today).length > 0 ? today : addDays(today, 1);
+}
+
 function dayLabel(iso: string, offset: number): string {
     const [year, month, day] = iso.split("-").map(Number);
     const date = new Date(Date.UTC(year, month - 1, day, 12));
     const weekday = new Intl.DateTimeFormat("id-ID", { weekday: "long", timeZone: "UTC" }).format(date);
     const short = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
+
+    if (offset === 0) {
+        return `Hari Ini, ${short}`;
+    }
 
     return `${offset === 1 ? "Besok" : weekday}, ${short}`;
 }
@@ -62,8 +113,8 @@ export default function Checkout() {
     const [recipientAddress, setRecipientAddress] = useState("");
     const [recipientArea, setRecipientArea] = useState("");
     const [addressType, setAddressType] = useState("RESIDENTIAL");
-    const [scheduleDate, setScheduleDate] = useState(() => addDays(jakartaToday(), 1));
-    const [scheduleWindow, setScheduleWindow] = useState("13:00-15:00");
+    const [scheduleDate, setScheduleDate] = useState(defaultScheduleDate);
+    const [scheduleWindow, setScheduleWindow] = useState(() => availableWindows(defaultScheduleDate())[0] ?? "");
     const [notes, setNotes] = useState("");
     const [pin, setPin] = useState<PickedPoint | null>(null);
     const [pinNotice, setPinNotice] = useState("");
@@ -75,6 +126,15 @@ export default function Checkout() {
             navigate("/client/register?next=/client/checkout", { replace: true });
         }
     }, [navigate]);
+
+    // Picking a day must not leave a window that day can no longer take.
+    useEffect(() => {
+        const windows = availableWindows(scheduleDate);
+
+        if (!windows.includes(scheduleWindow)) {
+            setScheduleWindow(windows[0] ?? "");
+        }
+    }, [scheduleDate, scheduleWindow]);
 
     const products = useMemo(() => data?.data ?? [], [data]);
 
@@ -110,11 +170,12 @@ export default function Checkout() {
 
     const total = lines.reduce((sum, line) => sum + line.lineTotal, 0);
     const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
-    const dateOptions = Array.from({ length: 4 }, (_, index) => {
-        const iso = addDays(jakartaToday(), index + 1);
+    const dateOptions = Array.from({ length: 5 }, (_, index) => {
+        const iso = addDays(jakartaToday(), index);
 
-        return { value: iso, label: dayLabel(iso, index + 1) };
+        return { value: iso, label: dayLabel(iso, index) };
     });
+    const windowOptions = availableWindows(scheduleDate);
 
     async function submit(event: FormEvent) {
         event.preventDefault();
@@ -343,7 +404,7 @@ export default function Checkout() {
                     label="Jendela waktu"
                     value={scheduleWindow}
                     onChange={setScheduleWindow}
-                    options={WINDOWS.map((slot) => ({ value: slot, label: slot }))}
+                    options={windowOptions.map((slot) => ({ value: slot, label: slot }))}
                 />
                 <TextAreaField
                     label="Catatan untuk kurir"
