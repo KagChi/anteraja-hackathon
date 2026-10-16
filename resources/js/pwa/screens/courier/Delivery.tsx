@@ -36,7 +36,6 @@ export default function Delivery({ params }: ScreenProps) {
     const [actionError, setActionError] = useState<string | null>(null);
     const [gpsNotice, setGpsNotice] = useState("");
     const [busy, setBusy] = useState(false);
-    const [checks, setChecks] = useState<Record<string, boolean>>({});
     const [windowDate, setWindowDate] = useState("");
     const [windowSlot, setWindowSlot] = useState(COURIER_SLOTS[0]);
 
@@ -81,7 +80,6 @@ export default function Delivery({ params }: ScreenProps) {
 
     const delivery = data.delivery;
     const gps = delivery.gps;
-    const checklistEntries = Object.entries(delivery.checklistItems ?? {});
     const destination = gps.destination;
     const hasMap = destination !== null && destination.latitude !== null && destination.longitude !== null;
     const meters =
@@ -126,7 +124,7 @@ export default function Delivery({ params }: ScreenProps) {
             const fields = gpsFields(fixes, latest);
 
             if (action === "depart") {
-                await courierApi.deliveries.depart(resi, fields, checks);
+                await courierApi.deliveries.depart(resi, fields);
             } else {
                 await courierApi.deliveries.arrive(resi, fields);
                 setArrived(true);
@@ -330,34 +328,6 @@ export default function Delivery({ params }: ScreenProps) {
                         <MaterialIcon name="event_available" className="text-[20px]" />
                         Minta Konfirmasi Jadwal Penerimaan
                     </button>
-                </section>
-            ) : null}
-
-            {delivery.canDepart && checklistEntries.length > 0 ? (
-                <section className="flex w-full flex-col gap-space-sm rounded-xl bg-surface-container-lowest p-space-xl">
-                    <span className="font-label-md text-label-md text-on-surface">Pemeriksaan Kemasan</span>
-                    <span className="font-body-sm text-body-sm text-secondary">
-                        Tandai hanya bila ada temuan. Item yang dibiarkan kosong berarti normal.
-                    </span>
-                    {checklistEntries.map(([key, label]) => (
-                        <button
-                            key={key}
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setChecks((previous) => ({ ...previous, [key]: !previous[key] }))}
-                            className={
-                                checks[key] === true
-                                    ? "flex w-full items-center gap-space-sm rounded-lg bg-error-container p-space-md text-left font-body-md text-body-md text-on-error-container disabled:opacity-60"
-                                    : "flex w-full items-center gap-space-sm rounded-lg bg-surface-container-low p-space-md text-left font-body-md text-body-md text-on-surface disabled:opacity-60"
-                            }
-                        >
-                            <MaterialIcon
-                                name={checks[key] === true ? "check_box" : "check_box_outline_blank"}
-                                className="text-[20px]"
-                            />
-                            <span className="flex-1">{label}</span>
-                        </button>
-                    ))}
                 </section>
             ) : null}
 
