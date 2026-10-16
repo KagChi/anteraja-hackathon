@@ -61,9 +61,8 @@ ditambah client_url, address, dan buyer_name.
 6. Aplikasi memperbarui status baris notifikasi sesuai jawaban itu.
 
 Template yang dipakai sistem: schedule_request, schedule_rescheduled, on_the_way
-courier_arrived, delivered, delivery_pin, issue_options, issue_reported
-issue_decision_update, task_rejected, resend_requested
-buyer_issue_choice, dan confirmation_overdue.
+courier_arrived, delivered, delivery_pin, issue_reported
+issue_decision_update, task_rejected, resend_requested, dan confirmation_overdue.
 
 ## 7. Output
 

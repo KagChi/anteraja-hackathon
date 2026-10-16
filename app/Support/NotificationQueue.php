@@ -165,23 +165,6 @@ final class NotificationQueue {
     }
 
     /**
-     * Menu pilihan penyelesaian kendala (opsi 1-4) untuk penerima.
-     */
-    public function queueIssueOptions(Package $package, IssueCategory $category): void {
-        $this->queue(
-            $package,
-            RecipientType::BUYER,
-            $package->buyer_id,
-            'issue_options',
-            [
-                'tracking_number' => $package->tracking_number,
-                'issue_category' => $category->value,
-                'issue_label' => $category->label(),
-            ]
-        );
-    }
-
-    /**
      * Payload notifikasi dibuat mandiri supaya workflow n8n tidak perlu
      * membuka database aplikasi: nomor penerima, nama, alamat, resi, dan token
      * paket ikut dikirim bersama template.

@@ -107,10 +107,9 @@ outbound saat notifikasi dikirim):
 | --- | --- | --- |
 | `schedule_request`, `schedule_rescheduled` | "siap", "ya", "oke" | `POST /schedule/confirm` |
 | `schedule_request`, `schedule_rescheduled` | "jadwal lain", "ubah", tanggal + jam | `POST /schedule/reschedule` (minta tanggal/jam bila belum ada) |
-| `issue_options` | `1`-`4` atau "kirim ulang"/"retur"/"lanjut"/"diskusi" | `POST /issue/choice` |
 | `on_the_way`, `courier_arrived`, `delivered`, `issue_decision_update*` | apa pun | tidak ada aksi; balasan status singkat sesuai keputusan yang tercatat, plus jadwal bila diketahui |
 | ada paket tapi tidak ada langkah tertunda | apa pun | status paket apa adanya, plus jadwal pengantaran |
-| tidak ada state | apa pun | balasan bantuan: minta nomor resi, tanpa menu 1-4 |
+| tidak ada state | apa pun | balasan bantuan: minta nomor resi |
 
 Pesan tidak pernah memuat URL atau token. Tautan yang bisa dibangun aplikasi
 adalah endpoint API (berisi `client_token`) yang tidak dapat dibuka pelanggan dan
@@ -131,7 +130,7 @@ yang tertinggal (mis. sesudah admin menyusun ulang) tidak lagi membuat bot
 menjawab dengan teks bantuan.
 
 Setelah aksi berhasil, `last_template` dimajukan (`confirmed`,
-`reschedule_requested`, `issue_choice_recorded`) supaya bot tidak menagih
+`reschedule_requested`) supaya bot tidak menagih
 langkah yang sama. Kalau API menolak (mis. jadwal sudah dikonfirmasi), pesan
 penolakan aplikasi diteruskan apa adanya dan state tidak dimajukan.
 

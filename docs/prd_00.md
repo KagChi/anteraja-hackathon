@@ -173,9 +173,9 @@ Perjalanan utama:
 5. Melacak kiriman: kartu cold chain, timeline, dan tombol menghubungi kurir
    hanya terbuka saat status IN_DELIVERY
    (Services/Client/TrackingViewService.php).
-6. Saat kendala, memilih penyelesaian lewat menu WhatsApp atau menekan minta
+6. Saat kendala, memantau keputusan admin di layar kendala atau menekan minta
    pengiriman ulang di aplikasi bila memenuhi syarat retur
-   (Actions/Client/RecordIssueChoice.php, Actions/Client/RequestReplacement.php).
+   (Actions/Client/RequestReplacement.php).
 
 ### 3.4 Visitor publik
 
@@ -270,7 +270,6 @@ atau [TIDAK TERVERIFIKASI].
 | Resolusi token menjadi satu paket dengan TTL 30 hari untuk status terminal | akses tanpa login | Guest | Existing-Core | Live |
 | Layar otomatis: jadwal, kendala, atau tracking sesuai status dan kondisi | tidak ada keputusan yang salah | Guest | Existing-Core | Live |
 | Konfirmasi dan jadwal ulang tanpa akun | menghilangkan hambatan | Guest | Existing-Core | Live |
-| Menu pilihan penyelesaian kendala opsi 1 sampai 4 | menutup kendala dari WhatsApp | Guest | Existing-Core | Live |
 | Rate limit 20 kegagalan token per IP per menit | mencegah enumerasi token | Sistem | Existing-Supporting | Live |
 
 ### 4.6 WhatsApp Bot (n8n + WAHA)
@@ -279,7 +278,7 @@ atau [TIDAK TERVERIFIKASI].
 | --- | --- | --- | --- | --- |
 | Outbox notifikasi dengan konteks kirim lengkap | satu jalur keluar yang dapat dipertanggungjawabkan | Sistem | Existing-Core | Live |
 | Job pengiriman dengan retry 3 kali dan backoff 10 lalu 30 detik | tahan gangguan n8n | Sistem | Existing-Core | Live |
-| Template notifikasi: schedule_request, schedule_rescheduled, on_the_way, courier_arrived, delivered, delivery_pin, issue_options, issue_reported, issue_decision_update, task_rejected, resend_requested, buyer_issue_choice, confirmation_overdue | komunikasi pelanggan | Sistem | Existing-Core | Live |
+| Template notifikasi: schedule_request, schedule_rescheduled, on_the_way, courier_arrived, delivered, delivery_pin, issue_reported, issue_decision_update, task_rejected, resend_requested, confirmation_overdue | komunikasi pelanggan | Sistem | Existing-Core | Live |
 | Terjemahan balasan pelanggan menjadi aksi lewat state anteraja_chat_state | bot yang tidak menebak | Sistem | Existing-Core | Live |
 | Resolusi LID WhatsApp ke nomor telepon | balasan tetap sampai | Sistem | Live |
 | Lookup resi internal dengan shared token | menghubungkan nomor dan paket | n8n | Existing-Supporting | Live |

@@ -28,7 +28,7 @@ yang menghilang, dan isi pesan dapat diaudit.
 | Pemicu | Detail |
 | --- | --- |
 | Method | NotificationQueue::queue dan pembungkusnya |
-| Pembungkus | queueTaskRejected, queueOnTheWay, queueCourierArrived, queueDelivered, queueIssueReported, queueIssueOptions |
+| Pembungkus | queueTaskRejected, queueOnTheWay, queueCourierArrived, queueDelivered, queueIssueReported |
 
 ## 4. Precondition dan postcondition
 
@@ -59,9 +59,9 @@ yang menghilang, dan isi pesan dapat diaudit.
 8. Kembalikan model Notification.
 
 Daftar template yang dipakai sistem: schedule_request, schedule_rescheduled
-on_the_way, courier_arrived, delivered, delivery_pin, issue_options, issue_reported
+on_the_way, courier_arrived, delivered, delivery_pin, issue_reported
 issue_decision_update, task_rejected
-resend_requested, buyer_issue_choice, dan confirmation_overdue.
+resend_requested, dan confirmation_overdue.
 
 ## 7. Output
 

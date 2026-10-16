@@ -170,7 +170,6 @@ memetakan modul dan judul requirement agar mudah dirujuk.
 | FR-ISS-006 | Efek samping lima jenis putusan | Live |
 | FR-ISS-007 | Kelayakan dan pembuatan paket pengganti | Live |
 | FR-ISS-008 | Layar kendala pelanggan | Live |
-| FR-ISS-009 | Mencatat pilihan penyelesaian pelanggan | Live |
 | FR-ISS-010 | Permintaan pengiriman ulang dari aplikasi | Live |
 | FR-NOTIF-001 | Menulis notifikasi ke outbox | Live |
 | FR-NOTIF-002 | Mengirim notifikasi ke n8n | Live |
@@ -302,7 +301,6 @@ docs/openapi.yaml.
 | POST | /api/guest/{token}/schedule/confirm | Api/Client/ScheduleConfirmationController | sama | tidak |
 | POST | /api/guest/{token}/schedule/reschedule | Api/Client/ScheduleRescheduleController | sama | tidak |
 | GET | /api/guest/{token}/issue | Api/Client/IssueController@show | sama | tidak |
-| POST | /api/guest/{token}/issue/choice | Api/Client/IssueChoiceController | sama | tidak |
 
 ### 4.6 Tautan token legacy
 
@@ -315,7 +313,6 @@ docs/openapi.yaml.
 | POST | /api/client/{token}/schedule/confirm | Client/ScheduleConfirmationController | sama | ya |
 | POST | /api/client/{token}/schedule/reschedule | Client/ScheduleRescheduleController | sama | ya |
 | GET | /api/client/{token}/issue | Client/IssueController@show | sama | ya |
-| POST | /api/client/{token}/issue/choice | Api/Client/IssueChoiceController | sama | tidak |
 | POST | /api/client/{token}/issue/resend | Client/ReplacementController | sama | ya |
 
 ### 4.7 Publik, internal, dan dokumentasi
@@ -362,7 +359,7 @@ docs/openapi.yaml.
 | package_items | package_id, product_id, quantity | unik per pasangan, quantity lebih dari 0 |
 | schedule_confirmations | package_id, response, proposed_scheduled_at, requested_at, responded_at | satu PENDING per paket |
 | condition_checks | package_id, courier_id, is_normal, checklist jsonb, notes, temperature_c, checked_at | tanpa updated_at (UPDATED_AT null) |
-| issue_reports | check_id (unik), issue_category, description, photo_url, quality_inspection_note, decision, decision_reason, decided_by, decided_at, reported_at, buyer_choice, buyer_responded_at | satu laporan per condition_check |
+| issue_reports | check_id (unik), issue_category, description, photo_url, quality_inspection_note, decision, decision_reason, decided_by, decided_at, reported_at | satu laporan per condition_check |
 | deliveries | package_id (unik), received_by, recipient_relation, photo_url, receipt_note, delivered_at | satu bukti per paket |
 | delivery_milestones | package_id, milestone, courier_id, latitude, longitude, occurred_at | nilai DEPARTED atau ARRIVED |
 | notifications | package_id, recipient_type, recipient_id, template, payload jsonb, status, sent_at | outbox |
@@ -426,7 +423,7 @@ di sini dan dipakai dengan kode BR.
 | BR-001 | Perubahan status paket hanya sah bila pasangan from dan to ada di tabel package_status_transitions; pelanggaran menghasilkan error check_violation dan dipetakan menjadi InvalidStatusTransition | migrasi 0001_01_01_000016, Support/PackageStatusTransitioner.php | semua FR yang mengubah status |
 | BR-002 | Setiap perubahan status wajib melalui Support/PackageStatusTransitioner di dalam DB::transaction | AGENTS.md dan kode transitioner | FR-PKG-001, 005, 006, 007; seluruh Action |
 | BR-003 | Aktor transisi ditulis ke sesi PostgreSQL dengan set_config app.staff_id; aksi pelanggan dan sistem memakai aktor kosong sehingga changed_by null | Support/PackageStatusTransitioner.php | FR-PKG-007 |
-| BR-004 | Operasi penulisan yang rentan balapan memakai lockForUpdate pada baris paket | AssignCourier, ResolveIssue, ConfirmSchedule, RequestReschedule, ReportIssue, ConfirmDelivery, MarkArrived, RequestReplacement, RecordIssueChoice, RequestScheduleConfirmation | FR-ASG-001, FR-ISS-005, FR-TRACK-006, FR-TRACK-007 |
+| BR-004 | Operasi penulisan yang rentan balapan memakai lockForUpdate pada baris paket | AssignCourier, ResolveIssue, ConfirmSchedule, RequestReschedule, ReportIssue, ConfirmDelivery, MarkArrived, RequestReplacement, RequestScheduleConfirmation | FR-ASG-001, FR-ISS-005, FR-TRACK-006, FR-TRACK-007 |
 | BR-005 | Jadwal dipilih dalam zona Asia/Jakarta dan disimpan UTC; seluruh tampilan memakai label WIB | Support/DisplayTime.php, CreatePackage | FR-PKG-001, FR-PKG-005, FR-RPT-001, FR-ORD-003 |
 | BR-006 | Jendela pengantaran pelanggan minimal 2 jam dari sekarang dan maksimal 14 hari ke depan, hanya dari slot yang terdaftar di konfigurasi | Requests/Client/RescheduleRequest.php, config coldchain.client | FR-TRACK-007 |
 | BR-007 | Satu paket hanya boleh memiliki satu paket pengganti, dijaga unique index uq_packages_one_replacement | migrasi 0001_01_01_000022 | FR-ISS-007 |
@@ -447,7 +444,7 @@ di sini dan dipakai dengan kode BR.
 | BR-022 | Foto bukti disimpan pada disk lokal dengan pola folder per bulan; URL sementara gagal untuk disk lokal sehingga pratinjau memakai route /api/media/preview berbatas pola path | Support/MediaStorage.php, Media/MediaPreviewController.php | FR-DEL-005, FR-ISS-002, FR-RPT-006 |
 | BR-023 | Ekspor CSV menambahkan BOM UTF-8 dan menyaring formula injection dengan menambahkan apostrof di depan nilai yang dimulai karakter berbahaya | Support/Csv/StreamedCsv.php | FR-RPT-002, FR-RPT-004, FR-RPT-005 |
 | BR-024 | Respons API pelanggan memasang header X-Robots-Tag noindex, Referrer-Policy no-referrer, Cache-Control private no-store, X-Content-Type-Options nosniff | Middleware/ClientSecurityHeaders.php | FR-ORD-001, FR-TRACK-001 |
-| BR-025 | Idempotensi aksi pelanggan: konfirmasi dan jadwal ulang yang ditekan dua kali tidak menghasilkan transisi ganda; pilihan kendala pertama yang menang | ConfirmSchedule, RequestReschedule, RecordIssueChoice | FR-TRACK-006, FR-TRACK-007, FR-ISS-009 |
+| BR-025 | Idempotensi aksi pelanggan: konfirmasi dan jadwal ulang yang ditekan dua kali tidak menghasilkan transisi ganda | ConfirmSchedule, RequestReschedule | FR-TRACK-006, FR-TRACK-007 |
 | BR-026 | Keputusan yang sudah ada tidak boleh ditimpa; permintaan kedua ditolak 422 | ExceptionDecisionController, GpsCheckController@decide | FR-ISS-005, FR-GPS-006 |
 
 ---
@@ -480,7 +477,7 @@ template belum memuat address, buyer_name, atau window, nilai itu diisi otomatis
 | Resolusi LID | GET http://waha/api/anteraja/lids/{id} memakai kredensial Anteraja WAHA | deploy/n8n/README.md |
 | Model bahasa | deepseek-v4-flash pada endpoint OpenAI-compatible | deploy/n8n/README.md |
 | State percakapan | tabel anteraja_chat_state di database n8n, kolom last_template dan context | deploy/n8n/state-table.sql |
-| Aksi yang dapat dipanggil | POST schedule/confirm, POST schedule/reschedule, POST issue/choice pada API guest | deploy/n8n/README.md |
+| Aksi yang dapat dipanggil | POST schedule/confirm, POST schedule/reschedule pada API guest | deploy/n8n/README.md |
 | Uji | suite Node deploy/n8n/tests/inbound-scenarios.mjs dijalankan CI | .github/workflows/n8n-scenarios.yaml |
 
 ### 7.3 Endpoint internal lookup
@@ -493,7 +490,7 @@ template belum memuat address, buyer_name, atau window, nilai itu diisi otomatis
 | Pencocokan | resi harus milik pembeli dengan nomor tersebut setelah normalisasi E.164 | idem |
 | Respons tidak cocok | found false dengan HTTP 200, bukan error | idem |
 | Respons cocok | found true, tracking_number, client_token, client_url, template, status_label, window | idem |
-| Perhitungan template | dari OrderPresenter::resolveActionRequired, dipetakan ke schedule_request, issue_options, issue_decision, in_delivery, atau none | idem |
+| Perhitungan template | dari OrderPresenter::resolveActionRequired, dipetakan ke schedule_request, issue_decision, in_delivery, atau none | idem |
 
 ### 7.4 Google Maps dan tautan telepon
 
@@ -638,7 +635,7 @@ tingkat atas:
 | ASG | 5 | AssignCourier, AcceptTask, RejectTask | AdminShipmentTest, CourierFlowTest | admin/Shipment, courier/Tasks |
 | DEL | 7 | StartDelivery, MarkArrived, ConfirmDelivery | CourierFlowTest, AdminConsoleE2ETest | courier/Delivery, courier/Proof |
 | GPS | 7 | GpsValidator, FakeGpsDetector, GeofenceEvaluator | GpsDetectionTest, CourierGpsValidationTest, AdminGpsConsoleTest | admin/GpsChecks, admin/Geofence, courier/Delivery |
-| ISS | 10 | ReportIssue, ResolveIssue, lima handler, RecordIssueChoice, RequestReplacement | CourierFlowTest, AdminExceptionTest, ClientFlowTest, WhatsAppNotificationFlowTest | courier/Issue, admin/Shipment, client/Issue |
+| ISS | 10 | ReportIssue, ResolveIssue, lima handler, RequestReplacement | CourierFlowTest, AdminExceptionTest, ClientFlowTest, WhatsAppNotificationFlowTest | courier/Issue, admin/Shipment, client/Issue |
 | NOTIF | 3 | NotificationQueue, DispatchNotificationToN8n, RemindUnansweredConfirmations | WhatsAppNotificationFlowTest, ClientFlowTest | - |
 | WA | 3 | WhatsappLookupController, NotificationQueue | WhatsappLookupTest, WhatsAppNotificationFlowTest | - |
 | TRACK | 7 | ClientAccessService, ClientScreenResolver, tiga ViewService, ConfirmSchedule, RequestReschedule | ClientFlowTest, ClientUnitTest, PublicTrackingTest | client/Tracking, client/Schedule |
@@ -669,9 +666,8 @@ lebih banyak. Endpoint yang ADA di kode tetapi TIDAK ada di OpenAPI:
 | POST /api/client/orders/{tracking_number}/schedule/reschedule | routes/api.php |
 | GET /api/client/orders/{tracking_number}/issue | routes/api.php |
 | POST /api/client/orders/{tracking_number}/issue/resend | routes/api.php |
-| Seluruh grup /api/guest/{token} termasuk claim, tracking, schedule, confirm, reschedule, issue, issue/choice | routes/api.php |
+| Seluruh grup /api/guest/{token} termasuk claim, tracking, schedule, confirm, reschedule, issue | routes/api.php |
 | POST /api/client/{token}/claim | routes/api.php |
-| POST /api/client/{token}/issue/choice | routes/api.php |
 | POST /api/internal/whatsapp/lookup | routes/api.php |
 | GET /api/docs, /api/docs/openapi.json, /api/docs/openapi.yaml | routes/api.php |
 

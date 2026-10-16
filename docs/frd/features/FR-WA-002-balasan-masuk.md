@@ -55,11 +55,10 @@ yang ditulis flow outbound.
 5. Aksi dijalankan sesuai langkah yang menunggu:
    - schedule_request atau schedule_rescheduled dan jawaban setuju memanggil POST schedule/confirm.
    - schedule_request atau schedule_rescheduled dan permintaan jadwal lain memanggil POST schedule/reschedule, meminta tanggal dan jam bila belum lengkap.
-   - issue_options dengan angka 1 sampai 4 atau kata kunci memanggil POST issue/choice.
    - on_the_way, courier_arrived, delivered, dan issue_decision_update memakai balasan apa pun tanpa aksi, hanya menjawab status singkat.
    - Ada paket tanpa langkah tertunda: jawab status paket dan jadwalnya.
    - Tidak ada state: kirim teks bantuan yang meminta nomor resi.
-6. Setelah aksi berhasil, last_template dimajukan menjadi confirmed, reschedule_requested, atau issue_choice_recorded.
+6. Setelah aksi berhasil, last_template dimajukan menjadi confirmed atau reschedule_requested.
 7. Bila API menolak, pesan penolakan diteruskan apa adanya dan state tidak dimajukan.
 8. Balasan dikirim lewat WAHA ke nomor hasil resolusi.
 
@@ -101,12 +100,12 @@ mengandung client_token yang tidak dapat dibuka pelanggan.
 | Konfigurasi WAHA | deploy/k8s/waha/configmap.yaml dan deployment.yaml |
 | Dokumentasi | deploy/n8n/README.md tabel last_template dan bagian LID |
 | Test | deploy/n8n/tests/inbound-scenarios.mjs melalui .github/workflows/n8n-scenarios.yaml |
-| Aksi aplikasi | routes/api.php grup guest, Actions/Client/ConfirmSchedule.php, RequestReschedule.php, RecordIssueChoice.php |
+| Aksi aplikasi | routes/api.php grup guest, Actions/Client/ConfirmSchedule.php, RequestReschedule.php |
 
 ## 11. Skenario uji
 
 1. Given state schedule_request dan pelanggan menjawab "siap", When webhook diproses, Then schedule/confirm dipanggil, paket CONFIRMED, dan last_template menjadi confirmed.
-2. Given state issue_options dan pelanggan menjawab 9, When webhook diproses, Then tidak ada aksi dan bot mengirim bantuan.
+2. Given state issue_decision_update dan pelanggan menjawab "1", When webhook diproses, Then tidak ada aksi dan bot menjawab status kendala.
 3. Given tidak ada state dan pelanggan mengetik nomor resi, When webhook diproses, Then lookup dipanggil dan state dibuat.
 
 ## 12. Yang perlu dikonfirmasi

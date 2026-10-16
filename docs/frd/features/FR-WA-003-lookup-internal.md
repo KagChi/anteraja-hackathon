@@ -54,7 +54,7 @@ Nomor dinormalkan ke E.164 dan resi diubah ke huruf besar serta dipangkas.
 2. Validasi phone dan resi.
 3. Cari paket dengan tracking_number sama dengan resi DAN pemiliknya pembeli dengan nomor tersebut.
 4. Bila tidak cocok, balas HTTP 200 dengan found false; ini jawaban normal, bukan error.
-5. Bila cocok, hitung template langkah yang tertunda dari OrderPresenter::resolveActionRequired dengan pemetaan: confirm_schedule ke schedule_request, view_issue ke issue_options, request_replacement ke issue_decision, track ke in_delivery, lainnya none.
+5. Bila cocok, hitung template langkah yang tertunda dari OrderPresenter::resolveActionRequired dengan pemetaan: confirm_schedule ke schedule_request, request_replacement ke issue_decision, track ke in_delivery, lainnya none.
 6. Susun label status dari lang dan jendela pengantaran.
 7. Balas found true beserta resi, client_token, tautan klien, template, label status, dan jendela.
 

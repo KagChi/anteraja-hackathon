@@ -6,9 +6,7 @@ namespace Tests\Feature;
 
 use App\Actions\Courier\ReportIssue;
 use App\DTOs\Courier\ReportIssueData;
-use App\Enums\BuyerIssueChoice;
 use App\Enums\IssueCategory;
-use App\Enums\IssueDecision;
 use App\Enums\NotificationStatus;
 use App\Enums\PackageStatus;
 use App\Enums\RecipientType;
@@ -287,7 +285,7 @@ final class WhatsAppNotificationFlowTest extends TestCase
         $this->assertSame(NotificationStatus::QUEUED, $notification->refresh()->status);
     }
 
-    public function test_courier_issue_report_queues_buyer_resolution_menu(): void
+    public function test_courier_issue_report_notifies_ops_but_not_the_buyer(): void
     {
         Queue::fake();
 
@@ -302,100 +300,14 @@ final class WhatsAppNotificationFlowTest extends TestCase
             photoPath: 'proofs/issue-test.jpg',
         ));
 
-        $notification = Notification::where('package_id', $package->id)
-            ->where('template', 'issue_options')
+        // Ops is told about the problem; the recipient no longer receives a menu.
+        $this->assertTrue(Notification::where('package_id', $package->id)
+            ->where('template', 'issue_reported')
+            ->where('recipient_type', RecipientType::ADMIN)
+            ->exists());
+
+        $this->assertSame(0, Notification::where('package_id', $package->id)
             ->where('recipient_type', RecipientType::BUYER)
-            ->first();
-
-        $this->assertNotNull($notification);
-        $this->assertSame('kemasan_bocor', $notification->payload['issue_category']);
-        $this->assertSame('+6281300000199', $notification->payload['recipient_phone']);
-    }
-
-    public function test_buyer_can_pick_return_option_from_whatsapp(): void
-    {
-        $package = $this->createPackage(['status' => PackageStatus::ISSUE_REPORTED]);
-        $issue = $this->createIssueReport($package);
-
-        $response = $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 1]);
-
-        $response->assertOk();
-        $response->assertJsonPath('data.choice', 'RETURN');
-        $response->assertJsonPath('data.already_recorded', false);
-
-        $issue->refresh();
-        $this->assertSame(BuyerIssueChoice::RETURN, $issue->buyer_choice);
-        $this->assertNotNull($issue->buyer_responded_at);
-
-        $this->assertDatabaseHas('notifications', [
-            'package_id' => $package->id,
-            'recipient_type' => 'ADMIN',
-            'template' => 'buyer_issue_choice',
-        ]);
-    }
-
-    public function test_resend_option_creates_replacement_only_when_eligible(): void
-    {
-        $package = $this->createPackage(['status' => PackageStatus::ISSUE_REPORTED]);
-        $this->createIssueReport($package);
-
-        $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 2])
-            ->assertOk()
-            ->assertJsonPath('data.choice', 'RESEND')
-            ->assertJsonPath('data.replacement_tracking_number', null);
-
-        $this->assertNull(Package::where('resend_of_package_id', $package->id)->first());
-    }
-
-    public function test_resend_option_creates_replacement_when_package_is_returned(): void
-    {
-        $package = $this->createPackage(['status' => PackageStatus::RETURNED]);
-        $this->createIssueReport($package, [
-            'decision' => IssueDecision::RETURN,
-            'decision_reason' => 'Kemasan rusak, paket ditarik ke DC.',
-            'decided_by' => $this->admin->id,
-            'decided_at' => now(),
-        ]);
-
-        $response = $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 2]);
-
-        $response->assertOk();
-
-        $replacement = Package::where('resend_of_package_id', $package->id)->first();
-
-        $this->assertNotNull($replacement);
-        $this->assertSame($replacement->tracking_number, $response->json('data.replacement_tracking_number'));
-    }
-
-    public function test_first_buyer_choice_wins_when_reply_is_repeated(): void
-    {
-        $package = $this->createPackage(['status' => PackageStatus::ISSUE_REPORTED]);
-        $issue = $this->createIssueReport($package);
-
-        $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 1])->assertOk();
-
-        $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 3])
-            ->assertOk()
-            ->assertJsonPath('data.already_recorded', true)
-            ->assertJsonPath('data.choice', 'RETURN');
-
-        $this->assertSame(BuyerIssueChoice::RETURN, $issue->refresh()->buyer_choice);
-    }
-
-    public function test_issue_choice_rejects_unknown_option(): void
-    {
-        $package = $this->createPackage(['status' => PackageStatus::ISSUE_REPORTED]);
-        $this->createIssueReport($package);
-
-        $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 9])
-            ->assertStatus(422);
-    }
-
-    public function test_issue_choice_requires_an_issue_report(): void
-    {
-        $package = $this->createPackage();
-
-        $this->postJson("/api/guest/{$package->client_token}/issue/choice", ['choice' => 1])
-            ->assertStatus(422);
+            ->count());
     }
 }

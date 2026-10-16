@@ -92,9 +92,6 @@ final class ReportIssue
 
                 $this->notifications->queueIssueReported($locked, $courier, $data->issueCategory->value);
 
-                // Menu opsi penyelesaian kendala dikirim ke pembeli lewat WhatsApp.
-                $this->notifications->queueIssueOptions($locked, $data->issueCategory);
-
                 return $locked;
             });
         } catch (\Throwable $e) {

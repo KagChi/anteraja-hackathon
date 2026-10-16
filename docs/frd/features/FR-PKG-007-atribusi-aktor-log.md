@@ -56,9 +56,7 @@ status_logs.changed_by tanpa perlu kode tambahan di setiap Action.
 
 Konsekuensi yang perlu dipahami pembaca dokumen: aksi pembeli seperti konfirmasi
 jadwal dan pengajuan jadwal ulang menghasilkan changed_by null. Untuk mengetahui
-pelakunya, harus dibaca tabel lain: schedule_confirmations.responded_at untuk
-konfirmasi dan pengajuan jadwal, serta issue_reports.buyer_responded_at untuk
-pilihan penyelesaian kendala.
+pelakunya, harus dibaca tabel schedule_confirmations.responded_at.
 
 ## 7. Output
 

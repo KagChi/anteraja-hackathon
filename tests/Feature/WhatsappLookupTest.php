@@ -177,7 +177,7 @@ final class WhatsappLookupTest extends TestCase {
         $this->assertStringNotContainsString((string) config('app.url'), $response->getContent());
     }
 
-    public function test_it_reports_the_issue_menu_for_an_open_issue(): void {
+    public function test_an_open_issue_leaves_nothing_for_the_buyer_to_do(): void {
         $package = $this->package(['status' => PackageStatus::ISSUE_REPORTED]);
 
         $this->issueReport($package);
@@ -186,7 +186,7 @@ final class WhatsappLookupTest extends TestCase {
             ->assertOk()
             ->assertJson([
                 'found' => true,
-                'template' => 'issue_options',
+                'template' => 'none',
             ]);
     }
 
@@ -239,8 +239,8 @@ final class WhatsappLookupTest extends TestCase {
             ]);
     }
 
-    /** A returned parcel with a non-return decision still offers the menu. */
-    public function test_it_reports_the_issue_menu_when_the_decision_was_not_a_return(): void {
+    /** A returned parcel with a non-return decision still has nothing pending. */
+    public function test_a_returned_parcel_with_a_non_return_decision_leaves_nothing_pending(): void {
         $package = $this->package(['status' => PackageStatus::RETURNED]);
 
         $this->issueReport($package, IssueDecision::RESEND);
@@ -249,7 +249,7 @@ final class WhatsappLookupTest extends TestCase {
             ->assertOk()
             ->assertJson([
                 'found' => true,
-                'template' => 'issue_options',
+                'template' => 'none',
             ]);
     }
 

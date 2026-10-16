@@ -65,8 +65,7 @@ akses_ditutup ke alamat_tidak_ditemukan untuk kompatibilitas dengan aplikasi lam
 9. Buat IssueReport berisi check_id, kategori, deskripsi, foto, dan waktu laporan.
 10. Transisi ke ISSUE_REPORTED dengan deskripsi "Laporan kendala: {label kategori}".
 11. Antrekan notifikasi issue_reported ke setiap admin aktif.
-12. Antrekan notifikasi issue_options ke pembeli berisi kategori dan labelnya.
-13. Bila terjadi kegagalan, hapus foto yang sudah tersimpan lalu lemparkan ulang.
+12. Bila terjadi kegagalan, hapus foto yang sudah tersimpan lalu lemparkan ulang.
 
 ## 7. Output
 
@@ -96,7 +95,7 @@ akses_ditutup ke alamat_tidak_ditemukan untuk kompatibilitas dengan aplikasi lam
 | Pemeriksaan | condition_checks dengan is_normal false |
 | Laporan | issue_reports |
 | Log status | status_logs ke CHECKED bila perlu, lalu ke ISSUE_REPORTED |
-| Notifikasi | issue_reported untuk setiap admin aktif dan issue_options untuk pembeli |
+| Notifikasi | issue_reported untuk setiap admin aktif |
 
 ## 10. Traceability
 
@@ -107,13 +106,13 @@ akses_ditutup ke alamat_tidak_ditemukan untuk kompatibilitas dengan aplikasi lam
 | Action | Actions/Courier/ReportIssue |
 | FormRequest | Requests/Courier/ReportIssueRequest.php |
 | DTO | DTOs/Courier/ReportIssueData.php |
-| Support | ChecklistNormalizer, MediaStorage, NotificationQueue::queueIssueOptions |
-| Test | tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_queues_buyer_resolution_menu, tests/Feature/AdminConsoleE2ETest.php test_the_kendala_journey_completes_end_to_end |
+| Support | ChecklistNormalizer, MediaStorage |
+| Test | tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_notifies_ops_but_not_the_buyer, tests/Feature/AdminConsoleE2ETest.php test_the_kendala_journey_completes_end_to_end |
 | UI | resources/js/pwa/screens/courier/Issue.tsx |
 
 ## 11. Skenario uji
 
-1. Given paket CHECKED tanpa kendala, When kurir mengirim laporan lengkap, Then HTTP 200, paket ISSUE_REPORTED, satu issue_reports tersimpan, dan notifikasi issue_options terantre.
+1. Given paket CHECKED tanpa kendala, When kurir mengirim laporan lengkap, Then HTTP 200, paket ISSUE_REPORTED, satu issue_reports tersimpan, dan admin menerima notifikasi issue_reported.
 2. Given kategori suhu_naik tanpa suhu, When laporan dikirim, Then HTTP 422 dan tidak ada issue_reports baru.
 3. Given foto hilang, When laporan dikirim, Then HTTP 422 dan status paket tidak berubah.
 

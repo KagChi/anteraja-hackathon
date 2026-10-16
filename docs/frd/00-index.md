@@ -96,7 +96,6 @@ Total: 82 requirement fungsional.
 | FR-ISS-006 | Efek samping lima jenis putusan | Transisi, notifikasi, dan paket pengganti per keputusan | Live |
 | FR-ISS-007 | Kelayakan dan pembuatan paket pengganti | Syarat retur dan pembuatan resi baru | Live |
 | FR-ISS-008 | Layar kendala pelanggan | Ringkasan masalah, keputusan, catatan mutu, dan timeline | Live |
-| FR-ISS-009 | Mencatat pilihan penyelesaian pelanggan | Opsi 1 sampai 4 dari WhatsApp, pilihan pertama yang menang | Live |
 | FR-ISS-010 | Permintaan pengiriman ulang dari aplikasi | Pengajuan resend dari aplikasi pelanggan | Live |
 
 ## NOTIF — Notification Outbox dan Penjadwalan

@@ -1,7 +1,7 @@
 # FRD Modul ISS — Laporan Kendala, Keputusan, dan Penggantian
 
 Modul ini menutup paket bermasalah: laporan kurir di lapangan, antrean kendala hub
-lima arah keputusan, menu pilihan pelanggan lewat WhatsApp, dan pembuatan paket
+lima arah keputusan, dan pembuatan paket
 pengganti.
 
 Aturan bisnis terkait: BR-002, BR-003, BR-004, BR-007, BR-008, BR-012, BR-013
@@ -39,11 +39,11 @@ BR-022, BR-025, BR-026.
 - Proses / Business Rules: validasi status dan kendala terbuka diulang di dalam Action dengan lockForUpdate (BR-004). Bila status COURIER_ASSIGNED, paket terlebih dulu dipindahkan ke CHECKED dengan catatan "Pemeriksaan menemukan kendala". ConditionCheck dibuat dengan is_normal false, checklist, catatan label kategori, suhu, dan waktu pemeriksaan. IssueReport dibuat dengan kategori, deskripsi, foto, dan waktu laporan. Paket lalu dipindahkan ke ISSUE_REPORTED dengan deskripsi keputusan berisi label kategori. Bila terjadi kegagalan, foto yang tersimpan dihapus.
 - Output / Response: HTTP 200 dengan message "Laporan terkirim, menunggu keputusan admin." dan objek package yang memuat statusRef.
 - Error & Edge Cases: kategori suhu_naik tanpa suhu menghasilkan 422. Foto lebih dari 5 MB atau format lain menghasilkan 422. Status di luar daftar menghasilkan DeliveryNotActionable. Kendala terbuka yang sudah ada menghasilkan DeliveryNotActionable::issueAlreadyOpen. GPS tidak divalidasi pada endpoint ini sehingga laporan kendala tidak pernah diblokir oleh lokasi.
-- Side Effects: baris condition_checks dan issue_reports; baris status_logs untuk CHECKED bila perlu dan untuk ISSUE_REPORTED; satu baris notifications QUEUED per admin aktif dengan template issue_reported; satu baris notifications QUEUED untuk pembeli dengan template issue_options berisi kategori dan labelnya.
+- Side Effects: baris condition_checks dan issue_reports; baris status_logs untuk CHECKED bila perlu dan untuk ISSUE_REPORTED; satu baris notifications QUEUED per admin aktif dengan template issue_reported.
 - Postcondition: paket menunggu keputusan admin dan tidak dapat menerima bukti serah terima sampai kendala diputuskan.
-- Traceability: routes/api.php, Courier/IssueReportController@store, Actions/Courier/ReportIssue, Requests/Courier/ReportIssueRequest, DTOs/Courier/ReportIssueData, Support/ChecklistNormalizer, Support/MediaStorage, Support/NotificationQueue::queueIssueOptions, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_queues_buyer_resolution_menu, resources/js/pwa/screens/courier/Issue.tsx.
+- Traceability: routes/api.php, Courier/IssueReportController@store, Actions/Courier/ReportIssue, Requests/Courier/ReportIssueRequest, DTOs/Courier/ReportIssueData, Support/ChecklistNormalizer, Support/MediaStorage, tests/Feature/CourierFlowTest.php test_courier_report_issue_flow, tests/Feature/WhatsAppNotificationFlowTest.php test_courier_issue_report_notifies_ops_but_not_the_buyer, resources/js/pwa/screens/courier/Issue.tsx.
 - Acceptance Criteria:
-  - Given paket CHECKED tanpa kendala, When kurir mengirim laporan lengkap, Then HTTP 200, paket menjadi ISSUE_REPORTED, satu issue_reports tersimpan, dan notifikasi issue_options terantre untuk pembeli.
+  - Given paket CHECKED tanpa kendala, When kurir mengirim laporan lengkap, Then HTTP 200, paket menjadi ISSUE_REPORTED, satu issue_reports tersimpan, dan admin menerima notifikasi issue_reported.
   - Given kategori suhu_naik tanpa kolom suhu, When laporan dikirim, Then HTTP 422 dan tidak ada issue_reports baru.
 - Status: Live
 
@@ -170,26 +170,6 @@ BR-022, BR-025, BR-026.
 - Acceptance Criteria:
   - Given paket dengan kendala yang sudah diputuskan RETURN, When layar dibuka, Then pesan keputusan terisi dan penanda kelayakan penggantian bernilai true.
   - Given paket tanpa laporan kendala, When layar dibuka, Then HTTP 200 dengan redirect_url ke tracking dan tanpa data kendala.
-- Status: Live
-
----
-
-### FR-ISS-009 — Mencatat pilihan penyelesaian pelanggan
-
-- Deskripsi: Sistem HARUS mencatat pilihan penyelesaian kendala yang dikirim pelanggan lewat menu WhatsApp empat opsi, dan HARUS memakai pilihan pertama bila pelanggan menjawab berulang.
-- Aktor & Otorisasi: guest pemegang tautan token atau pembeli pemilik paket.
-- Trigger: POST /api/guest/{token}/issue/choice atau POST /api/client/{token}/issue/choice dari workflow n8n inbound.
-- Precondition: paket punya laporan kendala dan laporan itu belum punya pilihan pembeli.
-- Input & Validasi: choice wajib integer antara 1 dan 4; pemetaannya berturut-turut RETURN, RESEND, PROCEED, dan DISCUSS. Nilai di luar rentang menghasilkan 422.
-- Proses / Business Rules: transaksi dengan lockForUpdate pada baris paket lalu pada laporan kendala terbaru (BR-004). Bila laporan tidak ada, lempar IssueNotReported. Pilihan disimpan pada buyer_choice dan buyer_responded_at. Seluruh admin aktif menerima notifikasi buyer_issue_choice berisi resi, nilai pilihan, labelnya, dan kategori kendala. Bila pilihan adalah RESEND (opsi 2), sistem memeriksa kelayakan retur; paket pengganti hanya dibuat bila layak, sebaliknya pilihan tetap dicatat dan admin yang melanjutkan keputusan. Bila laporan sudah punya pilihan, pilihan lama yang dikembalikan dengan penanda already_recorded true, dan pembuatan pengganti tetap dievaluasi (BR-025).
-- Output / Response: HTTP 200 dengan success true, message "Pilihan penyelesaian kendala berhasil dicatat.", dan data berisi choice, choice_label, already_recorded, replacement_tracking_number, replacement_url.
-- Error & Edge Cases: paket tanpa laporan kendala menghasilkan permintaan gagal IssueNotReported. Opsi di luar 1 sampai 4 menghasilkan 422. Jawaban berulang tidak mengubah pilihan pertama.
-- Side Effects: kolom buyer_choice dan buyer_responded_at pada issue_reports; baris notifications QUEUED per admin aktif; bila opsi 2 dan layak, ditambah baris paket pengganti beserta notifikasinya.
-- Postcondition: pilihan pelanggan tercatat sebagai masukan keputusan admin.
-- Traceability: routes/api.php, Api/Client/IssueChoiceController, Actions/Client/RecordIssueChoice, Requests/Client/IssueChoiceRequest, Enums/BuyerIssueChoice, tests/Feature/WhatsAppNotificationFlowTest.php test_buyer_can_pick_return_option_from_whatsapp dan test_first_buyer_choice_wins_when_reply_is_repeated, deploy/n8n/README.md tabel last_template.
-- Acceptance Criteria:
-  - Given kendala tanpa pilihan pembeli, When pelanggan mengirim "2", Then choice RESEND tersimpan, already_recorded false, dan admin menerima notifikasi buyer_issue_choice.
-  - Given kendala yang sudah punya pilihan RETURN, When pelanggan mengirim "3", Then respons mengembalikan pilihan lama RETURN dengan already_recorded true dan kolom buyer_choice tidak berubah.
 - Status: Live
 
 ---

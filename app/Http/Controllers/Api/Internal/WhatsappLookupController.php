@@ -96,7 +96,6 @@ final class WhatsappLookupController extends Controller {
     private function templateFor(OrderPresenter $presenter, Package $package): string {
         return match ($presenter->resolveActionRequired($package)) {
             'confirm_schedule' => 'schedule_request',
-            'view_issue' => 'issue_options',
             'request_replacement' => 'issue_decision',
             'track' => 'in_delivery',
             default => 'none',

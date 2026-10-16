@@ -8,7 +8,6 @@ use App\Enums\IssueCategory;
 use App\Enums\IssueDecision;
 use App\Enums\PackageStatus;
 use App\Enums\ResolutionStatus;
-use App\Enums\BuyerIssueChoice;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,8 +33,6 @@ final class IssueReport extends Model
         'decided_by',
         'decided_at',
         'reported_at',
-        'buyer_choice',
-        'buyer_responded_at',
     ];
 
     /**
@@ -50,8 +47,6 @@ final class IssueReport extends Model
             'decided_by' => 'integer',
             'decided_at' => 'immutable_datetime',
             'reported_at' => 'immutable_datetime',
-            'buyer_choice' => BuyerIssueChoice::class,
-            'buyer_responded_at' => 'immutable_datetime',
         ];
     }
 

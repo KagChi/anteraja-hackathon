@@ -20,7 +20,7 @@ dibentuk. Eligibility memutuskan, factory yang membuat.
 | Aspek | Nilai |
 | --- | --- |
 | Aktor | sistem dan admin |
-| Pemanggil | ResendDecisionHandler (keputusan admin), RecordIssueChoice (opsi 2 WhatsApp), RequestReplacement (aplikasi pelanggan) |
+| Pemanggil | ResendDecisionHandler (keputusan admin), RequestReplacement (aplikasi pelanggan) |
 
 ## 3. Trigger
 

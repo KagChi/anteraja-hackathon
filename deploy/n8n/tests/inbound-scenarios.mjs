@@ -160,7 +160,6 @@ function decide(options) {
 const CONTEXT = { window: 'Hari ini, 13:00 - 15:00', client_url: 'https://app/api/client/tok' };
 const SCHEDULE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'schedule_request', context: CONTEXT };
 const RESCHEDULED_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'schedule_rescheduled', context: CONTEXT };
-const ISSUE_STATE = { phone: PHONE, tracking_number: RESI, client_token: 'tok', last_template: 'issue_options', context: CONTEXT };
 const NO_STATE = { phone: PHONE, tracking_number: null, client_token: null, last_template: null, context: null };
 const FOUND_REQUEST = {
   found: true,
@@ -601,59 +600,6 @@ scenario('a rejection never leaves the customer without an explanation', () => {
   contains(out.reply.text, 'hubungi layanan pelanggan', 'falls back to a next step');
 });
 
-// ------------------------------------------------------------ inbound choice
-
-console.log('');
-console.log('Inbound — issue options');
-
-scenario('1 to 4 record the matching resolution', () => {
-  const expected = [['1', 1], ['2', 2], ['3', 3], ['4', 4]];
-  for (const pair of expected) {
-    const out = decide({ text: pair[0], state: ISSUE_STATE });
-    eq(out.decision.option, pair[1], 'option for ' + pair[0]);
-    contains(out.decision.app_url, '/issue/choice', 'app url for ' + pair[0]);
-    eq(out.decision.next_template, 'issue_choice_recorded', 'next template for ' + pair[0]);
-  }
-});
-
-scenario('the option wording maps to the same numbers', () => {
-  const expected = [['kirim ulang', 2], ['retur', 1], ['kompensasi', 3], ['mau diskusi', 4]];
-  for (const pair of expected) {
-    eq(decide({ text: pair[0], state: ISSUE_STATE }).decision.option, pair[1], 'option for ' + pair[0]);
-  }
-});
-
-scenario('a number outside the menu is not a choice', () => {
-  const out = decide({ text: '9', state: ISSUE_STATE });
-  eq(out.decision.app_url, null, 'no app call');
-  contains(out.reply.text, MENU, 'menu re-sent');
-});
-
-scenario('a number with no menu open is never a choice', () => {
-  for (const template of ['delivered', 'on_the_way', 'schedule_request', null]) {
-    const out = decide({ text: '1', state: { ...SCHEDULE_STATE, last_template: template } });
-    eq(out.decision.app_url, null, 'no app call for ' + template);
-  }
-});
-
-scenario('option 2 only promises a replacement when one was created', () => {
-  const withReplacement = decide({
-    text: '2',
-    state: ISSUE_STATE,
-    app: { success: true, data: { choice: 'RESEND', replacement_tracking_number: 'AJ-FRZ-0012400' } },
-  });
-  contains(withReplacement.reply.text, 'AJ-FRZ-0012400', 'names the replacement resi');
-  contains(withReplacement.reply.text, 'konfirmasi jadwal', 'asks for the new window');
-
-  const withoutReplacement = decide({
-    text: '2',
-    state: ISSUE_STATE,
-    app: { success: true, data: { choice: 'RESEND', replacement_tracking_number: null } },
-  });
-  absent(withoutReplacement.reply.text, 'resi pengganti', 'no phantom replacement');
-  contains(withoutReplacement.reply.text, 'diteruskan ke tim operasional', 'hands it to the ops team');
-});
-
 // --------------------------------------------------- inbound informative states
 
 console.log('');
@@ -727,7 +673,6 @@ scenario('no reply in the matrix ever carries a URL', () => {
   const cases = [
     { text: 'hai', state: NO_STATE },
     { text: 'siap', state: SCHEDULE_STATE },
-    { text: '2', state: ISSUE_STATE },
     { text: 'oke', state: { ...SCHEDULE_STATE, last_template: 'on_the_way' } },
     { text: 'oke', state: { ...SCHEDULE_STATE, last_template: 'delivered' } },
     { text: RESI, state: NO_STATE, lookup: FOUND_REQUEST },
@@ -857,15 +802,15 @@ scenario('a buyer conversation is never treated as staff', () => {
     tracking_number: RESI,
     client_token: 'tok',
     client_url: 'https://app/api/client/tok',
-    template: 'issue_options',
+    template: 'none',
     status_label: 'Pengiriman Terkendala'
   };
 
-  const out = decide({ text: '1', state: ISSUE_STATE, lookup: buyerLookup });
+  const out = decide({ text: '1', state: NO_STATE, lookup: buyerLookup });
 
-  eq(out.decision.intent, 'choice', 'buyer action kept');
-  contains(out.decision.app_url, '/api/guest/', 'still the guest API');
-  eq(out.decision.app_body.choice, 1, 'buyer choice recorded');
+  eq(out.decision.app_url, null, 'a buyer has no pending action to apply');
+  eq(out.decision.intent, 'info:none', 'answered as a status question, not a choice');
+  absent(out.decision.app_url || '', '/api/internal/whatsapp/action', 'never the admin action endpoint');
 });
 
 scenario('the courier action node carries the shared token', () => {
@@ -935,7 +880,6 @@ scenario('every buyer step renders and sends', () => {
   const expected = [
     ['schedule_request', 'Balas *SIAP*'],
     ['schedule_rescheduled', 'Admin telah mengusulkan jadwal baru'],
-    ['issue_options', '1. Pengembalian Paket ke Pengirim'],
     ['on_the_way', 'sedang diantar'],
     ['courier_arrived', 'sudah tiba di lokasi'],
     ['delivered', 'sudah diterima'],
@@ -1014,15 +958,6 @@ scenario('admin steps reach the admin dashboard owner', () => {
   contains(rejected.text, 'menolak penugasan', 'says the task was refused');
   contains(rejected.text, 'Motor sedang masuk bengkel', 'carries the reason');
 
-  const choice = render('buyer_issue_choice', {
-    recipient_name: 'Dimas',
-    choice: 1,
-    choice_label: 'Pengembalian Paket ke Pengirim',
-    issue_label: 'Kemasan bocor'
-  });
-  eq(choice.should_send, true, 'should_send for buyer_issue_choice');
-  contains(choice.text, 'Pilihan pembeli: Pengembalian Paket ke Pengirim', 'names the buyer choice');
-
   const resend = render('resend_requested', {
     recipient_name: 'Dimas',
     replacement_tracking_number: 'AJ-FRZ-0012399'
@@ -1063,13 +998,13 @@ scenario('a report with no numbers still renders zeroes', () => {
 
 scenario('every operational message stands alone without a link', () => {
   const templates = [
-    'schedule_request', 'schedule_rescheduled', 'issue_options', 'on_the_way', 'courier_arrived', 'delivered',
+    'schedule_request', 'schedule_rescheduled', 'on_the_way', 'courier_arrived', 'delivered',
     'delivery_pin', 'reschedule_requested',
-    'confirmation_overdue', 'issue_reported', 'task_rejected', 'buyer_issue_choice', 'resend_requested',
+    'confirmation_overdue', 'issue_reported', 'task_rejected', 'resend_requested',
     'daily_report'
   ];
   for (const template of templates) {
-    const out = render(template, { issue_label: 'Kemasan bocor', choice_label: 'Pengembalian Paket ke Pengirim' });
+    const out = render(template, { issue_label: 'Kemasan bocor' });
     eq(out.should_send, true, 'should_send for ' + template);
     absent(out.text, 'http', 'no link in ' + template);
     absent(out.text, 'undefined', 'no missing field in ' + template);

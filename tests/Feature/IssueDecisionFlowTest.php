@@ -72,7 +72,7 @@ final class IssueDecisionFlowTest extends TestCase
         ])->refresh();
     }
 
-    public function test_the_courier_report_reaches_the_hub_and_the_buyer_gets_the_issue_menu(): void
+    public function test_the_courier_report_reaches_the_hub_without_notifying_the_buyer(): void
     {
         Storage::fake('local');
 
@@ -88,14 +88,14 @@ final class IssueDecisionFlowTest extends TestCase
 
         $this->assertSame(PackageStatus::ISSUE_REPORTED, $package->refresh()->status);
 
-        // The buyer is asked to choose a resolution; the hub is told to decide.
-        $this->assertTrue(Notification::where('template', 'issue_options')
-            ->where('recipient_type', RecipientType::BUYER)
-            ->exists());
-
+        // The hub is told to decide; the buyer is no longer asked to choose.
         $this->assertTrue(Notification::where('template', 'issue_reported')
             ->where('recipient_type', RecipientType::ADMIN)
             ->exists());
+
+        $this->assertSame(0, Notification::where('package_id', $package->id)
+            ->where('recipient_type', RecipientType::BUYER)
+            ->count());
     }
 
     public function test_the_admin_return_decision_reaches_the_buyer(): void
